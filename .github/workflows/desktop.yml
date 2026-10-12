@@ -1,0 +1,67 @@
+# Builds the Ctrl Room desktop app (desktop/, Tauri) for Windows, macOS and Linux.
+# - Push or PR touching desktop/: build and keep the installers as workflow artifacts (Actions → run → Artifacts).
+# - Tag desktop-v* (e.g. desktop-v0.1.0): build and attach the installers to a draft GitHub release to review and publish.
+# Unsigned for now: Windows SmartScreen and macOS Gatekeeper warn on first open. Signing needs certificates as secrets.
+name: Desktop
+
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+    tags: ["desktop-v*"]
+  pull_request:
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - name: Install Tauri CLI
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          args: ${{ matrix.args }}
+          uploadWorkflowArtifacts: true
+          tagName: ${{ startsWith(github.ref, 'refs/tags/desktop-v') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/desktop-v') && format('Ctrl Room desktop {0}', github.ref_name) || '' }}
+          releaseBody: "Unsigned build. Windows: SmartScreen may warn (More info → Run anyway). macOS: right-click → Open the first time."
+          releaseDraft: true

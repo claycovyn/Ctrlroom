@@ -1,0 +1,16 @@
+{
+  "name": "ctrlroom-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Ctrl Room for Windows, macOS and Linux: a native window around the Ctrl Room web app.",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon ../public/brand/ctrlroom-icon-1024.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.0"
+  }
+}
