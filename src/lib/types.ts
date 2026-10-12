@@ -16,6 +16,8 @@ export interface Community {
   icon: string;
   is_public: boolean;
   owner_id: string;
+  taken_down_at?: string | null;
+  taken_down_reason?: string | null;
 }
 
 export interface Room {

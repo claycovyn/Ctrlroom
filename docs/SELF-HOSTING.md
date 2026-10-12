@@ -1,0 +1,30 @@
+# Self-hosting Ctrl Room
+
+Self-hosting is free and **never limited**: every feature, no message or call caps, no plan. The OPENCTRL Cloud
+limits in `openctrl.json` only apply when `CTRLROOM_CLOUD=1`, which only the hosted OPENCTRL Cloud sets.
+
+## What you need
+
+- A Supabase project (hosted or self-hosted): Postgres, Auth and Realtime.
+- Optional: LiveKit (LiveKit Cloud or `livekit-server`) for voice, video and screen share.
+- Somewhere to run Next.js 15 (Vercel, a Node server, a container).
+
+## Steps
+
+1. `npx supabase link --project-ref <ref>` and `npx supabase db push` (applies every file in `supabase/migrations`).
+2. Set the env vars from `.env.example`: the Supabase URL and anon key, `NEXT_PUBLIC_SITE_URL`, and the three
+   `LIVEKIT_*` values if you want calls. Leave the OPENCTRL Cloud block unset.
+3. In Supabase → Authentication → URL configuration, set the Site URL to your domain and add
+   `https://<domain>/auth/callback` as a redirect URL.
+4. `npm run build && npm start` (or deploy to Vercel).
+
+## Optional extras
+
+- `/admin` (reports, takedowns): set `SUPABASE_SERVICE_ROLE_KEY` (server only) and `CTRLROOM_ADMIN_EMAILS`.
+- Export: owners and admins can download a community from Settings → Export on any install.
+
+## License
+
+AGPL-3.0-only (see [LICENSING.md](LICENSING.md)). Running it unchanged, for yourself or your community, asks nothing
+of you. If you change it and let other people use your version, offer them your source and set
+`CTRLROOM_SOURCE_URL` to your fork.

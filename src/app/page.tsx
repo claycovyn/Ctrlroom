@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo, LogoMark } from "@/components/Logo";
+import { cloudEnabled } from "@/lib/cloud";
 
 const FIXES = [
   {
@@ -30,13 +31,21 @@ const FIXES = [
     title: "Simple roles",
     body: "Owner, admin, mod, member. Mods clean up spam and remove or ban people. That's the whole permission system.",
   },
-  {
-    title: "No upsells, no ID checks",
-    body: "No paid tier and no ID scans. Ctrl Room keeps only what it needs to run your community.",
-  },
 ];
 
+// A self-hosted install has no paid tier at all; on OPENCTRL Cloud the copy says what the plans are.
+const NO_UPSELLS = {
+  title: "No upsells, no ID checks",
+  body: "No paid tier and no ID scans. Ctrl Room keeps only what it needs to run your community.",
+};
+const CLOUD_PLANS = {
+  title: "Every feature, every plan",
+  body: "No feature paywalls and no ID scans. Start free; one $12/month OPENCTRL Cloud plan covers every OpenCtrl original. Self-host it with no limits.",
+};
+
 export default function Home() {
+  const cloud = cloudEnabled();
+  const fixes = [...FIXES, cloud ? CLOUD_PLANS : NO_UPSELLS];
   return (
     <main className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
@@ -76,7 +85,7 @@ export default function Home() {
 
       <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <div className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-          {FIXES.map((f) => (
+          {fixes.map((f) => (
             <div key={f.title} className="bg-panel p-5">
               <h2 className="font-medium">{f.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted">{f.body}</p>
@@ -88,7 +97,17 @@ export default function Home() {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 text-sm text-muted sm:px-6">
           <span>Ctrl Room by OpenCtrl</span>
-          <span>Built by the collective.</span>
+          <span className="flex gap-4">
+            {cloud && (
+              <Link href="/pricing" className="hover:text-fg">
+                Pricing
+              </Link>
+            )}
+            <a href="/source" className="hover:text-fg">
+              Source
+            </a>
+            <span>Built by the collective.</span>
+          </span>
         </div>
       </footer>
     </main>

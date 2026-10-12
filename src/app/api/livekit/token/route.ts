@@ -31,6 +31,13 @@ export async function POST(request: NextRequest) {
   ]);
   if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
+  // Takedowns and the Free Cloud call-minute limit (never on a self-hosted install). Calls already running go on.
+  // If the check itself fails (e.g. the 0002 migration isn't applied yet), the call goes ahead: a limit check
+  // never takes calls down.
+  const { data: blocked, error: guardError } = await supabase.rpc("call_allowed", { p_room: room.id });
+  if (guardError) console.warn(`[ctrlroom] call_allowed failed: ${guardError.message}`);
+  if (!guardError && blocked) return NextResponse.json({ error: blocked }, { status: blocked === "Room not found" ? 404 : 403 });
+
   const token = new AccessToken(key, secret, {
     identity: user.id,
     name: profile?.display_name ?? "Member",

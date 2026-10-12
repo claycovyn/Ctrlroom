@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { cloudErrorText } from "@/lib/cloudErrors";
 import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -269,7 +270,10 @@ export function RoomView({
       .select()
       .single();
     if (err) {
-      flash(err.message.includes("only") ? "Only mods can start posts in this room." : "Message didn't send. Try again.");
+      flash(
+        cloudErrorText(err.message) ??
+          (err.message.includes("only") ? "Only mods can start posts in this room." : "Message didn't send. Try again."),
+      );
       return false;
     }
     const m = data as Message;
@@ -323,6 +327,7 @@ export function RoomView({
   };
 
   const actions: MessageActions = {
+    report: (m) => window.open(`/report/${community.slug}?m=${m.id}`, "_blank", "noopener"),
     react: async (m, emoji) => {
       const mine = reactions.some((r) => r.message_id === m.id && r.user_id === me.id && r.emoji === emoji);
       const r = { message_id: m.id, user_id: me.id, emoji };

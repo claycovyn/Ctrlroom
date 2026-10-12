@@ -5,7 +5,7 @@ import { timeLabel } from "@/lib/format";
 import type { ReactionSummary } from "@/lib/format";
 import type { Message, Profile } from "@/lib/types";
 import { Avatar } from "./Avatar";
-import { CheckIcon, EditIcon, PinIcon, SmileIcon, ThreadIcon, TrashIcon } from "./icons";
+import { CheckIcon, EditIcon, FlagIcon, PinIcon, SmileIcon, ThreadIcon, TrashIcon } from "./icons";
 import { RichText } from "./RichText";
 
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🔥", "👀", "✅"];
@@ -16,6 +16,8 @@ export interface MessageActions {
   pin: (m: Message) => void;
   edit: (m: Message, body: string) => Promise<boolean>;
   remove: (m: Message) => void;
+  /** Report someone else's message to the operator. */
+  report?: (m: Message) => void;
 }
 
 export function MessageItem({
@@ -194,6 +196,11 @@ export function MessageItem({
                   }}
                 >
                   <TrashIcon />
+                </ToolButton>
+              )}
+              {!mine && actions.report && (
+                <ToolButton label="Report" onClick={() => actions.report!(m)}>
+                  <FlagIcon />
                 </ToolButton>
               )}
             </>

@@ -27,6 +27,7 @@ export const MenuIcon = svg(<path d="M4 6h16M4 12h16M4 18h16" />);
 export const SmileIcon = svg(<><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" /></>);
 export const EditIcon = svg(<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />);
 export const TrashIcon = svg(<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />);
+export const FlagIcon = svg(<><path d="M4 22V4" /><path d="M4 4h13l-2 4 2 4H4" /></>);
 export const CheckIcon = svg(<path d="M20 6 9 17l-5-5" />);
 export const SendIcon = svg(<path d="m22 2-7 20-4-9-9-4 20-7Z" />);
 export const PlusIcon = svg(<path d="M12 5v14M5 12h14" />);

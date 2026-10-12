@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { cloudErrorText } from "@/lib/cloudErrors";
 import { slugify } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, ROLE_RANK, type Profile, type Role, type Room } from "@/lib/types";
@@ -30,7 +31,17 @@ interface BanRow {
   profiles: Profile | null;
 }
 
-export function SettingsView({ siteUrl }: { siteUrl: string }) {
+export function SettingsView({
+  siteUrl,
+  exportHref = null,
+  cloudPanel = null,
+}: {
+  siteUrl: string;
+  /** Full JSON export (owners and admins). Works on every plan and over every limit. */
+  exportHref?: string | null;
+  /** Plan, usage and email confirmation for the owner (rendered on the server). */
+  cloudPanel?: React.ReactNode;
+}) {
   const { me, role, community, rooms, setRooms, setNavOpen } = useCommunity();
   const supabase = supabaseBrowser();
   const router = useRouter();
@@ -110,6 +121,8 @@ export function SettingsView({ siteUrl }: { siteUrl: string }) {
               {error ?? notice}
             </p>
           )}
+
+          {cloudPanel}
 
           {isMod && (
             <section id="invites" className="card p-5">
@@ -379,7 +392,7 @@ export function SettingsView({ siteUrl }: { siteUrl: string }) {
                     .from("communities")
                     .update({ name: name.trim(), description: description.trim(), icon: icon.trim(), is_public: isPublic })
                     .eq("id", community.id);
-                  if (err) return say("Couldn't save.", true);
+                  if (err) return say(cloudErrorText(err.message) ?? "Couldn't save.", true);
                   say("Saved.");
                   router.refresh();
                 }}
@@ -395,6 +408,18 @@ export function SettingsView({ siteUrl }: { siteUrl: string }) {
                 </label>
                 <button className="btn-primary">Save</button>
               </form>
+            </section>
+          )}
+
+          {exportHref && (
+            <section className="card p-5">
+              <h2 className="font-medium">Export</h2>
+              <p className="mb-3 text-sm text-muted">
+                Everything in {community.name} as one JSON file: rooms, every message and thread, the boards and members.
+              </p>
+              <a href={exportHref} className="btn-outline inline-flex" download>
+                Download export
+              </a>
             </section>
           )}
 

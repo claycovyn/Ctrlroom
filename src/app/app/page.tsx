@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Logo } from "@/components/Logo";
 import { NotConfigured } from "@/components/NotConfigured";
+import { ConfirmEmailNotice } from "@/components/cloud/ConfirmEmailNotice";
+import { UsageCard } from "@/components/cloud/UsageCard";
+import { cloudEnabled } from "@/lib/cloud";
+import { loadMyCloud } from "@/lib/cloudStatus";
 import { isConfigured } from "@/lib/env";
 import { currentUser } from "@/lib/supabase/server";
 import type { Community, Role } from "@/lib/types";
@@ -17,13 +21,14 @@ export default async function AppHome() {
   const { supabase, user } = await currentUser();
   if (!user) redirect("/login");
 
-  const [{ data: memberships }, { data: profile }] = await Promise.all([
+  const [{ data: memberships }, { data: profile }, cloud] = await Promise.all([
     supabase
       .from("community_members")
       .select("role, communities(*)")
       .eq("user_id", user.id)
       .order("joined_at", { ascending: true }),
     supabase.from("profiles").select("display_name, username").eq("id", user.id).single(),
+    loadMyCloud(supabase),
   ]);
   const communities = ((memberships ?? []) as unknown as { role: Role; communities: Community }[]).filter(
     (m) => m.communities,
@@ -47,6 +52,17 @@ export default async function AppHome() {
         <h1 className="mb-6 mt-4 text-2xl font-semibold">
           {communities.length ? `Hey ${profile?.display_name ?? ""}` : "Find your people"}
         </h1>
+
+        {cloud?.enabled && !cloud.emailConfirmed && user.email && (
+          <div className="mb-6">
+            <ConfirmEmailNotice email={user.email} />
+          </div>
+        )}
+        {cloud && cloud.owns > 0 && (
+          <div className="mb-6">
+            <UsageCard cloud={cloud} />
+          </div>
+        )}
 
         {communities.length > 0 && (
           <ul className="mb-10 grid gap-3 sm:grid-cols-2">
@@ -86,6 +102,19 @@ export default async function AppHome() {
             <JoinCommunityForm />
           </section>
         </div>
+        <p className="mt-10 text-center text-xs text-muted">
+          {cloudEnabled() && (
+            <>
+              <Link href="/pricing" className="hover:text-fg">
+                Pricing
+              </Link>{" "}
+              ·{" "}
+            </>
+          )}
+          <a href="/source" className="hover:text-fg">
+            Source code
+          </a>
+        </p>
       </div>
     </main>
   );

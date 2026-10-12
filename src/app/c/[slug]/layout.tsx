@@ -4,6 +4,7 @@ import { CommunityProvider } from "@/components/chat/CommunityContext";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { Logo } from "@/components/Logo";
 import { loadCommunity } from "@/lib/community";
+import { atLeast } from "@/lib/types";
 import { JoinPublic } from "./JoinPublic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -33,6 +34,11 @@ export default async function CommunityLayout({ children, params }: { children: 
               <JoinPublic slug={community.slug} />
             </div>
           </div>
+          <p className="mt-3 text-center text-xs text-muted">
+            <Link href={`/report/${community.slug}`} className="hover:text-fg">
+              Report this community
+            </Link>
+          </p>
         </div>
       </main>
     );
@@ -47,9 +53,17 @@ export default async function CommunityLayout({ children, params }: { children: 
       initialRooms={rooms}
       livekit={Boolean(process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET && process.env.NEXT_PUBLIC_LIVEKIT_URL)}
     >
-      <div className="flex h-[100dvh] overflow-hidden">
-        <Sidebar />
-        <main className="flex min-w-0 flex-1">{children}</main>
+      <div className="flex h-[100dvh] flex-col overflow-hidden">
+        {community.taken_down_at && (
+          <p role="alert" className="shrink-0 border-b border-line bg-alert/15 px-4 py-2 text-center text-sm">
+            This community was taken down{community.taken_down_reason ? `: ${community.taken_down_reason}` : ""}. New messages,
+            calls and joins are off. History stays readable{atLeast(role, "admin") ? ", and you can export it from Settings" : ""}.
+          </p>
+        )}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <Sidebar />
+          <main className="flex min-w-0 flex-1">{children}</main>
+        </div>
       </div>
     </CommunityProvider>
   );

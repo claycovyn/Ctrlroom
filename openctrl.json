@@ -1,0 +1,61 @@
+{
+  "openctrl": 1,
+  "name": "Ctrl Room",
+  "tagline": "Where the collective talks.",
+  "alternative_to": [
+    "Discord",
+    "Slack"
+  ],
+  "category": "communication",
+  "repository": "https://github.com/claycovyn/ctrlroom",
+  "license": "AGPL-3.0-only",
+  "pricing": {
+    "model": "free",
+    "notes": "Free to use and free to self-host. Full history and search on every plan."
+  },
+  "savings_pct": null,
+  "cloud": {
+    "eligible": true,
+    "needs": {
+      "database": "postgres",
+      "objectStorage": false,
+      "email": true,
+      "workers": false,
+      "gpu": false
+    },
+    "meters": {
+      "messages": {
+        "unit": "messages",
+        "period": "month"
+      },
+      "call_minutes": {
+        "unit": "call minutes",
+        "period": "month"
+      }
+    },
+    "free": {
+      "messages": 10000,
+      "call_minutes": 300
+    },
+    "fair_use": {
+      "messages": 1000000,
+      "call_minutes": 10000
+    },
+    "packs": [
+      {
+        "id": "messages_1m",
+        "label": "+1,000,000 messages a month",
+        "adds": {
+          "messages": 1000000
+        }
+      },
+      {
+        "id": "calls_10k",
+        "label": "+10,000 call minutes a month",
+        "adds": {
+          "call_minutes": 10000
+        }
+      }
+    ]
+  }
+}

@@ -12,7 +12,7 @@ Ctrl Room is community chat with rooms, threads, voice and video. It is built ar
 | Threads where conclusions get lost | Threads open side by side and can be **closed with an outcome**. The outcome shows in the room and is pinned to the board |
 | Pins as a junk drawer | Each room has a **board** of decisions, links, docs and notes |
 | Confusing permissions | Four roles: owner, admin, mod, member |
-| Upsells and ID checks | No paid tier, no ID checks |
+| Upsells and ID checks | No feature paywalls and no ID checks. Self-hosted: no paid tier and no limits. On OPENCTRL Cloud: a Free tier, and one $12/month plan for every OpenCtrl original |
 | Per-seat pricing | One account for any number of communities, each with its own invite links |
 
 ## Brand
@@ -75,13 +75,20 @@ npm run dev
 
 ```bash
 npm run typecheck && npm run lint
-npm test            # unit tests (message parsing, grouping, reactions)
-npm run db:test     # applies the migration to a throwaway Postgres and runs the permission tests
+npm test            # unit tests (message parsing, grouping, reactions, AI helpers, OPENCTRL Cloud plans and notices)
+npm run db:test     # applies the migrations to a throwaway Postgres and runs the permission, agent and Cloud tests
 npm run e2e         # two browsers chatting live against local Supabase (needs `npm run build` and `npx supabase start`;
                     # it starts a mock model and search engine so @ctrl and @openctrl are tested offline)
 ```
 
 `db:test` needs only a local Postgres 14+ (no Docker). It covers privacy between communities, invites (expiry, use limits, bans), announcement rooms, mention and reply pings, column-level write limits, mod/admin/owner powers, thread outcomes, unread counts, catch-up, search and realtime topic access.
+
+## OPENCTRL Cloud
+
+Ctrl Room is an OPENCTRL Original. Its [`openctrl.json`](openctrl.json) (also served at `/openctrl.json`) declares what
+OPENCTRL Cloud meters (messages and call minutes a month), the Free tier, the fair-use limits for the $12/month OPENCTRL
+Cloud subscription and the add-on packs. Limits only apply when `CTRLROOM_CLOUD=1`: **self-hosting is never limited**.
+Nothing is ever deleted for going over, and export always works. Operator guide: [docs/CLOUD.md](docs/CLOUD.md).
 
 ## Deploy
 
@@ -89,6 +96,7 @@ npm run e2e         # two browsers chatting live against local Supabase (needs `
    Under Auth → URL configuration, set the Site URL to your domain and add `https://<domain>/auth/callback` as a redirect URL.
 2. **LiveKit**: create a project at cloud.livekit.io (or self-host) and copy the URL, API key and secret.
 3. **Vercel**: import the repo and set the env vars from `.env.example`.
+4. **OPENCTRL Cloud only**: the extra env vars, the LiveKit webhook and the cron are in [docs/CLOUD.md](docs/CLOUD.md). Self-hosters skip this.
 
 ## Data model
 
@@ -118,3 +126,8 @@ Realtime topics: `room:<id>` (messages, reactions, board, typing), `community:<i
 - Mobile apps (the web app is responsive and installable today)
 - An optional AI-written catch-up summary layered on the deterministic one
 - Custom emoji, member profiles and a public community directory
+
+## License
+
+[AGPL-3.0-only](LICENSE), copyright Clayton Sinclair. See [docs/LICENSING.md](docs/LICENSING.md) for what that means
+in practice, and [docs/CLA.md](docs/CLA.md) for contributions. `src/lib/mcp-kit/` (vendored from the OPENCTRL kit) is MIT.
