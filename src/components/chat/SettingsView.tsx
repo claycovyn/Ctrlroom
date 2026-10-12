@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { slugify } from "@/lib/format";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, ROLE_RANK, type Profile, type Role, type Room } from "@/lib/types";
 import { Avatar } from "./Avatar";
@@ -42,7 +43,7 @@ export function SettingsView({
   /** Plan, usage and email confirmation for the owner (rendered on the server). */
   cloudPanel?: React.ReactNode;
 }) {
-  const { me, role, community, rooms, setRooms, setNavOpen } = useCommunity();
+  const { me, role, community, rooms, setRooms, setNavOpen, addProfiles } = useCommunity();
   const supabase = supabaseBrowser();
   const router = useRouter();
   const isMod = atLeast(role, "mod");
@@ -123,6 +124,12 @@ export function SettingsView({
           )}
 
           {cloudPanel}
+
+          <section id="profile" className="card p-5">
+            <h2 className="font-medium">Profile photo</h2>
+            <p className="mb-4 text-sm text-muted">Shows next to your name in every community.</p>
+            <ProfilePhoto profile={me} onChange={(url) => addProfiles([{ ...me, avatar_url: url }])} />
+          </section>
 
           {isMod && (
             <section id="invites" className="card p-5">

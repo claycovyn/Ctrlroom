@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { Logo } from "@/components/Logo";
 import { NotConfigured } from "@/components/NotConfigured";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { ConfirmEmailNotice } from "@/components/cloud/ConfirmEmailNotice";
 import { UsageCard } from "@/components/cloud/UsageCard";
 import { cloudEnabled } from "@/lib/cloud";
 import { loadMyCloud } from "@/lib/cloudStatus";
 import { isConfigured } from "@/lib/env";
 import { currentUser } from "@/lib/supabase/server";
-import type { Community, Role } from "@/lib/types";
+import type { Community, Profile, Role } from "@/lib/types";
 import { CreateCommunityForm, JoinCommunityForm } from "./HomeForms";
 
 export const metadata: Metadata = { title: "Your communities" };
@@ -27,7 +28,7 @@ export default async function AppHome() {
       .select("role, communities(*)")
       .eq("user_id", user.id)
       .order("joined_at", { ascending: true }),
-    supabase.from("profiles").select("display_name, username").eq("id", user.id).single(),
+    supabase.from("profiles").select("id, username, display_name, avatar_url, is_bot").eq("id", user.id).single(),
     loadMyCloud(supabase),
   ]);
   const communities = ((memberships ?? []) as unknown as { role: Role; communities: Community }[]).filter(
@@ -102,6 +103,13 @@ export default async function AppHome() {
             <JoinCommunityForm />
           </section>
         </div>
+        {profile && (
+          <section id="profile" className="card mt-6 p-5">
+            <h2 className="mb-1 font-medium">Profile photo</h2>
+            <p className="mb-4 text-sm text-muted">Shows next to your name in every community.</p>
+            <ProfilePhoto profile={profile as Profile} />
+          </section>
+        )}
         <p className="mt-10 text-center text-xs text-muted">
           {cloudEnabled() && (
             <>

@@ -154,7 +154,9 @@ export function Sidebar() {
           )}
 
           <div className="flex items-center gap-2 border-t border-line px-3 py-3">
-            <Avatar profile={me} size={32} />
+            <Link href={`/c/${community.slug}/settings#profile`} className="shrink-0 rounded-lg" title="Change your photo" aria-label="Change your photo">
+              <Avatar profile={me} size={32} />
+            </Link>
             <div className="min-w-0 flex-1 leading-tight">
               <div className="truncate text-sm font-medium">{me.display_name}</div>
               <div className="truncate text-xs text-muted">@{me.username}</div>
