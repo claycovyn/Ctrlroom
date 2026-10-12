@@ -21,7 +21,7 @@ cd "$(dirname "$0")/.."
 
 need() { [ -n "${!1:-}" ] || { echo "Set $1 (see the top of $0)." >&2; exit 1; }; }
 for v in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SITE_URL ADMIN_EMAIL RESEND_API_KEY EMAIL_FROM; do need "$v"; done
-for c in curl jq openssl npx vercel; do command -v "$c" >/dev/null || { echo "Install $c first." >&2; exit 1; }; done
+for c in curl jq openssl node npx vercel; do command -v "$c" >/dev/null || { echo "Install $c first." >&2; exit 1; }; done
 
 DRY="${DRY_RUN:-}"
 SITE_URL="${SITE_URL%/}"
@@ -41,10 +41,6 @@ supa() { # method path [json]
   curl -fsS -X "$1" "$API$2" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" ${3:+--data "$3"}
 }
 
-step "Supabase: link and apply migrations (0001 init, 0002 AI helpers, 0003 Cloud)"
-run npx --yes supabase link --project-ref "$REF"
-run npx --yes supabase db push
-
 step "Supabase: API keys"
 KEYS="$(supa GET /api-keys)"
 ANON="$(jq -r '.[] | select(.name=="anon") | .api_key' <<<"$KEYS")"
@@ -52,6 +48,25 @@ SERVICE="$(jq -r '.[] | select(.name=="service_role") | .api_key' <<<"$KEYS")"
 [ -n "$ANON" ] && [ -n "$SERVICE" ] || { echo "Couldn't read the project's API keys." >&2; exit 1; }
 SUPABASE_URL="https://$REF.supabase.co"
 echo "anon and service_role keys read for $SUPABASE_URL"
+
+step "Supabase Realtime: start it so realtime.messages exists"
+# A new project's Realtime creates its own tables on the first connection, and 0001 adds policies on
+# realtime.messages. One channel join from here is enough.
+if [ -n "$DRY" ]; then echo "DRY: join a Realtime channel"; else
+  node -e '
+    const [ref, key] = process.argv.slice(1);
+    const ws = new WebSocket(`wss://${ref}.supabase.co/realtime/v1/websocket?apikey=${key}&vsn=1.0.0`);
+    const end = (ok) => { console.log(ok ? "Realtime is up" : "Realtime did not answer"); try { ws.close(); } catch {} process.exit(ok ? 0 : 1); };
+    ws.onopen = () => ws.send(JSON.stringify({ topic: "realtime:setup", event: "phx_join", payload: { config: {} }, ref: "1" }));
+    ws.onmessage = (e) => end(JSON.parse(e.data).payload?.status === "ok");
+    ws.onerror = () => end(false);
+    setTimeout(() => end(false), 30000);
+  ' "$REF" "$ANON"
+fi
+
+step "Supabase: link and apply migrations (0001 init, 0002 AI helpers, 0003 Cloud)"
+run npx --yes supabase link --project-ref "$REF"
+run npx --yes supabase db push
 
 step "Supabase Auth: site URL, redirects, confirm email, send through Resend"
 # Supabase's built-in mailer only sends a few emails an hour, so production auth mail goes through Resend's SMTP.
@@ -79,7 +94,10 @@ setenv() { # name value [sensitive]
   [ -n "$value" ] || return 0
   if [ -n "$DRY" ]; then echo "DRY: vercel env $name (production)"; return; fi
   vercel env rm "$name" production --yes "${SCOPE[@]}" >/dev/null 2>&1 || true
-  printf '%s' "$value" | vercel env add "$name" production "${SCOPE[@]}" >/dev/null
+  # NEXT_PUBLIC_ values ship to the browser (the anon key is public by design; RLS guards the data). Everything else
+  # is stored as a secret. The CLI refuses to guess for a NEXT_PUBLIC_ value that looks like a key.
+  local type=secret; [[ "$name" == NEXT_PUBLIC_* ]] && type=config
+  printf '%s' "$value" | vercel env add "$name" production --type "$type" --yes "${SCOPE[@]}" >/dev/null
   echo "set $name"
 }
 
