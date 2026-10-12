@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Logo } from "@/components/Logo";
 import { currentAdmin } from "@/lib/admin";
+import { SEARCH_QUOTA_SERVICE, searchConfigured, searchMonthlyLimit } from "@/lib/agent/tools";
 import { CLOUD, cleanCosts, cloudEnabled, estimateCost, formatAmount, PLANS, workspaceStatus } from "@/lib/cloud";
 import { syncCloudConfig } from "@/lib/cloudSync";
 import { emailConfigured } from "@/lib/email";
@@ -57,6 +58,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     db.from("cloud_notices").select("owner_id").gte("period", new Date().toISOString().slice(0, 7)),
   ]);
 
+  const searchLimit = searchMonthlyLimit();
+  const searchesUsed =
+    searchConfigured() && searchLimit !== null ? ((await db.rpc("quota_used", { p_service: SEARCH_QUOTA_SERVICE })).data as number | null) : null;
+
   const enabled = Boolean(config?.enabled);
   const costs = cleanCosts(costRow?.value);
   const emailsBy = new Map<string, number>();
@@ -87,6 +92,21 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             Email: {emailConfigured() ? "configured (Resend)" : <span className="text-alert">not configured: usage notices aren&apos;t sent (set RESEND_API_KEY and CTRLROOM_EMAIL_FROM)</span>}
           </li>
           <li>Daily notices cron: {process.env.CRON_SECRET ? "CRON_SECRET set" : <span className="text-alert">CRON_SECRET not set, so /api/cron/usage refuses to run</span>}</li>
+          {searchConfigured() && (
+            <li>
+              Web searches this month:{" "}
+              {searchLimit === null ? (
+                "not metered (set SEARCH_MONTHLY_LIMIT to cap them)"
+              ) : searchesUsed === null ? (
+                <span className="text-alert">couldn&apos;t read the count, so search is paused (is migration 0005 applied?)</span>
+              ) : (
+                <span className={searchesUsed >= searchLimit ? "text-alert" : ""}>
+                  {searchesUsed} of {searchLimit}
+                  {searchesUsed >= searchLimit && ", paused until next month"}
+                </span>
+              )}
+            </li>
+          )}
           <li>
             Call minutes: {process.env.LIVEKIT_API_KEY ? "LiveKit keys set; point the LiveKit webhook at /api/livekit/webhook" : "LiveKit not configured"}
           </li>

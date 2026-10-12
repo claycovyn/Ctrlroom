@@ -12,6 +12,7 @@
 # Optional:
 #   LIVEKIT_URL=wss://x.livekit.cloud LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...   (voice and video)
 #   AI_BASE_URL=... AI_MODEL=... AI_API_KEY=...   SEARCH_PROVIDER=brave BRAVE_API_KEY=...   (@ctrl, @openctrl)
+#   SEARCH_MONTHLY_LIMIT=900   (web searches a month for the whole server; brave defaults to 900, under its $5 credit)
 #   SUPPORT_EMAIL=help@ctrlroom.app   OPENCTRL_CLOUD_URL=https://...   VERCEL_PROJECT=ctrlroom   VERCEL_SCOPE=<team>
 #   DRY_RUN=1   print what would happen, change nothing
 #
@@ -122,6 +123,7 @@ setenv AI_API_KEY "${AI_API_KEY:-}"
 setenv SEARCH_PROVIDER "${SEARCH_PROVIDER:-}"
 setenv SEARXNG_URL "${SEARXNG_URL:-}"
 setenv BRAVE_API_KEY "${BRAVE_API_KEY:-}"
+setenv SEARCH_MONTHLY_LIMIT "${SEARCH_MONTHLY_LIMIT:-}"
 
 step "Vercel: deploy to production"
 run vercel deploy --prod --yes "${SCOPE[@]}"

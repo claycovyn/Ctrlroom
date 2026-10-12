@@ -177,7 +177,7 @@ export async function runJob(db: SupabaseClient, job: BotJob): Promise<void> {
           await setStep(db, job, t.step);
           let result: string;
           try {
-            result = await t.run();
+            result = await t.run((s) => setStep(db, job, s));
           } catch (e) {
             result = `Error: ${e instanceof Error ? e.message : "that didn't work"}`;
           }

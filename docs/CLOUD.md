@@ -69,6 +69,16 @@ in Supabase → Authentication → Providers → Email for the hosted project; t
 - **Flood guard:** 30 messages a minute per person, everywhere (also self-hosted).
 - Credential-harvest checks (as Clayform has for forms) don't apply to chat, so there are none.
 
+## Web search budget
+
+@ctrl's web search is paid for by the operator, not by workspaces. Brave gives $5 of credit a month (about 1,000
+searches at $5 per 1,000) and bills every search past it, so the whole server has a monthly budget:
+`SEARCH_MONTHLY_LIMIT` (default 900 with `SEARCH_PROVIDER=brave`; SearXNG isn't counted unless you set it). Each search
+takes one from `service_quota` (`0005_service_quota.sql`) before Brave is called. When the budget is spent, or the
+count can't be read, Brave isn't called: the room shows "Web search is paused until next month" and @ctrl answers
+without searching. It starts again on the 1st (UTC). `/admin` shows "Web searches this month: N of LIMIT". This is on
+whether or not `CTRLROOM_CLOUD` is set.
+
 ## /admin
 
 Open to signed-in people whose confirmed email is in `CTRLROOM_ADMIN_EMAILS`. It shows the Cloud switch and setup
@@ -95,5 +105,7 @@ machine; run it with `DRY_RUN=1` first.
 
 - `npm run db:test`: `supabase/tests/3_cloud.test.sql` (plans, metering, Free pause, subscriber never paused, calls,
   email gate, reports, takedowns, flood guard, Cloud off = unlimited) against a real Postgres.
+- `npm run db:test`: `supabase/tests/5_service_quota.test.sql` (search budget stops at the limit, per service and month,
+  server only). `npm test`: `tests/searchQuota.test.ts` (limit from env, no Brave call when the budget is spent or unreadable).
 - `npm test`: `tests/cloud.test.ts` (manifest, tiers, packs, notices, call minutes, costs, and a check that no Cloud
   code path deletes data).

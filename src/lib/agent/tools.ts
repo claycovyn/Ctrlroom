@@ -1,6 +1,7 @@
 import "server-only";
 import { siteUrl } from "@/lib/env";
 import { findPage, searchDocs } from "@/lib/docs";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { ToolSpec } from "./llm";
 import { safeFetchText } from "./safeFetch";
 import { clip, htmlToText } from "./text";
@@ -53,10 +54,64 @@ interface SearchResult {
   snippet: string;
 }
 
-async function webSearch(query: string, signal: AbortSignal): Promise<SearchResult[]> {
-  const provider = process.env.SEARCH_PROVIDER;
+/** Brave bills past its $5 monthly credit (~1,000 searches), so it's capped below that unless the operator says otherwise. */
+export const BRAVE_DEFAULT_MONTHLY_LIMIT = 900;
+export const SEARCH_QUOTA_SERVICE = "web_search";
+export const SEARCH_PAUSED_STEP = "Web search is paused until next month";
+export const SEARCH_PAUSED_RESULT =
+  "Web search is paused until next month: this server's monthly search budget is used up. Don't call web_search again. " +
+  "Answer from the conversation and what you know, and say you couldn't search the web.";
+
+/**
+ * Searches allowed per UTC month for the whole server, or null for no limit.
+ * SEARCH_MONTHLY_LIMIT wins when it's a whole number; otherwise Brave (paid) gets 900 and SearXNG (self-hosted) is unmetered.
+ */
+export function searchMonthlyLimit(env: Record<string, string | undefined> = process.env): number | null {
+  const raw = (env.SEARCH_MONTHLY_LIMIT ?? "").trim();
+  if (/^\d+$/.test(raw)) return Number(raw);
+  return env.SEARCH_PROVIDER === "brave" ? BRAVE_DEFAULT_MONTHLY_LIMIT : null;
+}
+
+export type TakeQuota = (service: string, limit: number) => Promise<boolean>;
+
+/** Takes one search from this month's budget. Any error counts as "no": a paid search never runs unmetered. */
+export const takeSearchQuota: TakeQuota = async (service, limit) => {
+  const db = supabaseAdmin();
+  if (!db) return false;
+  try {
+    const { data, error } = await db.rpc("take_quota", { p_service: service, p_limit: limit });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+};
+
+export type WebSearchOutcome = { paused: true } | { paused: false; results: SearchResult[] };
+
+/** Runs one web search, after taking it from the monthly budget when one applies. Never throws for a spent budget. */
+export async function webSearch(
+  query: string,
+  signal: AbortSignal,
+  takeQuota: TakeQuota = takeSearchQuota,
+  env: Record<string, string | undefined> = process.env,
+): Promise<WebSearchOutcome> {
+  const limit = searchMonthlyLimit(env);
+  if (limit !== null) {
+    let ok = false;
+    try {
+      ok = await takeQuota(SEARCH_QUOTA_SERVICE, limit);
+    } catch {
+      ok = false;
+    }
+    if (!ok) return { paused: true };
+  }
+  return { paused: false, results: await searchProvider(query, signal, env) };
+}
+
+async function searchProvider(query: string, signal: AbortSignal, env: Record<string, string | undefined>): Promise<SearchResult[]> {
+  const provider = env.SEARCH_PROVIDER;
   if (provider === "searxng") {
-    const u = new URL("/search", process.env.SEARXNG_URL);
+    const u = new URL("/search", env.SEARXNG_URL);
     u.searchParams.set("q", query);
     u.searchParams.set("format", "json");
     const res = await fetch(u, { signal, headers: { Accept: "application/json" } });
@@ -68,7 +123,7 @@ async function webSearch(query: string, signal: AbortSignal): Promise<SearchResu
     const u = new URL("https://api.search.brave.com/res/v1/web/search");
     u.searchParams.set("q", query);
     u.searchParams.set("count", "6");
-    const res = await fetch(u, { signal, headers: { Accept: "application/json", "X-Subscription-Token": process.env.BRAVE_API_KEY! } });
+    const res = await fetch(u, { signal, headers: { Accept: "application/json", "X-Subscription-Token": env.BRAVE_API_KEY ?? "" } });
     if (!res.ok) throw new Error(`search failed (${res.status})`);
     const data = (await res.json()) as { web?: { results?: { title?: string; url?: string; description?: string }[] } };
     return (data.web?.results ?? []).map((r) => ({ title: r.title ?? "", url: r.url ?? "", snippet: (r.description ?? "").replace(/<[^>]+>/g, "") }));
@@ -79,7 +134,8 @@ async function webSearch(query: string, signal: AbortSignal): Promise<SearchResu
 export interface ToolRun {
   /** Shown in the room while it runs, e.g. "Searching the web: “postgres 17”". */
   step: string;
-  run: () => Promise<string>;
+  /** setStep replaces the room's progress text, e.g. when web search turns out to be paused. */
+  run: (setStep?: (step: string) => Promise<void>) => Promise<string>;
 }
 
 /** Turns a model tool call into a step label and a function that returns the tool result text. */
@@ -95,8 +151,13 @@ export function toolRun(name: string, rawArgs: string, signal: AbortSignal): Too
     case "web_search":
       return {
         step: `Searching the web: “${clip(q, 80)}”`,
-        run: async () => {
-          const results = await webSearch(q, signal);
+        run: async (setStep) => {
+          const out = await webSearch(q, signal);
+          if (out.paused) {
+            await setStep?.(SEARCH_PAUSED_STEP).catch(() => undefined);
+            return SEARCH_PAUSED_RESULT;
+          }
+          const results = out.results;
           if (!results.length) return "No results.";
           return results.map((r, i) => `${i + 1}. ${r.title}\n${r.url}\n${clip(r.snippet, 300)}`).join("\n\n");
         },
