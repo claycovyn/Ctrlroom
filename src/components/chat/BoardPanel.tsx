@@ -73,7 +73,7 @@ export function BoardPanel({
                   type="button"
                   key={k.value}
                   onClick={() => setKind(k.value)}
-                  className={`rounded px-2 py-1 text-xs ${kind === k.value ? "bg-signal text-black" : "bg-raised text-muted"}`}
+                  className={`rounded px-2 py-1 text-xs ${kind === k.value ? "bg-signal text-signal-fg" : "bg-raised text-muted"}`}
                 >
                   {k.label}
                 </button>

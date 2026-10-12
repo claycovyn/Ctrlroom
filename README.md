@@ -15,6 +15,17 @@ Ctrl Room is community chat with rooms, threads, voice and video. It is built ar
 | Upsells and ID checks | No paid tier, no ID checks |
 | Per-seat pricing | One account for any number of communities, each with its own invite links |
 
+## Brand
+
+Black, white and silver. Every asset comes from the original sheet, `public/brand/ctrlroom-brand-sheet.png`:
+
+- `public/brand/ctrlroom-icon-{192,512,1024}.png`: the app icon (rounded tile, transparent corners). Next.js serves `src/app/icon.png` and `apple-icon.png` as the favicon and home-screen icon.
+- `public/brand/ctrlroom-lockup-on-{dark,light}.png`: the "CTRL ROOM by OpenCtrl" lockup on a transparent background, one for each color scheme.
+- `public/brand/ctrlroom-mark-on-{dark,light}.png`: the mark without the tile.
+- `src/app/opengraph-image.png`: the link preview shown in iMessage, Slack, X and other apps.
+
+In the UI, `signal` is the accent color: white in dark mode, ink in light mode (`src/app/globals.css`).
+
 ## Stack
 
 - **Next.js 15** (App Router) + TypeScript + Tailwind

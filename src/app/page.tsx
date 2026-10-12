@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
+import { Logo, LogoMark } from "@/components/Logo";
 
 const FIXES = [
   {
@@ -40,7 +40,7 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-        <Logo />
+        <Logo className="h-7 w-auto sm:h-8" />
         <nav className="flex items-center gap-2">
           <Link href="/login" className="btn-ghost">
             Sign in
@@ -52,7 +52,8 @@ export default function Home() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 sm:pt-20">
-        <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-signal">An OpenCtrl original</p>
+        <LogoMark className="mb-8 h-20 w-20 sm:h-24 sm:w-24" />
+        <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-muted">An OpenCtrl original</p>
         <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
           Where the collective talks.
         </h1>
@@ -83,7 +84,7 @@ export default function Home() {
 
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 text-sm text-muted sm:px-6">
-          <span>Ctrl Room · OpenCtrl</span>
+          <span>Ctrl Room by OpenCtrl</span>
           <span>Built by the collective.</span>
         </div>
       </footer>

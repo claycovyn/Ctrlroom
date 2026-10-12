@@ -1,25 +1,16 @@
+/* eslint-disable @next/next/no-img-element */
+
+/** The Ctrl Room app icon (carries its own black tile, so it works on any background). */
 export function LogoMark({ className = "h-7 w-7" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-      <rect width="64" height="64" rx="14" className="fill-fg" />
-      <path
-        d="M22 20h-6v24h6M42 20h6v24h-6"
-        fill="none"
-        className="stroke-signal"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="32" cy="32" r="5" className="fill-signal" />
-    </svg>
-  );
+  return <img src="/brand/ctrlroom-icon-192.png" alt="" className={className} width={192} height={192} />;
 }
 
-export function Logo() {
+/** "CTRL ROOM by OpenCtrl" lockup, swapped for light and dark backgrounds. */
+export function Logo({ className = "h-8 w-auto" }: { className?: string }) {
   return (
-    <span className="inline-flex items-center gap-2 font-semibold tracking-tight">
-      <LogoMark />
-      <span>Ctrl Room</span>
+    <span className="inline-flex">
+      <img src="/brand/ctrlroom-lockup-on-light.png" alt="Ctrl Room by OpenCtrl" className={`${className} dark:hidden`} width={1341} height={260} />
+      <img src="/brand/ctrlroom-lockup-on-dark.png" alt="Ctrl Room by OpenCtrl" className={`hidden ${className} dark:block`} width={1341} height={260} />
     </span>
   );
 }

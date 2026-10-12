@@ -109,7 +109,7 @@ export function Sidebar() {
               href={`/c/${c.slug}`}
               title={c.name}
               className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-colors ${
-                c.id === community.id ? "bg-signal text-black" : "bg-raised hover:bg-line"
+                c.id === community.id ? "bg-signal text-signal-fg" : "bg-raised hover:bg-line"
               }`}
             >
               {c.icon || c.name.slice(0, 1).toUpperCase()}
@@ -189,7 +189,7 @@ export function Sidebar() {
                   <Icon className="h-4 w-4 shrink-0 opacity-70" />
                   <span className="truncate">{r.name}</span>
                   {!active && u && u.mentions > 0 && (
-                    <span className="ml-auto rounded-full bg-signal px-1.5 text-[11px] font-bold text-black">{u.mentions}</span>
+                    <span className="ml-auto rounded-full bg-signal px-1.5 text-[11px] font-bold text-signal-fg">{u.mentions}</span>
                   )}
                 </Link>
               </li>

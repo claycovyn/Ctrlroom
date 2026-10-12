@@ -15,7 +15,7 @@ let server;
 let base = process.argv[2];
 if (!base) {
   base = "http://localhost:3100";
-  server = spawn("npx", ["next", "start", "-p", "3100"], { stdio: ["ignore", "pipe", "inherit"], env: process.env });
+  server = spawn("node_modules/.bin/next", ["start", "-p", "3100"], { stdio: ["ignore", "pipe", "inherit"], env: process.env, detached: true });
   await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error("next start timed out")), 60_000);
     server.stdout.on("data", (d) => {
@@ -45,7 +45,7 @@ const step = async (name, fn) => {
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const pages = [];
 const newPerson = async () => {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: process.env.E2E_SCHEME === "dark" ? "dark" : "light" });
   const page = await ctx.newPage();
   page.setDefaultTimeout(15_000);
   pages.push(page);
@@ -76,6 +76,13 @@ try {
   const a = await newPerson();
   const b = await newPerson();
   let invite;
+
+  await step("landing page shows the brand", async () => {
+    await a.goto(base);
+    await a.getByRole("heading", { name: "Where the collective talks." }).waitFor();
+    await a.locator(`img[alt="Ctrl Room by OpenCtrl"]:visible`).waitFor();
+    await a.screenshot({ path: path.join(SHOTS, "landing.png") });
+  });
 
   await step("alice signs up and creates a community", async () => {
     await signUp(a, alice, `${base}/login?mode=signup`);
@@ -185,6 +192,10 @@ try {
   exitCode = 1;
 } finally {
   await browser.close();
-  server?.kill();
+  if (server) {
+    try {
+      process.kill(-server.pid); // the whole group, so next-server does not outlive the run
+    } catch {}
+  }
 }
 process.exit(exitCode);

@@ -23,7 +23,7 @@ export function RichText({ body, myUsername }: { body: string; myUsername: strin
             );
           case "link":
             return (
-              <a key={i} href={t.href} target="_blank" rel="noopener noreferrer nofollow ugc" className="text-signal underline-offset-2 hover:underline">
+              <a key={i} href={t.href} target="_blank" rel="noopener noreferrer nofollow ugc" className="font-medium underline decoration-muted underline-offset-2 hover:decoration-fg">
                 {t.href}
               </a>
             );

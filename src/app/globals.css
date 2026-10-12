@@ -3,27 +3,30 @@
 @tailwind utilities;
 
 :root {
-  --bg: 246 246 243;
+  /* Ctrl Room brand: black, white and silver. "signal" is the accent — white on dark, ink on light. */
+  --bg: 247 247 246;
   --panel: 255 255 255;
-  --raised: 238 238 233;
-  --line: 222 222 215;
-  --fg: 20 22 26;
-  --muted: 98 102 112;
-  --signal: 0 140 84;
-  --alert: 210 45 60;
+  --raised: 237 237 236;
+  --line: 222 222 220;
+  --fg: 12 12 13;
+  --muted: 100 100 106;
+  --signal: 18 18 20;
+  --signal-fg: 255 255 255;
+  --alert: 205 40 55;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: 11 12 15;
-    --panel: 17 19 23;
-    --raised: 26 28 34;
-    --line: 38 41 49;
-    --fg: 234 236 240;
-    --muted: 138 144 156;
-    --signal: 61 255 162;
-    --alert: 255 99 99;
+    --bg: 6 6 7;
+    --panel: 14 14 16;
+    --raised: 27 27 30;
+    --line: 40 40 44;
+    --fg: 238 238 240;
+    --muted: 140 140 148;
+    --signal: 236 236 238;
+    --signal-fg: 6 6 7;
+    --alert: 255 95 95;
     color-scheme: dark;
   }
 }
@@ -52,7 +55,7 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-signal text-black hover:brightness-95;
+    @apply btn bg-signal text-signal-fg hover:opacity-90;
   }
   .btn-ghost {
     @apply btn text-fg hover:bg-raised;

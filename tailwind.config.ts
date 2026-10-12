@@ -12,6 +12,7 @@ export default {
         fg: "rgb(var(--fg) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         signal: "rgb(var(--signal) / <alpha-value>)",
+        "signal-fg": "rgb(var(--signal-fg) / <alpha-value>)",
         alert: "rgb(var(--alert) / <alpha-value>)",
       },
       fontFamily: {
