@@ -78,6 +78,9 @@ admin email before giving anyone else access, so nobody else can claim it.
 
 ## Setup checklist for the hosted deployment
 
+`scripts/setup-cloud.sh` does steps 1, 2 and 4 (plus Supabase Auth's site URL, redirects and Resend SMTP) from your
+machine; run it with `DRY_RUN=1` first.
+
 1. Apply the migrations: `npx supabase db push` (`0003_cloud.sql` adds everything above).
 2. In Vercel set `SUPABASE_SERVICE_ROLE_KEY`, `CTRLROOM_ADMIN_EMAILS`, `RESEND_API_KEY`, `CTRLROOM_EMAIL_FROM`,
    `CTRLROOM_SUPPORT_EMAIL`, `CRON_SECRET` (and `OPENCTRL_CLOUD_URL` once billing is live). Leave `CTRLROOM_CLOUD`

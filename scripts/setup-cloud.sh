@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Sets up Ctrl Room's production Supabase project and Vercel project for OPENCTRL Cloud.
+# Run it from the repo root on a machine where the Vercel CLI is logged in (`vercel login`) and you have a Supabase
+# personal access token. Safe to re-run: every step overwrites the previous value.
+#
+#   SUPABASE_ACCESS_TOKEN=sbp_...   (supabase.com → Account → Access tokens)
+#   SUPABASE_PROJECT_REF=abcd...    (the new project's ref, from its URL)
+#   SITE_URL=https://ctrlroom.app   (or the *.vercel.app URL until the domain is attached)
+#   ADMIN_EMAIL=you@example.com
+#   RESEND_API_KEY=re_...           (a Resend domain must be verified for EMAIL_FROM's domain)
+#   EMAIL_FROM="Ctrl Room <hello@ctrlroom.app>"
+# Optional:
+#   LIVEKIT_URL=wss://x.livekit.cloud LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=...   (voice and video)
+#   AI_BASE_URL=... AI_MODEL=... AI_API_KEY=...   SEARCH_PROVIDER=brave BRAVE_API_KEY=...   (@ctrl, @openctrl)
+#   SUPPORT_EMAIL=help@ctrlroom.app   OPENCTRL_CLOUD_URL=https://...   VERCEL_PROJECT=ctrlroom   VERCEL_SCOPE=<team>
+#   DRY_RUN=1   print what would happen, change nothing
+#
+# It never turns limits on: CTRLROOM_CLOUD stays unset until you launch Free Cloud (docs/CLOUD.md, last step).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+need() { [ -n "${!1:-}" ] || { echo "Set $1 (see the top of $0)." >&2; exit 1; }; }
+for v in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SITE_URL ADMIN_EMAIL RESEND_API_KEY EMAIL_FROM; do need "$v"; done
+for c in curl jq openssl npx vercel; do command -v "$c" >/dev/null || { echo "Install $c first." >&2; exit 1; }; done
+
+DRY="${DRY_RUN:-}"
+SITE_URL="${SITE_URL%/}"
+REF="$SUPABASE_PROJECT_REF"
+API="https://api.supabase.com/v1/projects/$REF"
+PROJECT="${VERCEL_PROJECT:-ctrlroom}"
+SCOPE=(); [ -n "${VERCEL_SCOPE:-}" ] && SCOPE=(--scope "$VERCEL_SCOPE")
+run() { if [ -n "$DRY" ]; then echo "DRY: $*"; else "$@"; fi; }
+step() { printf '\n== %s\n' "$*"; }
+
+supa() { # method path [json]
+  if [ -n "$DRY" ]; then
+    echo "DRY: $1 $API$2" >&2
+    [ "$1" = GET ] && echo '[{"name":"anon","api_key":"dry-anon"},{"name":"service_role","api_key":"dry-service"}]' || echo '{}'
+    return
+  fi
+  curl -fsS -X "$1" "$API$2" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" ${3:+--data "$3"}
+}
+
+step "Supabase: link and apply migrations (0001 init, 0002 AI helpers, 0003 Cloud)"
+run npx --yes supabase link --project-ref "$REF"
+run npx --yes supabase db push
+
+step "Supabase: API keys"
+KEYS="$(supa GET /api-keys)"
+ANON="$(jq -r '.[] | select(.name=="anon") | .api_key' <<<"$KEYS")"
+SERVICE="$(jq -r '.[] | select(.name=="service_role") | .api_key' <<<"$KEYS")"
+[ -n "$ANON" ] && [ -n "$SERVICE" ] || { echo "Couldn't read the project's API keys." >&2; exit 1; }
+SUPABASE_URL="https://$REF.supabase.co"
+echo "anon and service_role keys read for $SUPABASE_URL"
+
+step "Supabase Auth: site URL, redirects, confirm email, send through Resend"
+# Supabase's built-in mailer only sends a few emails an hour, so production auth mail goes through Resend's SMTP.
+FROM_ADDR="$(sed -E 's/.*<([^>]+)>.*/\1/' <<<"$EMAIL_FROM")"
+FROM_NAME="$(sed -E 's/^"?([^"<]*[^ "<])"? *<.*/\1/' <<<"$EMAIL_FROM")"
+AUTH_JSON="$(jq -n \
+  --arg site "$SITE_URL" --arg redirects "$SITE_URL/auth/callback,$SITE_URL/**" \
+  --arg pass "$RESEND_API_KEY" --arg from "$FROM_ADDR" --arg name "$FROM_NAME" '{
+    site_url: $site,
+    uri_allow_list: $redirects,
+    mailer_autoconfirm: false,
+    external_email_enabled: true,
+    smtp_host: "smtp.resend.com", smtp_port: "465", smtp_user: "resend", smtp_pass: $pass,
+    smtp_admin_email: $from, smtp_sender_name: $name,
+    rate_limit_email_sent: 100
+  }')"
+supa PATCH /config/auth "$AUTH_JSON" >/dev/null
+echo "Auth configured: confirm email on, mail from $FROM_ADDR"
+
+step "Vercel: link project $PROJECT"
+run vercel link --yes --project "$PROJECT" "${SCOPE[@]}"
+
+setenv() { # name value [sensitive]
+  local name="$1" value="$2"
+  [ -n "$value" ] || return 0
+  if [ -n "$DRY" ]; then echo "DRY: vercel env $name (production)"; return; fi
+  vercel env rm "$name" production --yes "${SCOPE[@]}" >/dev/null 2>&1 || true
+  printf '%s' "$value" | vercel env add "$name" production "${SCOPE[@]}" >/dev/null
+  echo "set $name"
+}
+
+step "Vercel: production environment"
+CRON_SECRET_VALUE="${CRON_SECRET:-$(openssl rand -hex 32)}"
+setenv NEXT_PUBLIC_SUPABASE_URL "$SUPABASE_URL"
+setenv NEXT_PUBLIC_SUPABASE_ANON_KEY "$ANON"
+setenv SUPABASE_SERVICE_ROLE_KEY "$SERVICE"
+setenv NEXT_PUBLIC_SITE_URL "$SITE_URL"
+setenv CTRLROOM_ADMIN_EMAILS "$ADMIN_EMAIL"
+setenv RESEND_API_KEY "$RESEND_API_KEY"
+setenv CTRLROOM_EMAIL_FROM "$EMAIL_FROM"
+setenv CTRLROOM_SUPPORT_EMAIL "${SUPPORT_EMAIL:-}"
+setenv CRON_SECRET "$CRON_SECRET_VALUE"
+setenv OPENCTRL_CLOUD_URL "${OPENCTRL_CLOUD_URL:-}"
+setenv NEXT_PUBLIC_LIVEKIT_URL "${LIVEKIT_URL:-}"
+setenv LIVEKIT_API_KEY "${LIVEKIT_API_KEY:-}"
+setenv LIVEKIT_API_SECRET "${LIVEKIT_API_SECRET:-}"
+setenv AI_BASE_URL "${AI_BASE_URL:-}"
+setenv AI_MODEL "${AI_MODEL:-}"
+setenv AI_API_KEY "${AI_API_KEY:-}"
+setenv SEARCH_PROVIDER "${SEARCH_PROVIDER:-}"
+setenv SEARXNG_URL "${SEARXNG_URL:-}"
+setenv BRAVE_API_KEY "${BRAVE_API_KEY:-}"
+
+step "Vercel: deploy to production"
+run vercel deploy --prod --yes "${SCOPE[@]}"
+
+step "Check"
+if [ -z "$DRY" ]; then
+  code="$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/openctrl.json" || true)"
+  echo "$SITE_URL/openctrl.json → $code"
+fi
+
+cat <<EOF
+
+Done. Still to do by hand:
+  1. Sign up at $SITE_URL with $ADMIN_EMAIL, confirm the email, then open $SITE_URL/admin:
+     every line should be fine; send yourself a test email; enter unit costs.
+  2. LiveKit (if set): Project settings → Webhooks → add $SITE_URL/api/livekit/webhook
+  3. Domain: Vercel → $PROJECT → Domains. If SITE_URL changes, run this script again.
+  4. Launch Free Cloud later: vercel env add CTRLROOM_CLOUD production (value 1), then redeploy.
+EOF
