@@ -1,5 +1,28 @@
 -- Permission + behaviour tests for 0001_init.sql. Run with `npm run db:test`.
 \set QUIET on
+create schema tests;
+grant usage on schema tests to authenticated, anon;
+
+create function tests.ok(cond boolean, label text) returns void language plpgsql as $$
+begin
+  if cond is distinct from true then raise exception 'FAILED: %', label; end if;
+end $$;
+
+-- true when the statement errors (as the current role)
+create function tests.throws(stmt text) returns boolean language plpgsql as $$
+begin
+  execute stmt;
+  return false;
+exception when others then
+  return true;
+end $$;
+
+create function tests.login(who uuid) returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claim.sub', coalesce(who::text, ''), false);
+end $$;
+grant execute on all functions in schema tests to authenticated, anon;
+
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000a', 'alice@example.com', '{"username":"alice","display_name":"Alice"}'),
   ('00000000-0000-0000-0000-00000000000b', 'bob@example.com', '{"username":"bob"}'),

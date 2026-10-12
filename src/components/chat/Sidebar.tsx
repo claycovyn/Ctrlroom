@@ -6,41 +6,16 @@ import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/Logo";
 import { useBroadcast } from "@/lib/realtime";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { levelFor } from "@/lib/levels";
-import { atLeast, type AppNotification, type Room, type Unread } from "@/lib/types";
+import { atLeast, type Room, type Unread } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
-import { BellIcon, BookIcon, CalendarIcon, CloseIcon, HashIcon, HomeIcon, MegaphoneIcon, PlusIcon, SettingsIcon, TrophyIcon, VoiceIcon } from "./icons";
-import { NotificationBell } from "./NotificationBell";
-
-const HUB = [
-  { path: "feed", label: "Feed", Icon: HomeIcon },
-  { path: "classroom", label: "Classroom", Icon: BookIcon },
-  { path: "calendar", label: "Calendar", Icon: CalendarIcon },
-  { path: "leaderboard", label: "Leaderboard", Icon: TrophyIcon },
-] as const;
+import { BellIcon, CloseIcon, HashIcon, MegaphoneIcon, PlusIcon, SettingsIcon, VoiceIcon } from "./icons";
 
 export function Sidebar() {
   const ctx = useCommunity();
-  const { me, role, community, communities, rooms, setRooms, unreads, setUnreads, currentRoomId, navOpen, setNavOpen, points, ensureProfiles, emitCommunityEvent } = ctx;
+  const { me, role, community, communities, rooms, setRooms, unreads, setUnreads, currentRoomId, navOpen, setNavOpen } = ctx;
   const pathname = usePathname();
   const [alerts, setAlerts] = useState<NotificationPermission | "unsupported">("default");
-  const [notes, setNotes] = useState<AppNotification[]>([]);
-
-  useEffect(() => {
-    ensureProfiles([me.id]);
-    supabaseBrowser()
-      .from("notifications")
-      .select("*")
-      .eq("community_id", community.id)
-      .order("created_at", { ascending: false })
-      .limit(30)
-      .then(({ data }) => {
-        const list = (data ?? []) as AppNotification[];
-        ensureProfiles([...new Set(list.flatMap((n) => (n.actor_id ? [n.actor_id] : [])))]);
-        setNotes(list);
-      });
-  }, [community.id, me.id, ensureProfiles]);
 
   useEffect(() => {
     setAlerts(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
@@ -82,8 +57,6 @@ export function Sidebar() {
         return { ...u, [p.room_id]: { ...cur, unread: Math.min(cur.unread + 1, 100) } };
       });
     },
-    post: (p: unknown) => emitCommunityEvent("post", p),
-    event: (p: unknown) => emitCommunityEvent("event", p),
     rooms: (p: { op: string; room: Room }) => {
       setRooms((list) => {
         const rest = list.filter((r) => r.id !== p.room.id);
@@ -94,11 +67,6 @@ export function Sidebar() {
   });
 
   useBroadcast(`user:${me.id}`, {
-    notify: (n: AppNotification) => {
-      if (n.community_id !== community.id) return;
-      setNotes((list) => [n, ...list.filter((x) => x.id !== n.id)].slice(0, 30));
-      if (document.hidden) notify(`${n.actor ?? "Someone"} ${n.kind === "mention" ? "mentioned you" : n.kind === "answer" ? "picked your answer" : "replied"}`, n.preview, `/c/${community.slug}/feed/${n.post_id}`);
-    },
     mention: (p: { kind: string; room_id: string; community_id: string; author: string; preview: string }) => {
       if (p.community_id === community.id && p.room_id !== currentRoomId.current) {
         setUnreads((u) => {
@@ -156,13 +124,6 @@ export function Sidebar() {
           <div className="flex h-14 items-center justify-between border-b border-line px-4">
             <span className="truncate font-semibold">{community.name}</span>
             <div className="flex items-center">
-              <NotificationBell
-                items={notes}
-                onOpen={() => {
-                  supabaseBrowser().rpc("mark_notifications_read", { p_community: community.id });
-                  setTimeout(() => setNotes((list) => list.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))), 1500);
-                }}
-              />
               <Link href={`/c/${community.slug}/settings`} className="rounded p-1.5 text-muted hover:bg-raised hover:text-fg" title="Community settings">
                 <SettingsIcon />
               </Link>
@@ -173,23 +134,6 @@ export function Sidebar() {
           </div>
 
           <div className="scroll-thin flex-1 overflow-y-auto px-2 py-3">
-            <ul className="mb-4">
-              {HUB.map(({ path, label, Icon }) => {
-                const href = `/c/${community.slug}/${path}`;
-                const active = pathname === href || pathname.startsWith(`${href}/`);
-                return (
-                  <li key={path}>
-                    <Link
-                      href={href}
-                      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${active ? "bg-raised font-medium text-fg" : "text-muted hover:bg-raised hover:text-fg"}`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0 opacity-80" />
-                      {label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
             {roomGroup("Rooms", text)}
             {voice.length > 0 && roomGroup("Voice", voice)}
             {atLeast(role, "admin") && (
@@ -210,13 +154,10 @@ export function Sidebar() {
           )}
 
           <div className="flex items-center gap-2 border-t border-line px-3 py-3">
-            <Avatar profile={me} size={32} level={points[me.id] !== undefined ? levelFor(points[me.id]) : undefined} />
+            <Avatar profile={me} size={32} />
             <div className="min-w-0 flex-1 leading-tight">
               <div className="truncate text-sm font-medium">{me.display_name}</div>
-              <div className="truncate text-xs text-muted">
-                @{me.username}
-                {points[me.id] !== undefined && ` · ${points[me.id]} pts`}
-              </div>
+              <div className="truncate text-xs text-muted">@{me.username}</div>
             </div>
             <form action="/auth/signout" method="post">
               <button className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg">Sign out</button>

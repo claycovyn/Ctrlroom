@@ -15,7 +15,6 @@ trap cleanup EXIT
 PSQL=("${RUN[@]}" "$PGBIN/psql" -h "$TMP" -p "$PORT" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -X)
 "${PSQL[@]}" -f "$ROOT/supabase/tests/stubs.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do "${PSQL[@]}" -f "$f"; done
-"${PSQL[@]}" -f "$ROOT/supabase/tests/helpers.sql"
 status=0
 for t in "$ROOT"/supabase/tests/*.test.sql; do
   if "${PSQL[@]}" -o /dev/null -f "$t"; then echo "ok   $(basename "$t")"; else echo "FAIL $(basename "$t")"; status=1; fi

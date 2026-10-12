@@ -90,8 +90,7 @@ try {
     await a.getByLabel("Name").fill("Crew " + run);
     await a.locator("#slug").fill(slug);
     await a.getByRole("button", { name: "Create community" }).click();
-    await a.waitForURL(`${base}/c/${slug}/feed`);
-    await a.goto(`${base}/c/${slug}/general`);
+    await a.waitForURL(`${base}/c/${slug}/general`);
     await a.getByRole("heading", { name: "Welcome to #general" }).waitFor();
   });
 
@@ -111,8 +110,7 @@ try {
 
   await step("bob signs up through the invite and lands in the room", async () => {
     await signUp(b, bob, invite.replace(/^https?:\/\/[^/]+/, base));
-    await b.waitForURL(`${base}/c/${slug}/feed`);
-    await b.goto(`${base}/c/${slug}/general`);
+    await b.waitForURL(`${base}/c/${slug}/general`);
     await b.getByText("First! Plan for the meetup?").waitFor();
   });
 
@@ -174,104 +172,6 @@ try {
     await b.goto(`${base}/c/${slug}/general`);
     await b.getByText(/While you were gone/).waitFor();
     await b.screenshot({ path: path.join(SHOTS, "room.png") });
-  });
-
-
-  // ── community hub: feed, answers, points, classroom, calendar, leaderboard
-  let postUrl;
-  await step("bob asks a question in the feed and alice sees it arrive", async () => {
-    await a.goto(`${base}/c/${slug}/feed`);
-    await a.getByText("Write something…").waitFor();
-    await a.waitForTimeout(1500);
-    await b.goto(`${base}/c/${slug}/feed`);
-    await b.getByText("Write something…").click();
-    await b.getByLabel("Post title").fill("How do I get started?");
-    await b.getByLabel("Post body").fill(`New here. Any tips @${alice.username}?`);
-    await b.getByLabel("Category").selectOption({ label: "❓ Questions" });
-    await b.getByRole("button", { name: "Post", exact: true }).click();
-    await b.waitForURL(/\/feed\/[0-9a-f-]{36}$/);
-    postUrl = b.url();
-    await a.getByRole("button", { name: /1 new post/ }).click();
-    await a.getByText("How do I get started?").waitFor();
-  });
-
-  await step("alice gets a notification, likes the post and comments; bob sees it live", async () => {
-    await a.getByRole("button", { name: /Notifications, 1 unread/ }).waitFor();
-    await a.goto(postUrl);
-    await a.getByRole("button", { name: "Like" }).first().click();
-    await a.getByPlaceholder("Write a comment…").fill("Start with the Classroom, then say hi in #general.");
-    await a.getByPlaceholder("Write a comment…").press("Enter");
-    await b.getByText("Start with the Classroom, then say hi in #general.").waitFor();
-  });
-
-  await step("bob marks alice's comment as the answer and she earns 5 points", async () => {
-    await b.getByRole("button", { name: "Mark as answer" }).click();
-    await b.getByText("Answer", { exact: true }).waitFor();
-    await b.locator('[id^="c-"] [title="Level 2"]').waitFor(); // her badge updates to level 2 right away
-    await a.reload();
-    await a.getByText("Answer", { exact: true }).waitFor();
-    await a.getByText(/· 5 pts/).waitFor();
-    await b.screenshot({ path: path.join(SHOTS, "post.png") });
-  });
-
-  await step("feed shows the answered question with its like", async () => {
-    await b.goto(`${base}/c/${slug}/feed`);
-    const card = b.locator("a", { hasText: "How do I get started?" });
-    await card.getByText("Answered").waitFor();
-    await card.getByRole("button", { name: "Like" }).waitFor();
-    await b.screenshot({ path: path.join(SHOTS, "feed.png") });
-  });
-
-  await step("alice builds and publishes a course", async () => {
-    await a.goto(`${base}/c/${slug}/classroom`);
-    await a.getByRole("button", { name: "New course" }).click();
-    await a.getByLabel("Course title").fill("Start here");
-    await a.getByLabel("Description").fill("Everything you need for week one.");
-    await a.getByRole("button", { name: "Create and add lessons" }).click();
-    await a.waitForURL(/\/classroom\/[0-9a-f-]{36}/);
-    a.once("dialog", (d) => d.accept("Week 1"));
-    await a.getByRole("button", { name: "Add section" }).click();
-    a.once("dialog", (d) => d.accept("Welcome to the crew"));
-    await a.getByRole("button", { name: "Add lesson" }).click();
-    await a.getByLabel("Video link (YouTube, Vimeo or Loom)").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-    await a.getByLabel("Notes").fill("Read the board in #general and introduce yourself in the feed.");
-    await a.getByRole("button", { name: "Save lesson" }).click();
-    await a.locator('iframe[src*="youtube-nocookie.com/embed/dQw4w9WgXcQ"]').waitFor();
-    await a.getByRole("button", { name: "Publish" }).click();
-    await a.getByRole("button", { name: "Unpublish" }).waitFor();
-  });
-
-  await step("bob finishes the lesson and the course shows 100%", async () => {
-    await b.goto(`${base}/c/${slug}/classroom`);
-    await b.getByText("0 of 1 lessons").waitFor();
-    await b.getByRole("link", { name: /Start here/ }).click();
-    await b.getByRole("button", { name: "Mark complete" }).click();
-    await b.getByText("100% complete").waitFor();
-    await b.screenshot({ path: path.join(SHOTS, "course.png") });
-  });
-
-  await step("alice schedules an event in the voice room; bob RSVPs and downloads it", async () => {
-    await a.goto(`${base}/c/${slug}/calendar`);
-    await a.getByRole("button", { name: "New event" }).click();
-    await a.getByLabel("Event title").fill("Office hours");
-    await a.getByRole("button", { name: "Create event" }).click();
-    await a.getByRole("heading", { name: "Office hours" }).waitFor();
-    await b.goto(`${base}/c/${slug}/calendar`);
-    const card = b.locator("li", { hasText: "Office hours" });
-    await card.getByRole("link", { name: /#lounge/ }).waitFor();
-    await card.getByRole("button", { name: "Going" }).click();
-    await card.getByText("1 going").waitFor();
-    const ics = await b.request.get(await card.getByRole("link", { name: "Add to calendar" }).getAttribute("href").then((h) => base + h));
-    if (!(await ics.text()).includes("SUMMARY:Office hours")) throw new Error("bad .ics");
-    await b.screenshot({ path: path.join(SHOTS, "calendar.png") });
-  });
-
-  await step("leaderboard ranks alice for the answer", async () => {
-    await b.goto(`${base}/c/${slug}/leaderboard`);
-    const first = b.locator("ol li").first();
-    await first.getByText(alice.name).waitFor();
-    await b.getByText("How points work").waitFor();
-    await b.screenshot({ path: path.join(SHOTS, "leaderboard.png") });
   });
 
   await step("voice room shows the call bar", async () => {

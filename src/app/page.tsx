@@ -3,22 +3,6 @@ import { Logo, LogoMark } from "@/components/Logo";
 
 const FIXES = [
   {
-    title: "Feed, chat and calls",
-    body: "Posts for things that should last, rooms for quick chat, voice and video for hanging out. One place for all of it.",
-  },
-  {
-    title: "Points you can’t farm",
-    body: "Levels and a leaderboard, without the like-trading. Each person can give you one point a day, and finishing lessons and helping others count too.",
-  },
-  {
-    title: "Classroom that unlocks",
-    body: "Courses split into sections, with progress bars. Lessons open as you level up or a set number of days after you join.",
-  },
-  {
-    title: "Events that happen here",
-    body: "Calendar events link to a voice room. Tap Join when it starts, or add it to your own calendar.",
-  },
-  {
     title: "Your history stays",
     body: "Every message and every search, forever, for every community. No 90-day cutoff and no paywall on search.",
   },

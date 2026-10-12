@@ -15,23 +15,12 @@ export interface CommunityCtx {
   setUnreads: React.Dispatch<React.SetStateAction<Record<string, Unread>>>;
   currentRoomId: React.MutableRefObject<string | null>;
   profiles: Record<string, Profile>;
-  /** Lifetime points in this community, per member (drives level badges). */
-  points: Record<string, number>;
   ensureProfiles: (ids: string[]) => void;
   addProfiles: (list: Profile[]) => void;
-  addPoints: (map: Record<string, number>) => void;
-  /** Re-read members' points after something that may have awarded some (likes, answers). */
-  refreshPoints: (ids: string[]) => void;
-  /** Community-topic events (posts, calendar) fanned out from the sidebar's one subscription. */
-  onCommunityEvent: (fn: CommunityListener) => () => void;
-  emitCommunityEvent: (event: string, payload: unknown) => void;
   livekit: boolean;
   navOpen: boolean;
   setNavOpen: (open: boolean) => void;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type CommunityListener = (event: string, payload: any) => void;
 
 const Ctx = createContext<CommunityCtx | null>(null);
 
@@ -61,33 +50,9 @@ export function CommunityProvider({
   const [rooms, setRooms] = useState(initialRooms);
   const [unreads, setUnreads] = useState<Record<string, Unread>>({});
   const [profiles, setProfiles] = useState<Record<string, Profile>>({ [me.id]: me });
-  const [points, setPoints] = useState<Record<string, number>>({});
-  const refreshPoints = useCallback(
-    async (ids: string[]) => {
-      if (!ids.length) return;
-      const { data } = await supabaseBrowser()
-        .from("community_members")
-        .select("user_id, points")
-        .eq("community_id", community.id)
-        .in("user_id", ids);
-      setPoints((prev) => ({ ...prev, ...Object.fromEntries(((data ?? []) as { user_id: string; points: number }[]).map((r) => [r.user_id, r.points])) }));
-    },
-    [community.id],
-  );
-  const listeners = useRef(new Set<CommunityListener>());
-  const onCommunityEvent = useCallback((fn: CommunityListener) => {
-    listeners.current.add(fn);
-    return () => {
-      listeners.current.delete(fn);
-    };
-  }, []);
-  const emitCommunityEvent = useCallback((event: string, payload: unknown) => {
-    listeners.current.forEach((fn) => fn(event, payload));
-  }, []);
-  const addPoints = useCallback((map: Record<string, number>) => setPoints((prev) => ({ ...prev, ...map })), []);
   const [navOpen, setNavOpen] = useState(false);
   const currentRoomId = useRef<string | null>(null);
-  const known = useRef(new Set<string>());
+  const known = useRef(new Set<string>([me.id]));
   const pending = useRef(new Set<string>());
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -113,23 +78,11 @@ export function CommunityProvider({
         const batch = [...pending.current];
         pending.current.clear();
         batch.forEach((id) => known.current.add(id));
-        const { data } = await supabaseBrowser()
-          .from("community_members")
-          .select("user_id, points, profiles(id, username, display_name, avatar_url)")
-          .eq("community_id", community.id)
-          .in("user_id", batch);
-        const rows = (data ?? []) as unknown as { user_id: string; points: number; profiles: Profile | null }[];
-        addProfiles(rows.flatMap((r) => (r.profiles ? [r.profiles] : [])));
-        addPoints(Object.fromEntries(rows.map((r) => [r.user_id, r.points])));
-        // People who left the community: fall back to the profile alone (if still visible).
-        const missing = batch.filter((id) => !rows.some((r) => r.user_id === id));
-        if (missing.length) {
-          const { data: rest } = await supabaseBrowser().from("profiles").select("id, username, display_name, avatar_url").in("id", missing);
-          addProfiles((rest ?? []) as Profile[]);
-        }
+        const { data } = await supabaseBrowser().from("profiles").select("id, username, display_name, avatar_url").in("id", batch);
+        addProfiles((data ?? []) as Profile[]);
       }, 30);
     },
-    [addProfiles, addPoints, community.id],
+    [addProfiles],
   );
 
   return (
@@ -145,13 +98,8 @@ export function CommunityProvider({
         setUnreads,
         currentRoomId,
         profiles,
-        points,
         ensureProfiles,
         addProfiles,
-        addPoints,
-        refreshPoints,
-        onCommunityEvent,
-        emitCommunityEvent,
         livekit,
         navOpen,
         setNavOpen,
