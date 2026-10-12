@@ -87,3 +87,48 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Docs prose */
+.docs {
+  @apply max-w-3xl leading-relaxed;
+}
+.docs h1 {
+  @apply mb-4 text-3xl font-semibold tracking-tight;
+}
+.docs h2 {
+  @apply mb-3 mt-10 scroll-mt-20 text-xl font-semibold;
+}
+.docs h3 {
+  @apply mb-2 mt-6 scroll-mt-20 font-semibold;
+}
+.docs p,
+.docs ul,
+.docs ol,
+.docs table {
+  @apply mb-4;
+}
+.docs ul {
+  @apply list-disc space-y-1 pl-6;
+}
+.docs ol {
+  @apply list-decimal space-y-1 pl-6;
+}
+.docs a {
+  @apply font-medium underline decoration-muted underline-offset-2 hover:decoration-fg;
+}
+.docs code {
+  @apply rounded bg-raised px-1 py-0.5 font-mono text-[0.85em];
+}
+.docs strong {
+  @apply font-semibold;
+}
+.docs table {
+  @apply block w-full overflow-x-auto text-sm;
+}
+.docs th,
+.docs td {
+  @apply border border-line px-3 py-2 text-left align-top;
+}
+.docs th {
+  @apply bg-raised font-semibold;
+}

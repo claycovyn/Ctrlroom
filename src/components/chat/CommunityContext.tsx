@@ -78,7 +78,7 @@ export function CommunityProvider({
         const batch = [...pending.current];
         pending.current.clear();
         batch.forEach((id) => known.current.add(id));
-        const { data } = await supabaseBrowser().from("profiles").select("id, username, display_name, avatar_url").in("id", batch);
+        const { data } = await supabaseBrowser().from("profiles").select("id, username, display_name, avatar_url, is_bot").in("id", batch);
         addProfiles((data ?? []) as Profile[]);
       }, 30);
     },

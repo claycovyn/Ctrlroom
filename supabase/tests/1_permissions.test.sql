@@ -1,28 +1,5 @@
 -- Permission + behaviour tests for 0001_init.sql. Run with `npm run db:test`.
 \set QUIET on
-create schema tests;
-grant usage on schema tests to authenticated, anon;
-
-create function tests.ok(cond boolean, label text) returns void language plpgsql as $$
-begin
-  if cond is distinct from true then raise exception 'FAILED: %', label; end if;
-end $$;
-
--- true when the statement errors (as the current role)
-create function tests.throws(stmt text) returns boolean language plpgsql as $$
-begin
-  execute stmt;
-  return false;
-exception when others then
-  return true;
-end $$;
-
-create function tests.login(who uuid) returns void language plpgsql as $$
-begin
-  perform set_config('request.jwt.claim.sub', coalesce(who::text, ''), false);
-end $$;
-grant execute on all functions in schema tests to authenticated, anon;
-
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000a', 'alice@example.com', '{"username":"alice","display_name":"Alice"}'),
   ('00000000-0000-0000-0000-00000000000b', 'bob@example.com', '{"username":"bob"}'),
@@ -30,7 +7,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000d', 'mallory@example.com', '{"username":"Mal lory!!"}'),
   ('00000000-0000-0000-0000-00000000000e', 'bob@other.com', '{"username":"bob"}');
 
-select tests.ok((select count(*) from public.profiles) = 5, 'profile per signup');
+select tests.ok((select count(*) from public.profiles where not is_bot) = 5, 'profile per signup');
 select tests.ok((select username from public.profiles where id = '00000000-0000-0000-0000-00000000000c') = 'carol', 'username from email');
 select tests.ok((select username from public.profiles where id = '00000000-0000-0000-0000-00000000000d') = 'mallory', 'username sanitised');
 select tests.ok((select username from public.profiles where id = '00000000-0000-0000-0000-00000000000e') ~ '^bob[0-9]{4}$', 'username collision gets a suffix');
@@ -62,13 +39,13 @@ select tests.ok((select count(*) from public.rooms) = 0, 'rooms hidden from non-
 select tests.ok((select count(*) from public.messages) = 0, 'messages hidden from non-members');
 select tests.ok((select count(*) from public.invites) = 0, 'invites hidden from non-members');
 select tests.ok(not public.can_use_topic('room:' || :'announcement'), 'no realtime for non-members');
-select tests.ok((select count(*) from public.profiles) = 1, 'only own profile visible before joining');
+select tests.ok((select count(*) from public.profiles where not is_bot) = 1, 'only own profile visible before joining');
 
 -- ── bob joins with the invite
 select tests.ok(public.join_with_invite(:'invite') = 'openctrl', 'join returns slug');
 select tests.ok(public.my_role((select id from public.communities where slug = 'openctrl')) = 'member', 'bob is member');
 select tests.ok((select count(*) from public.rooms) = 3, 'member sees rooms');
-select tests.ok((select count(*) from public.profiles) = 2, 'member sees co-members');
+select tests.ok((select count(*) from public.profiles where not is_bot) = 2, 'member sees co-members');
 select tests.ok((select count(*) from public.invites) = 0, 'members cannot list invites');
 select tests.ok(public.can_use_topic('room:' || (select id from public.rooms where slug = 'general')), 'member gets realtime');
 select tests.ok(not public.can_use_topic('user:00000000-0000-0000-0000-00000000000a'), 'cannot listen to someone else''s pings');

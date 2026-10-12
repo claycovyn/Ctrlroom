@@ -7,7 +7,13 @@ import { SendIcon } from "./icons";
 interface Suggestion {
   username: string;
   display_name: string;
+  hint?: string;
 }
+
+const BOTS: Suggestion[] = [
+  { username: "ctrl", display_name: "Ctrl", hint: "AI: questions and web research" },
+  { username: "openctrl", display_name: "OpenCtrl", hint: "AI: help with OpenCtrl apps" },
+];
 
 export function Composer({
   placeholder,
@@ -62,7 +68,8 @@ export function Composer({
         .ilike("profiles.username", `${mentionQuery}%`)
         .limit(6);
       if (cancelled) return;
-      setSuggestions(((data ?? []) as unknown as { profiles: Suggestion }[]).map((r) => r.profiles));
+      const bots = BOTS.filter((b) => b.username.startsWith(mentionQuery));
+      setSuggestions([...bots, ...((data ?? []) as unknown as { profiles: Suggestion }[]).map((r) => r.profiles)].slice(0, 7));
       setActive(0);
     }, 120);
     return () => {
@@ -120,6 +127,7 @@ export function Composer({
               >
                 <span className="font-medium">{s.display_name}</span>
                 <span className="text-muted">@{s.username}</span>
+                {s.hint && <span className="ml-auto truncate text-xs text-muted">{s.hint}</span>}
               </button>
             </li>
           ))}

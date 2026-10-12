@@ -16,6 +16,7 @@ export function ThreadPanel({
   actions,
   onClose,
   onReply,
+  agentStatus,
   onResolve,
   onReopen,
 }: {
@@ -26,6 +27,7 @@ export function ThreadPanel({
   actions: MessageActions;
   onClose: () => void;
   onReply: (body: string) => Promise<boolean>;
+  agentStatus?: string | null;
   onResolve: (outcome: string, pin: boolean) => Promise<boolean>;
   onReopen: () => void;
 }) {
@@ -43,8 +45,16 @@ export function ThreadPanel({
       onClose={onClose}
       footer={
         root.deleted_at ? null : (
-          <div className="border-t border-line pt-3">
-            <Composer placeholder="Reply…" communityId={community.id} onSend={onReply} autoFocus />
+          <div className="border-t border-line pt-2">
+            <p className="h-5 truncate px-5 text-xs" aria-live="polite">
+              {agentStatus && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal" aria-hidden="true" />
+                  {agentStatus}
+                </span>
+              )}
+            </p>
+            <Composer placeholder="Reply… (@ctrl to ask AI)" communityId={community.id} onSend={onReply} autoFocus />
           </div>
         )
       }

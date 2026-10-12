@@ -159,6 +159,9 @@ export function Sidebar() {
               <div className="truncate text-sm font-medium">{me.display_name}</div>
               <div className="truncate text-xs text-muted">@{me.username}</div>
             </div>
+            <Link href="/docs" className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg" title="Help and docs">
+              Help
+            </Link>
             <form action="/auth/signout" method="post">
               <button className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg">Sign out</button>
             </form>

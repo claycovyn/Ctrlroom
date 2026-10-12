@@ -26,6 +26,32 @@ Black, white and silver. Every asset comes from the original sheet, `public/bran
 
 In the UI, `signal` is the accent color: white in dark mode, ink in light mode (`src/app/globals.css`).
 
+## AI helpers and docs
+
+Mention one of the two helpers in any room:
+
+- **@ctrl** answers questions and does research. It **searches the web** and **reads pages**, then lists its sources. It also uses the room or thread for context ("@ctrl summarize this thread").
+- **@openctrl** answers questions about OpenCtrl apps **from the docs only**, and links the page it used.
+
+Answers arrive as a thread reply, so the room stays quiet. While a helper works, the room shows what it's doing ("Ctrl · Searching the web: …").
+
+**Open models.** The helpers talk to any OpenAI-compatible endpoint, so they run on open-source models: Ollama, vLLM, LM Studio or llama.cpp locally, or OpenRouter, Together or Groq hosted. Web search uses **SearXNG** (open source, self-hostable) or Brave. Set it up with the `AI_*`, `SEARCH_PROVIDER` and `SUPABASE_SERVICE_ROLE_KEY` values in `.env.example`.
+
+**How it runs (`src/lib/agent`, `supabase/migrations/0002_agents.sql`):**
+
+1. A database trigger turns a message that mentions a helper into a `bot_jobs` row. That means jobs only come from real messages, rate limited to 20 per person per hour and 300 per community per day.
+2. The sender's browser calls `POST /api/agent`. The server claims the job and runs the agent loop after responding (up to 6 model turns, with tools).
+3. The answer is posted with the service role as the bot's thread reply. Job status is broadcast on the room topic.
+
+**Guardrails:**
+
+- Page reads only reach public http(s) addresses, checked on every redirect, with a time limit and a size cap.
+- Page and chat text is treated as information, never instructions.
+- The helpers can only reply in the thread they were asked in.
+- Hidden reasoning (`<think>`) and markdown the chat can't show are stripped from answers.
+
+**Docs** live in `content/docs/<app>/NN-page.md`, one folder per OpenCtrl app with an `_app.json` for its name. They're served at **/docs**, and @openctrl searches them. To add another app's docs, add a folder.
+
 ## Stack
 
 - **Next.js 15** (App Router) + TypeScript + Tailwind
@@ -51,7 +77,8 @@ npm run dev
 npm run typecheck && npm run lint
 npm test            # unit tests (message parsing, grouping, reactions)
 npm run db:test     # applies the migration to a throwaway Postgres and runs the permission tests
-npm run e2e         # two browsers chatting live against local Supabase (needs `npm run build` and `npx supabase start`)
+npm run e2e         # two browsers chatting live against local Supabase (needs `npm run build` and `npx supabase start`;
+                    # it starts a mock model and search engine so @ctrl and @openctrl are tested offline)
 ```
 
 `db:test` needs only a local Postgres 14+ (no Docker). It covers privacy between communities, invites (expiry, use limits, bans), announcement rooms, mention and reply pings, column-level write limits, mod/admin/owner powers, thread outcomes, unread counts, catch-up, search and realtime topic access.

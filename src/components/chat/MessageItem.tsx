@@ -81,6 +81,7 @@ export function MessageItem({
         {!compact && (
           <div className="flex items-baseline gap-2">
             <span className="font-medium">{author?.display_name ?? "…"}</span>
+            {author?.is_bot && <span className="rounded bg-signal px-1 text-[10px] font-bold uppercase leading-4 text-signal-fg">AI</span>}
             <span className="text-xs text-muted">{timeLabel(m.created_at)}</span>
           </div>
         )}

@@ -7,15 +7,27 @@ import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";
+import { startMockAi } from "./mock-ai.mjs";
 
 const SHOTS = process.env.E2E_SHOTS ?? path.resolve("e2e-shots");
 mkdirSync(SHOTS, { recursive: true });
 
 let server;
+let mock;
 let base = process.argv[2];
 if (!base) {
   base = "http://localhost:3100";
-  server = spawn("node_modules/.bin/next", ["start", "-p", "3100"], { stdio: ["ignore", "pipe", "inherit"], env: process.env, detached: true });
+  // Point the AI helpers at a local mock model + search engine (scripts/mock-ai.mjs).
+  mock = await startMockAi(3199);
+  const env = {
+    ...process.env,
+    AI_BASE_URL: "http://127.0.0.1:3199/v1",
+    AI_MODEL: "mock",
+    SEARCH_PROVIDER: "searxng",
+    SEARXNG_URL: "http://127.0.0.1:3199",
+    AGENT_UNSAFE_ALLOW_PRIVATE_URLS: "1",
+  };
+  server = spawn("node_modules/.bin/next", ["start", "-p", "3100"], { stdio: ["ignore", "pipe", "inherit"], env, detached: true });
   await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error("next start timed out")), 60_000);
     server.stdout.on("data", (d) => {
@@ -174,6 +186,49 @@ try {
     await b.screenshot({ path: path.join(SHOTS, "room.png") });
   });
 
+
+  await step("@ctrl researches on the web and answers in a thread", async () => {
+    await b.goto(`${base}/c/${slug}/general`);
+    await a.goto(`${base}/c/${slug}/general`);
+    await a.waitForTimeout(1500);
+    await send(b, "@ctrl research the test topic for us");
+    const ask = a.locator("[id^=m-]", { hasText: "research the test topic" });
+    await ask.getByRole("button", { name: /1 reply/ }).waitFor({ timeout: 30_000 });
+    await ask.getByRole("button", { name: /1 reply/ }).click();
+    const panel = a.locator("aside", { hasText: "Thread" });
+    await panel.getByText("Test Topic Weekly").waitFor();
+    await panel.getByText("AI", { exact: true }).first().waitFor();
+    await a.screenshot({ path: path.join(SHOTS, "ctrl.png") });
+  });
+
+  await step("@openctrl answers from the docs with a link", async () => {
+    const box = a.getByPlaceholder("Reply… (@ctrl to ask AI)");
+    await box.fill("@openctrl how do I make someone a mod?");
+    await box.press("Enter");
+    const panel = a.locator("aside", { hasText: "Thread" });
+    await panel.getByText(/From the docs: admins and the owner change roles/).waitFor({ timeout: 30_000 });
+    const text = await panel.innerText();
+    if (/<think>|\*\*/.test(text)) throw new Error("hidden reasoning or markdown leaked into the answer");
+    if (!text.includes("/docs/ctrl-room/roles-and-moderation")) throw new Error("no docs link in the answer");
+    if (!text.includes(`@${alice.username}`)) throw new Error("answer inside a thread should @mention the asker");
+  });
+
+  await step("composer suggests the AI helpers", async () => {
+    const box = b.getByPlaceholder(/^Message #general/);
+    await box.fill("@ope");
+    await b.getByRole("option", { name: /OpenCtrl.*help with OpenCtrl apps/ }).waitFor();
+    await box.fill("");
+  });
+
+  await step("docs site lists the apps and pages", async () => {
+    await b.goto(`${base}/docs`);
+    await b.getByRole("heading", { name: "How can we help?" }).waitFor();
+    await b.getByRole("link", { name: /Roles and moderation/ }).first().click();
+    await b.waitForURL(`${base}/docs/ctrl-room/roles-and-moderation`);
+    await b.locator("#remove-or-ban").waitFor();
+    await b.screenshot({ path: path.join(SHOTS, "docs.png") });
+  });
+
   await step("voice room shows the call bar", async () => {
     await a.goto(`${base}/c/${slug}/lounge`);
     await a.getByText("Call in #lounge").waitFor();
@@ -192,6 +247,7 @@ try {
   exitCode = 1;
 } finally {
   await browser.close();
+  mock?.close();
   if (server) {
     try {
       process.kill(-server.pid); // the whole group, so next-server does not outlive the run

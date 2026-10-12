@@ -42,6 +42,9 @@ export default function Home() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <Logo className="h-7 w-auto sm:h-8" />
         <nav className="flex items-center gap-2">
+          <Link href="/docs" className="btn-ghost hidden sm:inline-flex">
+            Docs
+          </Link>
           <Link href="/login" className="btn-ghost">
             Sign in
           </Link>

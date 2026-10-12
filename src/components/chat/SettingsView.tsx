@@ -61,13 +61,13 @@ export function SettingsView({ siteUrl }: { siteUrl: string }) {
   const loadMembers = useCallback(async () => {
     const { data } = await supabase
       .from("community_members")
-      .select("user_id, role, profiles(id, username, display_name, avatar_url)")
+      .select("user_id, role, profiles(id, username, display_name, avatar_url, is_bot)")
       .eq("community_id", community.id)
       .order("joined_at")
       .limit(1000);
     setMembers(((data ?? []) as unknown as MemberRow[]).filter((m) => m.profiles));
     if (isMod) {
-      const { data: b } = await supabase.from("bans").select("user_id, reason, profiles!bans_user_id_fkey(id, username, display_name, avatar_url)").eq("community_id", community.id);
+      const { data: b } = await supabase.from("bans").select("user_id, reason, profiles!bans_user_id_fkey(id, username, display_name, avatar_url, is_bot)").eq("community_id", community.id);
       setBans((b ?? []) as unknown as BanRow[]);
     }
   }, [supabase, community.id, isMod]);

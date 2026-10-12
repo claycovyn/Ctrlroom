@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { atLeast, type BoardItem, type CatchUp, type Message, type Profile, type Reaction, type Room, type Unread } from "@/lib/types";
+import { atLeast, type BoardItem, type CatchUp, type Message, type Profile, type Reaction, type Room, type Unread, type AgentJob } from "@/lib/types";
 import { BoardPanel } from "./BoardPanel";
 import { CatchUpBanner } from "./CatchUpBanner";
 import { useCommunity } from "./CommunityContext";
@@ -19,6 +19,14 @@ import { ThreadPanel } from "./ThreadPanel";
 const CallPanel = dynamic(() => import("./CallPanel"), { ssr: false });
 
 const PAGE = 50;
+const BOT_MENTION = /(?:^|[^a-zA-Z0-9_])@(ctrl|openctrl)(?![a-zA-Z0-9_])/i;
+const BOT_NAME = { ctrl: "Ctrl", openctrl: "OpenCtrl" } as const;
+
+function agentLine(jobs: AgentJob[]): string | null {
+  const j = jobs[jobs.length - 1];
+  if (!j) return null;
+  return `${BOT_NAME[j.bot]} ${j.status === "queued" ? "is on it…" : j.step ? `· ${j.step}` : "is thinking…"}`;
+}
 type PanelKind = "thread" | "board" | "search" | "members" | null;
 
 function mergeReactions(list: Reaction[], add: Reaction[]): Reaction[] {
@@ -58,6 +66,7 @@ export function RoomView({
   const [threadLoading, setThreadLoading] = useState(false);
   const [catchUp, setCatchUp] = useState<CatchUp | null>(null);
   const [typing, setTyping] = useState<Record<string, { name: string; at: number }>>({});
+  const [agents, setAgents] = useState<Record<string, AgentJob>>({});
   const [callOpen, setCallOpen] = useState(room.kind === "voice");
   const [error, setError] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<string | null>(focusMessageId);
@@ -78,6 +87,27 @@ export function RoomView({
     setError(msg);
     setTimeout(() => setError(null), 5000);
   };
+
+  // ── AI helpers: show jobs in progress, and pick up any that never started
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("bot_jobs")
+      .select("id, bot, status, step, message_id, thread_id, requested_by, created_at")
+      .eq("room_id", room.id)
+      .in("status", ["queued", "running"])
+      .gte("created_at", new Date(Date.now() - 10 * 60_000).toISOString())
+      .then(({ data }) => {
+        if (cancelled || !data?.length) return;
+        setAgents(Object.fromEntries((data as (AgentJob & { created_at: string })[]).map((j) => [j.id, j])));
+        if ((data as { status: string; created_at: string }[]).some((j) => j.status === "queued" && Date.now() - new Date(j.created_at).getTime() > 15_000)) {
+          fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roomId: room.id }) }).catch(() => {});
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [room.id, supabase]);
 
   // ── mount: profiles, catch-up, mark read
   useEffect(() => {
@@ -142,6 +172,14 @@ export function RoomView({
       setBoard((list) => {
         const rest = list.filter((i) => i.id !== p.item.id);
         return p.op === "delete" ? rest : [p.item, ...rest].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+      });
+    },
+    agent: (j: AgentJob) => {
+      setAgents((cur) => {
+        const next = { ...cur };
+        if (j.status === "done" || j.status === "failed") delete next[j.id];
+        else next[j.id] = j;
+        return next;
       });
     },
     typing: (p: { user_id: string; name: string }) => {
@@ -236,6 +274,9 @@ export function RoomView({
     }
     const m = data as Message;
     nearBottom.current = true;
+    if (BOT_MENTION.test(body)) {
+      fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: m.id }) }).catch(() => {});
+    }
     if (parentId) {
       setThreadReplies((list) => upsertMessage(list, m));
       setMessages((list) => list.map((x) => (x.id === parentId ? { ...x, reply_count: x.reply_count + 1 } : x)));
@@ -337,6 +378,8 @@ export function RoomView({
   };
 
   const typingNames = Object.values(typing).map((t) => t.name);
+  const agentStatus = agentLine(Object.values(agents));
+  const threadAgentStatus = threadRoot ? agentLine(Object.values(agents).filter((j) => j.thread_id === threadRoot.id)) : null;
   const RoomIcon = room.kind === "voice" ? VoiceIcon : room.post_min_role !== "member" ? MegaphoneIcon : HashIcon;
 
   return (
@@ -441,8 +484,13 @@ export function RoomView({
           ))}
         </div>
 
-        <div className="h-5 px-5 text-xs text-muted" aria-live="polite">
-          {typingNames.length > 0 &&
+        <div className="h-5 truncate px-5 text-xs text-muted" aria-live="polite">
+          {agentStatus ? (
+            <span className="inline-flex items-center gap-1.5 text-fg">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal" aria-hidden="true" />
+              {agentStatus}
+            </span>
+          ) : typingNames.length > 0 &&
             (typingNames.length === 1
               ? `${typingNames[0]} is typing…`
               : typingNames.length === 2
@@ -451,7 +499,7 @@ export function RoomView({
         </div>
         {error && <p className="px-5 pb-1 text-xs text-alert" role="alert">{error}</p>}
         <Composer
-          placeholder={`Message #${room.name}`}
+          placeholder={`Message #${room.name} · @ctrl for AI help`}
           communityId={community.id}
           disabled={!canPost}
           disabledReason="Only mods post here. You can still reply in threads."
@@ -472,6 +520,7 @@ export function RoomView({
             setThreadRoot(null);
           }}
           onReply={(body) => send(body, threadRoot.id)}
+          agentStatus={threadAgentStatus}
           onResolve={async (outcome, pin) => {
             const { error: err } = await supabase.rpc("resolve_thread", { p_message: threadRoot.id, p_outcome: outcome, p_pin: pin });
             if (err) {

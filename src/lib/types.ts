@@ -5,6 +5,7 @@ export interface Profile {
   username: string;
   display_name: string;
   avatar_url: string | null;
+  is_bot?: boolean;
 }
 
 export interface Community {
@@ -90,4 +91,14 @@ export const ROLE_RANK: Record<Role, number> = { owner: 4, admin: 3, mod: 2, mem
 
 export function atLeast(role: Role | null | undefined, min: Role): boolean {
   return role ? ROLE_RANK[role] >= ROLE_RANK[min] : false;
+}
+
+export interface AgentJob {
+  id: string;
+  bot: "ctrl" | "openctrl";
+  status: "queued" | "running" | "done" | "failed" | "limited";
+  step: string;
+  message_id: string;
+  thread_id: string;
+  requested_by: string;
 }

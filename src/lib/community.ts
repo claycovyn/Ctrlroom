@@ -14,7 +14,7 @@ export const loadCommunity = cache(async (slug: string) => {
 
   const [{ data: membership }, { data: me }, { data: rooms }, { data: mine }] = await Promise.all([
     supabase.from("community_members").select("role").eq("community_id", community.id).eq("user_id", user.id).maybeSingle(),
-    supabase.from("profiles").select("id, username, display_name, avatar_url").eq("id", user.id).single(),
+    supabase.from("profiles").select("id, username, display_name, avatar_url, is_bot").eq("id", user.id).single(),
     supabase.from("rooms").select("*").eq("community_id", community.id).order("position").order("name"),
     supabase.from("community_members").select("communities(*)").eq("user_id", user.id).order("joined_at"),
   ]);

@@ -41,7 +41,7 @@ export default async function RoomPage({
   const [{ data: reactions }, { data: profiles }] = await Promise.all([
     ids.length ? supabase.from("reactions").select("message_id, user_id, emoji").in("message_id", ids) : Promise.resolve({ data: [] }),
     authorIds.length
-      ? supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds)
+      ? supabase.from("profiles").select("id, username, display_name, avatar_url, is_bot").in("id", authorIds)
       : Promise.resolve({ data: [] }),
   ]);
 

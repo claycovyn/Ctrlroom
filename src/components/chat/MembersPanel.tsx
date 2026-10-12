@@ -17,7 +17,7 @@ export function MembersPanel({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     supabaseBrowser()
       .from("community_members")
-      .select("role, profiles(id, username, display_name, avatar_url)")
+      .select("role, profiles(id, username, display_name, avatar_url, is_bot)")
       .eq("community_id", community.id)
       .order("joined_at")
       .limit(1000)
