@@ -1,0 +1,92 @@
+export const dynamic = "force-dynamic";
+
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { Logo } from "@/components/Logo";
+import { NotConfigured } from "@/components/NotConfigured";
+import { isConfigured } from "@/lib/env";
+import { currentUser } from "@/lib/supabase/server";
+import type { Community, Role } from "@/lib/types";
+import { CreateCommunityForm, JoinCommunityForm } from "./HomeForms";
+
+export const metadata: Metadata = { title: "Your communities" };
+
+export default async function AppHome() {
+  if (!isConfigured()) return <NotConfigured />;
+  const { supabase, user } = await currentUser();
+  if (!user) redirect("/login");
+
+  const [{ data: memberships }, { data: profile }] = await Promise.all([
+    supabase
+      .from("community_members")
+      .select("role, communities(*)")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: true }),
+    supabase.from("profiles").select("display_name, username").eq("id", user.id).single(),
+  ]);
+  const communities = ((memberships ?? []) as unknown as { role: Role; communities: Community }[]).filter(
+    (m) => m.communities,
+  );
+
+  return (
+    <main className="min-h-screen">
+      <header className="mx-auto flex max-w-4xl items-center justify-between px-4 py-5 sm:px-6">
+        <Link href="/">
+          <Logo />
+        </Link>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-muted">@{profile?.username}</span>
+          <form action="/auth/signout" method="post">
+            <button className="btn-ghost">Sign out</button>
+          </form>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-4xl px-4 pb-16 sm:px-6">
+        <h1 className="mb-6 mt-4 text-2xl font-semibold">
+          {communities.length ? `Hey ${profile?.display_name ?? ""}` : "Find your people"}
+        </h1>
+
+        {communities.length > 0 && (
+          <ul className="mb-10 grid gap-3 sm:grid-cols-2">
+            {communities.map(({ communities: c, role }) => (
+              <li key={c.id}>
+                <Link
+                  href={`/c/${c.slug}`}
+                  className="card flex items-center gap-4 p-4 transition-colors hover:border-signal"
+                >
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-raised text-xl">
+                    {c.icon || c.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{c.name}</span>
+                    <span className="block truncate text-sm text-muted">{c.description || `/c/${c.slug}`}</span>
+                  </span>
+                  {role !== "member" && (
+                    <span className="ml-auto rounded bg-raised px-2 py-0.5 text-xs capitalize text-muted">{role}</span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <section className="card p-5">
+            <h2 className="mb-1 font-medium">Start a community</h2>
+            <p className="mb-4 text-sm text-muted">
+              You’ll start with #announcements, #general and a voice lounge. You can change them later.
+            </p>
+            <CreateCommunityForm />
+          </section>
+          <section className="card p-5">
+            <h2 className="mb-1 font-medium">Join with an invite</h2>
+            <p className="mb-4 text-sm text-muted">Paste the link someone sent you.</p>
+            <JoinCommunityForm />
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}

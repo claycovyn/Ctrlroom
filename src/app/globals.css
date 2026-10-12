@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 246 246 243;
+  --panel: 255 255 255;
+  --raised: 238 238 233;
+  --line: 222 222 215;
+  --fg: 20 22 26;
+  --muted: 98 102 112;
+  --signal: 0 140 84;
+  --alert: 210 45 60;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: 11 12 15;
+    --panel: 17 19 23;
+    --raised: 26 28 34;
+    --line: 38 41 49;
+    --fg: 234 236 240;
+    --muted: 138 144 156;
+    --signal: 61 255 162;
+    --alert: 255 99 99;
+    color-scheme: dark;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-fg antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: rgb(var(--signal) / 0.3);
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--signal));
+  outline-offset: 2px;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-signal text-black hover:brightness-95;
+  }
+  .btn-ghost {
+    @apply btn text-fg hover:bg-raised;
+  }
+  .btn-outline {
+    @apply btn border border-line hover:bg-raised;
+  }
+  .input {
+    @apply w-full rounded-md border border-line bg-bg px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-signal focus:outline-none;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-panel;
+  }
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--line)) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

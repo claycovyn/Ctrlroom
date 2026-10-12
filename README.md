@@ -1,0 +1,82 @@
+# Ctrl Room
+
+**Where the collective talks.** An OpenCtrl original.
+
+Ctrl Room is community chat with rooms, threads, voice and video. It is built around the things people dislike most about Discord and Slack:
+
+| What people dislike | Ctrl Room |
+|---|---|
+| Slack's free plan cuts history at 90 days and paywalls search | Full history and full-text search, free, in every community |
+| Notification overload | Quiet by default: only @mentions and replies to you ping. Each room can be set to Everything, Mentions or Muted |
+| Coming back to a wall of unread messages | **While you were gone**: a recap of new messages, who talked, busy threads, decisions and your pings |
+| Threads where conclusions get lost | Threads open side by side and can be **closed with an outcome**. The outcome shows in the room and is pinned to the board |
+| Pins as a junk drawer | Each room has a **board** of decisions, links, docs and notes |
+| Confusing permissions | Four roles: owner, admin, mod, member |
+| Upsells and ID checks | No paid tier, no ID checks |
+| Per-seat pricing | One account for any number of communities, each with its own invite links |
+
+## Stack
+
+- **Next.js 15** (App Router) + TypeScript + Tailwind
+- **Supabase**: Postgres, Auth, and Realtime. Live updates use *broadcast from the database* on private topics, not `postgres_changes`, so each event goes only to people in that room.
+- **LiveKit**: voice, video and screen share (LiveKit Cloud, or self-hosted `livekit-server`)
+
+There is no separate API server. The browser talks to Postgres with the user's JWT, and the **row-level security policies in `supabase/migrations/0001_init.sql` are the permission system**. Anything that crosses a permission boundary (joining, moderation, counters, closing threads) is a `SECURITY DEFINER` function that checks the caller's role itself.
+
+## Run it locally
+
+```bash
+npm install
+npx supabase start          # needs Docker; prints the local API URL and anon key
+cp .env.example .env.local  # paste NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY
+npm run dev
+```
+
+`npx supabase start` applies the migrations automatically. Voice and video stay switched off until the three `LIVEKIT_*` values are set. Everything else works without them.
+
+## Checks
+
+```bash
+npm run typecheck && npm run lint
+npm test            # unit tests (message parsing, grouping, reactions)
+npm run db:test     # applies the migration to a throwaway Postgres and runs the permission tests
+npm run e2e         # two browsers chatting live against local Supabase (needs `npm run build` and `npx supabase start`)
+```
+
+`db:test` needs only a local Postgres 14+ (no Docker). It covers privacy between communities, invites (expiry, use limits, bans), announcement rooms, mention and reply pings, column-level write limits, mod/admin/owner powers, thread outcomes, unread counts, catch-up, search and realtime topic access.
+
+## Deploy
+
+1. **Supabase**: create a project, then `npx supabase link --project-ref <ref>` and `npx supabase db push`.
+   Under Auth → URL configuration, set the Site URL to your domain and add `https://<domain>/auth/callback` as a redirect URL.
+2. **LiveKit**: create a project at cloud.livekit.io (or self-host) and copy the URL, API key and secret.
+3. **Vercel**: import the repo and set the env vars from `.env.example`.
+
+## Data model
+
+```
+communities ─┬─ community_members (role)   bans   invites
+             └─ rooms (text | voice, post_min_role)
+                  ├─ messages (parent_id = thread, outcome, soft delete, tsvector)
+                  │    ├─ reactions
+                  │    └─ mentions (mention | reply)  → user:<id> topic
+                  ├─ board_items (decision | link | doc | note)
+                  └─ room_state (last_read_at, notify)  per user
+```
+
+Realtime topics: `room:<id>` (messages, reactions, board, typing), `community:<id>` (room list and activity pings), `user:<id>` (mentions and replies).
+
+## Scaling notes
+
+- Messages are paged 50 at a time. The indexes cover room timelines, threads and search.
+- Unread counts stop at 100 per room, so a busy room never forces a full scan.
+- Broadcast topics are per room, so a busy room doesn't fan out to the whole community.
+- Supabase Realtime and LiveKit both scale out without code changes. At very large sizes, the next steps are read replicas for history and search, and partitioning `messages` by community.
+
+## Roadmap
+
+- File and image uploads (Supabase Storage)
+- Direct messages and group DMs
+- Mobile apps (the web app is responsive and installable today)
+- An optional AI-written catch-up summary layered on the deterministic one
+- Custom emoji, member profiles and a public community directory
