@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { MyCloud } from "@/lib/cloudStatus";
 
+const PAUSED: Record<string, string> = {
+  messages: "New messages are paused until it resets.",
+  call_minutes: "New calls are paused until it resets. Text keeps working.",
+  ai_replies: "@ctrl and @openctrl answers are paused until it resets. Chat keeps working.",
+};
+
 function fmt(n: number) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
@@ -55,9 +61,7 @@ export function UsageCard({ cloud }: { cloud: MyCloud }) {
               {m.state === "over" && (
                 <p className="mt-1 text-xs text-muted">
                   {free
-                    ? m.meter === "call_minutes"
-                      ? "New calls are paused until it resets. Text keeps working."
-                      : "New messages are paused until it resets."
+                    ? PAUSED[m.meter] ?? `New ${m.unit} are paused until it resets.`
                     : "Over fair use. Everything keeps working."}
                 </p>
               )}

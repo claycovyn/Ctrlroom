@@ -26,7 +26,7 @@ const migration = readFileSync(path.join(__dirname, "../supabase/migrations/0003
 describe("openctrl.json", () => {
   it("is a valid OPENCTRL manifest with a cloud section", () => {
     expect(parseManifest(manifest)).toMatchObject({ ok: true });
-    expect(Object.keys(CLOUD.meters).sort()).toEqual(["call_minutes", "messages"]);
+    expect(Object.keys(CLOUD.meters).sort()).toEqual(["ai_replies", "call_minutes", "messages"]);
   });
 
   it("declares exactly the metrics the database meters", () => {
@@ -72,6 +72,13 @@ describe("workspace status", () => {
     const s = workspaceStatus({ plan: "cloud", packs: {}, usage: { messages: CLOUD.fair_use.messages * 3 } }, true);
     expect(s.meters.find((m) => m.meter === "messages")?.state).toBe("over");
     expect(s.paused).toEqual([]);
+  });
+
+  it("AI answers are their own meter with their own pack", () => {
+    const s = workspaceStatus({ plan: "free", packs: {}, usage: { ai_replies: CLOUD.free.ai_replies } }, true);
+    expect(s.paused).toEqual(["ai_replies"]);
+    const paid = workspaceStatus({ plan: "cloud", packs: { ai_3k: 1 }, usage: {} }, true);
+    expect(paid.meters.find((m) => m.meter === "ai_replies")?.limit).toBe(CLOUD.fair_use.ai_replies + 3000);
   });
 
   it("packs raise a subscriber's limit", () => {
@@ -194,9 +201,9 @@ describe("errors, costs and never deleting", () => {
   });
 
   it("estimates cost to serve from unit costs", () => {
-    const costs = cleanCosts({ per1kMessages: "0.5", perCallMinute: 0.001, perEmail: -3, perWorkspace: 0.1 });
+    const costs = cleanCosts({ per1kMessages: "0.5", perCallMinute: 0.001, perAiReply: 0.01, perEmail: -3, perWorkspace: 0.1 });
     expect(costs.perEmail).toBe(0);
-    expect(estimateCost({ messages: 4000, call_minutes: 1000 }, costs)).toBeCloseTo(2 + 1 + 0.1);
+    expect(estimateCost({ messages: 4000, call_minutes: 1000, ai_replies: 50 }, costs)).toBeCloseTo(2 + 1 + 0.5 + 0.1);
   });
 
   it("no Cloud code path deletes data", () => {

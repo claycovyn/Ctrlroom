@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { resetLabel } from "@/lib/cloud";
 import { siteUrl } from "@/lib/env";
 import { aiConfigured, chat, type ChatMessage } from "./llm";
 import { clip, cleanAnswer } from "./text";
@@ -19,6 +20,7 @@ export interface BotJob {
   requested_by: string;
   thread_id: string;
   status: string;
+  error?: string | null;
 }
 
 interface Row {
@@ -132,7 +134,12 @@ export async function runJob(db: SupabaseClient, job: BotJob): Promise<void> {
     const mention = ctx.inThread ? ctx.asker : null;
 
     if (job.status === "limited") {
-      const id = await postReply(db, job, "You've hit the limit for AI answers here for now (20 an hour per person). Try again in a bit.", mention);
+      // error "cloud:ai_replies" = the community owner's Free Cloud tier ran out of AI answers this month (0003_cloud.sql).
+      const text =
+        job.error === "cloud:ai_replies"
+          ? `This community has used this month's free AI answers. They come back on ${resetLabel()}.`
+          : "You've hit the limit for AI answers here for now (20 an hour per person). Try again in a bit.";
+      const id = await postReply(db, job, text, mention);
       await db.from("bot_jobs").update({ status: "done", step: "", reply_id: id }).eq("id", job.id);
       return;
     }
@@ -184,6 +191,11 @@ export async function runJob(db: SupabaseClient, job: BotJob): Promise<void> {
     if (!answer) answer = "Sorry, I couldn't put an answer together. Try asking in a different way.";
     const id = await postReply(db, job, answer, mention);
     await db.from("bot_jobs").update({ status: "done", step: "", reply_id: id }).eq("id", job.id);
+    // OPENCTRL Cloud usage: one AI answer for the community owner. Never fails the job.
+    await db.rpc("record_ai_reply", { p_job: job.id }).then(
+      () => undefined,
+      () => undefined,
+    );
   } catch (e) {
     const reason = controller.signal.aborted ? "it took too long" : e instanceof Error ? e.message : "something went wrong";
     console.error(`[agent] job ${job.id} failed:`, e);

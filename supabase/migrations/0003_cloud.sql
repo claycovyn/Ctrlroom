@@ -6,7 +6,7 @@
 --
 -- The workspace is the community owner: usage from every community someone owns adds up on their account,
 -- the same account an OPENCTRL Cloud subscription belongs to.
---   Free tier at a limit      → new messages / new calls pause; reading, search, history and export keep working.
+--   Free tier at a limit      → new messages / calls / AI answers pause; reading, search, history and export keep working.
 --   OPENCTRL Cloud subscriber → never paused here; over fair use the app offers a pack.
 --   Grandfathered / no row    → unlimited (everyone who signed up before Cloud was switched on).
 -- Nothing in this file ever deletes data because of usage.
@@ -168,6 +168,10 @@ begin
   if c.taken_down_at is not null then
     raise exception 'CR: This community was taken down, so new messages are off.';
   end if;
+  -- AI helper replies answer a message that was already allowed; their own limit is ai_replies (below).
+  if (select is_bot from public.profiles where id = new.author_id) then
+    return new;
+  end if;
   if (select count(*) from (
         select 1 from public.messages
         where author_id = new.author_id and created_at > now() - interval '1 minute'
@@ -187,6 +191,7 @@ create trigger messages_cloud_guard before insert on public.messages
 create or replace function public.messages_meter() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
+  if (select is_bot from public.profiles where id = new.author_id) then return null; end if;
   perform public.meter((select owner_id from public.communities where id = new.community_id), new.community_id, 'messages', 1);
   return null;
 end $$;
@@ -258,6 +263,36 @@ begin
   if not found then return false; end if;
   perform public.meter((select owner_id from public.communities where id = r.community_id), r.community_id, 'call_minutes', greatest(coalesce(p_minutes, 0), 0));
   return true;
+end $$;
+
+-- ───────────────────────── AI helpers ─────────────────────────
+
+-- Free tier over its AI replies: the job is created "limited" (0002_agents' existing path, which answers without
+-- calling the model). error = 'cloud:ai_replies' tells the server to explain the monthly limit, not the hourly one.
+-- Named to sort before bot_jobs_broadcast, so the broadcast already carries the final status.
+create or replace function public.bot_jobs_apply_cloud_limit() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'queued'
+     and public.free_limit_reached((select owner_id from public.communities where id = new.community_id), 'ai_replies') then
+    new.status := 'limited';
+    new.error := 'cloud:ai_replies';
+  end if;
+  return new;
+end $$;
+
+create trigger bot_jobs_apply_cloud_limit before insert on public.bot_jobs
+  for each row execute function public.bot_jobs_apply_cloud_limit();
+
+-- Called by the server (service role) after an AI helper posts a real answer (not a limit or error notice).
+create or replace function public.record_ai_reply(p_job uuid) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  j public.bot_jobs;
+begin
+  select * into j from public.bot_jobs where id = p_job;
+  if not found then return; end if;
+  perform public.meter((select owner_id from public.communities where id = j.community_id), j.community_id, 'ai_replies', 1);
 end $$;
 
 -- ───────────────────────── status, reports, admin ─────────────────────────
@@ -332,6 +367,8 @@ revoke execute on function
   public.members_takedown_guard(),
   public.communities_publish_guard(),
   public.record_call(text, uuid, int),
+  public.bot_jobs_apply_cloud_limit(),
+  public.record_ai_reply(uuid),
   public.cloud_admin_overview(),
   public.call_allowed(uuid),
   public.my_cloud_status(),
@@ -342,6 +379,6 @@ from public, anon, authenticated;
 
 grant execute on function public.call_allowed(uuid), public.my_cloud_status(), public.report(uuid, uuid, text, text)
   to authenticated;
-grant execute on function public.record_call(text, uuid, int), public.cloud_admin_overview(),
+grant execute on function public.record_call(text, uuid, int), public.record_ai_reply(uuid), public.cloud_admin_overview(),
   public.month_usage(uuid, text), public.plan_of(uuid)
   to service_role;

@@ -12,8 +12,9 @@ Limits come from the `cloud` section of [`openctrl.json`](../openctrl.json), nev
 
 | Meter | Unit | Free | OPENCTRL Cloud (fair use) | Pack |
 | --- | --- | --- | --- | --- |
-| `messages` | messages a month (every message and thread reply) | 10,000 | 1,000,000 | +1,000,000 (`messages_1m`) |
+| `messages` | messages a month (every message and thread reply people post) | 10,000 | 1,000,000 | +1,000,000 (`messages_1m`) |
 | `call_minutes` | call minutes a month (per person in a call) | 300 | 10,000 | +10,000 (`calls_10k`) |
+| `ai_replies` | AI answers a month (@ctrl and @openctrl) | 100 | 3,000 | +3,000 (`ai_3k`) |
 
 These numbers are placeholders until real usage and the LiveKit and Supabase bills set them.
 
@@ -22,6 +23,8 @@ These numbers are placeholders until real usage and the LiveKit and Supabase bil
 - **Messages** are counted by a database trigger as they're written (`messages_meter`).
 - **Call minutes** are counted from LiveKit's `participant_left` webhook: time from join to leave, rounded up to the
   minute (`/api/livekit/webhook`, idempotent per event id).
+- **AI answers** are counted when a helper posts a real answer (`record_ai_reply`, called by `src/lib/agent/run.ts`);
+  limit notices and error replies don't count. Bot replies don't count as messages and skip the flood guard.
 - Cost-only numbers (emails sent) feed the cost-to-serve estimate on `/admin`.
 
 ## Plans
@@ -40,8 +43,9 @@ sets them (build plan 7.3, through the Cloud contract's `setEntitlements`). Ctrl
 
 Nothing is ever deleted for going over. Reading, history, search and export always work.
 
-- **Free tier at 100%:** new messages (or new calls) in that owner's communities pause until the month resets
-  (UTC). Members see the reason when they try to post. Calls already running carry on.
+- **Free tier at 100%:** new messages, new calls or new AI answers in that owner's communities pause until the
+  month resets (UTC). Members see the reason when they try to post; the helper explains its own pause. Calls already
+  running carry on. (The helpers' hourly and daily limits from `0002_agents.sql` apply on every plan.)
 - **OPENCTRL Cloud subscriber:** never paused. Over fair use the dashboard and email offer the matching pack.
 - **Notices** at 80% and 100%, once per meter per month, by email (daily cron, `/api/cron/usage`) and live on the
   owner's dashboard (`/app` and community Settings).

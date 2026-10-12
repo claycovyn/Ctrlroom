@@ -86,7 +86,7 @@ npm run e2e         # two browsers chatting live against local Supabase (needs `
 ## OPENCTRL Cloud
 
 Ctrl Room is an OPENCTRL Original. Its [`openctrl.json`](openctrl.json) (also served at `/openctrl.json`) declares what
-OPENCTRL Cloud meters (messages and call minutes a month), the Free tier, the fair-use limits for the $12/month OPENCTRL
+OPENCTRL Cloud meters (messages, call minutes and AI answers a month), the Free tier, the fair-use limits for the $12/month OPENCTRL
 Cloud subscription and the add-on packs. Limits only apply when `CTRLROOM_CLOUD=1`: **self-hosting is never limited**.
 Nothing is ever deleted for going over, and export always works. Operator guide: [docs/CLOUD.md](docs/CLOUD.md).
 

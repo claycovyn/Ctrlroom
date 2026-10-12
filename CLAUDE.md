@@ -28,7 +28,8 @@ TypeScript, Tailwind, Supabase (Postgres + Auth + Realtime), LiveKit.
   pauses new messages/calls; subscribers are never paused (offer a pack). **Nothing is ever deleted for usage;
   export (`/api/c/[slug]/export`) always works.** `tests/cloud.test.ts` fails if a Cloud path deletes data.
 - `meter()` never raises. DB errors for people start with `CR: ` (`src/lib/cloudErrors.ts` shows them).
-- Call minutes: LiveKit webhook → `record_call` (idempotent per event). Notices: daily cron `/api/cron/usage`.
+- Call minutes: LiveKit webhook → `record_call` (idempotent per event). AI answers: `record_ai_reply` after a real
+  answer; Free over its AI limit → job `limited` with error `cloud:ai_replies`. Notices: daily cron `/api/cron/usage`.
 
 ## Hosting and commits
 - GitHub: https://github.com/claycovyn/ctrlroom. Vercel Hobby team owned by `claycovyn`: commits must be authored by

@@ -64,6 +64,11 @@ export function nextMonthStart(now = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 }
 
+/** "November 1": the day monthly meters reset (UTC); by default the next one. */
+export function resetLabel(resetsAt: string = nextMonthStart()): string {
+  return new Date(resetsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+}
+
 export function workspaceStatus(row: CloudStatusRow, enabled = row.enabled ?? false): WorkspaceStatus {
   const plan = planOf(row.plan);
   const tier = tierOf(plan, enabled);
@@ -106,7 +111,7 @@ const FREE_UPGRADE = `Join OPENCTRL Cloud for ${CLOUD_PRICE_LABEL}: every OpenCt
 /** The 80% / 100% notice for one meter. */
 export function noticeFor(status: WorkspaceStatus, m: MeterStatus, pct: 80 | 100): { subject: string; text: string } {
   const what = m.unit;
-  const resets = new Date(status.resetsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+  const resets = resetLabel(status.resetsAt);
   const lines: string[] = [];
   if (pct === 100) {
     lines.push(
@@ -150,13 +155,15 @@ export interface UnitCosts {
   per1kMessages: number;
   /** Dollars per call minute (LiveKit participant minute). */
   perCallMinute: number;
+  /** Dollars per AI answer (model and search calls). */
+  perAiReply: number;
   /** Dollars per email sent. */
   perEmail: number;
   /** Fixed dollars per workspace per month (share of hosting). */
   perWorkspace: number;
 }
 
-export const DEFAULT_COSTS: UnitCosts = { per1kMessages: 0, perCallMinute: 0, perEmail: 0, perWorkspace: 0 };
+export const DEFAULT_COSTS: UnitCosts = { per1kMessages: 0, perCallMinute: 0, perAiReply: 0, perEmail: 0, perWorkspace: 0 };
 
 export function cleanCosts(value: unknown): UnitCosts {
   const v = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
@@ -164,11 +171,12 @@ export function cleanCosts(value: unknown): UnitCosts {
     const x = Number(v[k]);
     return Number.isFinite(x) && x >= 0 ? x : 0;
   };
-  return { per1kMessages: n("per1kMessages"), perCallMinute: n("perCallMinute"), perEmail: n("perEmail"), perWorkspace: n("perWorkspace") };
+  return { per1kMessages: n("per1kMessages"), perCallMinute: n("perCallMinute"), perAiReply: n("perAiReply"), perEmail: n("perEmail"), perWorkspace: n("perWorkspace") };
 }
 
 export function estimateCost(usage: Record<string, number | string>, costs: UnitCosts, emails = 0): number {
   const messages = Number(usage.messages) || 0;
   const minutes = Number(usage.call_minutes) || 0;
-  return (messages / 1000) * costs.per1kMessages + minutes * costs.perCallMinute + emails * costs.perEmail + costs.perWorkspace;
+  const ai = Number(usage.ai_replies) || 0;
+  return (messages / 1000) * costs.per1kMessages + minutes * costs.perCallMinute + ai * costs.perAiReply + emails * costs.perEmail + costs.perWorkspace;
 }

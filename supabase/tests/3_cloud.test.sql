@@ -38,11 +38,12 @@ select ct.ok(public.plan_of('10000000-0000-0000-0000-00000000000a') = 'grandfath
 select ct.ok(not exists (select 1 from public.cloud_plans), 'no plan rows while Cloud is off');
 
 -- ── Cloud on, tiny Free limits for the test
-update public.cloud_config set enabled = true, free = '{"messages": 3, "call_minutes": 5}';
+update public.cloud_config set enabled = true, free = '{"messages": 3, "call_minutes": 5, "ai_replies": 1}';
 insert into auth.users (id, email, raw_user_meta_data) values
   ('10000000-0000-0000-0000-0000000000f1', 'free@example.com', '{"username":"freebie"}'),
   ('10000000-0000-0000-0000-0000000000c1', 'cloud@example.com', '{"username":"subscriber"}'),
-  ('10000000-0000-0000-0000-0000000000b1', 'other@example.com', '{"username":"outsider"}');
+  ('10000000-0000-0000-0000-0000000000b1', 'other@example.com', '{"username":"outsider"}'),
+  ('10000000-0000-0000-0000-0000000000a1', 'asker@example.com', '{"username":"asker"}');
 select ct.ok(public.plan_of('10000000-0000-0000-0000-0000000000f1') = 'free', 'new sign-up gets Free while Cloud is on');
 update public.cloud_plans set plan = 'cloud' where user_id = '10000000-0000-0000-0000-0000000000c1';
 
@@ -82,6 +83,33 @@ select ct.ok(ct.post(:'paid_general', '10000000-0000-0000-0000-0000000000c1', '1
          and ct.post(:'paid_general', '10000000-0000-0000-0000-0000000000c1', '2') is null
          and ct.post(:'paid_general', '10000000-0000-0000-0000-0000000000c1', '3') is null
          and ct.post(:'paid_general', '10000000-0000-0000-0000-0000000000c1', '4') is null, 'subscriber is never paused');
+
+-- ── AI helpers: Free tier's AI answers run out, bot replies aren't "messages" and skip the flood guard
+select ct.login('10000000-0000-0000-0000-0000000000a1');
+select (public.create_community('AI Co', 'aico')).id as ai_c \gset
+select id as ai_general from public.rooms where community_id = :'ai_c' and slug = 'general' \gset
+select ct.ok(ct.post(:'ai_general', '10000000-0000-0000-0000-0000000000a1', '@ctrl first question') is null, 'asker posts');
+select id as ai_job from public.bot_jobs where community_id = :'ai_c' \gset
+select ct.ok((select status from public.bot_jobs where id = :'ai_job') = 'queued', 'first AI question is queued');
+select ct.ok(ct.err(format('select public.record_ai_reply(%L)', :'ai_job')) is not null, 'users cannot record AI answers');
+reset role;
+set role service_role;
+select public.record_ai_reply(:'ai_job');
+select ct.ok(public.month_usage('10000000-0000-0000-0000-0000000000a1', 'ai_replies') = 1, 'AI answer metered for the owner');
+reset role;
+select ct.ok(bool_and(ct.post(:'ai_general', '00000000-0000-4000-8000-00000000c7a1', 'bot says ' || i) is null), 'bots skip the per-person flood guard')
+  from generate_series(1, 35) i;
+select ct.ok(public.month_usage('10000000-0000-0000-0000-0000000000a1', 'messages') = 1, 'bot replies are not counted as messages');
+set role authenticated;
+select ct.login('10000000-0000-0000-0000-0000000000a1');
+select ct.ok(ct.post(:'ai_general', '10000000-0000-0000-0000-0000000000a1', '@ctrl second question') is null, 'asker can still post');
+select ct.ok((select status = 'limited' and error = 'cloud:ai_replies' from public.bot_jobs
+              where community_id = :'ai_c' and id <> :'ai_job'), 'Free AI answers used up: the job is limited with the Cloud reason');
+reset role;
+select ct.ok(exists (select 1 from realtime.messages where event = 'agent' and payload ->> 'status' = 'limited'
+                     and payload ->> 'id' = (select id::text from public.bot_jobs where community_id = :'ai_c' and id <> :'ai_job')),
+             'the broadcast already says limited');
+set role authenticated;
 
 -- ── users can't read or write Cloud tables, or call internal functions
 select ct.ok((select count(*) from public.usage_daily) = 0, 'usage rows hidden from users');

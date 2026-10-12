@@ -247,12 +247,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       <section className="card p-5">
         <h2 className="font-medium">Unit costs</h2>
-        <p className="mt-1 text-sm text-muted">From the Supabase, LiveKit and Resend bills. They only feed the cost estimate above.</p>
+        <p className="mt-1 text-sm text-muted">From the Supabase, LiveKit, AI model and Resend bills. They only feed the cost estimate above.</p>
         <AdminForm action="costs" className="mt-3 grid gap-3 sm:grid-cols-2">
           {(
             [
               ["per1kMessages", "Dollars per 1,000 messages"],
               ["perCallMinute", "Dollars per call minute"],
+              ["perAiReply", "Dollars per AI answer"],
               ["perEmail", "Dollars per email"],
               ["perWorkspace", "Fixed dollars per workspace a month"],
             ] as const
