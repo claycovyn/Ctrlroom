@@ -57,6 +57,12 @@ select tests.ok(tests.throws(format($$ update public.profiles set avatar_url = %
   'cannot point avatar_url at someone else''s folder');
 select tests.ok(tests.throws(format($$ update public.profiles set avatar_url = 'https://tracker.example/pixel.png' where id = %L $$, :'ava')),
   'cannot point avatar_url at another site');
+select tests.ok(tests.throws(format($$ update public.profiles set avatar_url = %L where id = %L $$,
+    'https://tracker.example/storage/v1/object/public/avatars/' || :'ava' || '/one.png', :'ava')),
+  'cannot use a lookalike path on another site');
+select tests.ok(tests.throws(format($$ update public.profiles set avatar_url = %L where id = %L $$,
+    'https://proj.supabase.co.tracker.example/storage/v1/object/public/avatars/' || :'ava' || '/one.png', :'ava')),
+  'cannot use a lookalike host');
 select tests.ok(tests.throws(format($$ update public.profiles set avatar_url = %L where id = %L $$, :'base' || :'ava' || '/../x.png', :'ava')),
   'no path tricks in avatar_url');
 

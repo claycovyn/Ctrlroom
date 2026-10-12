@@ -34,12 +34,18 @@ create policy avatars_delete on storage.objects for delete to authenticated
 -- ───────────────────────── avatar_url ─────────────────────────
 
 -- A person's avatar_url is empty or a public URL in their own avatars folder. Bots keep their
--- built-in icons (0002).
+-- built-in icons (0002). The host must be Supabase's (hosted or local dev), so a profile can't
+-- load a lookalike path from another site. Self-hosting Supabase on your own domain? Allow it with
+--   alter database postgres set ctrlroom.avatar_host = 'supabase.example.com';
 create or replace function public.profiles_avatar_guard() returns trigger
 language plpgsql set search_path = public as $$
+declare
+  own_host text := nullif(current_setting('ctrlroom.avatar_host', true), '');
+  hosts text := '[a-z0-9-]+\.supabase\.co|localhost(:[0-9]+)?|127\.0\.0\.1(:[0-9]+)?'
+    || coalesce('|' || regexp_replace(own_host, '([.\\+*?^$()\[\]{}|-])', '\\\1', 'g'), '');
 begin
   if new.avatar_url is null or new.is_bot then return new; end if;
-  if new.avatar_url !~ ('^https?://[^/?#]+/storage/v1/object/public/avatars/' || new.id::text || '/[A-Za-z0-9._-]+$') then
+  if new.avatar_url !~ ('^https?://(' || hosts || ')/storage/v1/object/public/avatars/' || new.id::text || '/[A-Za-z0-9._-]+$') then
     raise exception 'CR: Upload a photo to use it on your profile.' using errcode = 'check_violation';
   end if;
   return new;
