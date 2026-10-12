@@ -2,7 +2,9 @@
 
 **Where the collective talks.** An OpenCtrl original.
 
-Ctrl Room is community chat with rooms, threads, voice and video. It is built around the things people dislike most about Discord and Slack:
+Ctrl Room is a community home: a post feed, chat rooms, voice and video, courses, events and a leaderboard. It is built around the things people dislike most about Discord, Slack and Skool.
+
+**Chat (the Discord and Slack fixes)**
 
 | What people dislike | Ctrl Room |
 |---|---|
@@ -14,6 +16,19 @@ Ctrl Room is community chat with rooms, threads, voice and video. It is built ar
 | Confusing permissions | Four roles: owner, admin, mod, member |
 | Upsells and ID checks | No paid tier, no ID checks |
 | Per-seat pricing | One account for any number of communities, each with its own invite links |
+
+**Community hub (the Skool fixes)**
+
+| What people like about Skool | What they dislike | Ctrl Room |
+|---|---|---|
+| A simple feed with categories | It gets noisy, and people post low-effort replies to earn points | Categories, pinned posts, sorting and post search. In Questions posts, the asker can **mark the answer**, which moves to the top |
+| Points, levels and a leaderboard | Easy to game (like-trading, comment spam); discouraging if you're near the bottom | **One point per person per day**, however many likes they give you. Points also come from finishing lessons (+1) and answers (+5). The leaderboard defaults to **this week** |
+| A classroom that unlocks by level | Basic: no structure, no drip | Courses with sections, per-lesson progress, unlock by **level and/or days after joining**, YouTube, Vimeo and Loom embeds, drafts |
+| A calendar | Calls happen in another app | Events link to a **voice room** (Join lights up 15 min before the start), RSVPs, an **Add to calendar** (.ics) file, local time zones |
+| Notifications | Too many emails | A notification bell in each community for comments, replies, @mentions and answers |
+| Flat price | $9–99/month plus transaction fees | No paid tier (paid memberships are on the roadmap) |
+
+Opening a community lands on its **Feed**. The sidebar has Feed, Classroom, Calendar and Leaderboard, then the chat rooms. Level badges show on avatars everywhere.
 
 ## Brand
 
@@ -54,7 +69,7 @@ npm run db:test     # applies the migration to a throwaway Postgres and runs the
 npm run e2e         # two browsers chatting live against local Supabase (needs `npm run build` and `npx supabase start`)
 ```
 
-`db:test` needs only a local Postgres 14+ (no Docker). It covers privacy between communities, invites (expiry, use limits, bans), announcement rooms, mention and reply pings, column-level write limits, mod/admin/owner powers, thread outcomes, unread counts, catch-up, search and realtime topic access.
+`db:test` needs only a local Postgres 14+ (no Docker). `1_permissions` covers privacy between communities, invites (expiry, use limits, bans), announcement rooms, mention and reply pings, column-level write limits, mod/admin/owner powers, thread outcomes, unread counts, catch-up, search and realtime topic access. `2_hub` covers posts, likes and the daily point cap, comments and notifications, answers, course locks (level and drip), lesson progress, the leaderboard and events.
 
 ## Deploy
 
@@ -73,9 +88,17 @@ communities ─┬─ community_members (role)   bans   invites
                   │    └─ mentions (mention | reply)  → user:<id> topic
                   ├─ board_items (decision | link | doc | note)
                   └─ room_state (last_read_at, notify)  per user
+
+communities ─┬─ post_categories ─ posts ─┬─ post_comments ─ comment_likes
+             │                           └─ post_likes
+             ├─ courses ─ course_modules ─ lessons ─┬─ lesson_content (only readable once unlocked)
+             │                                      └─ lesson_progress
+             ├─ events ─ event_rsvps
+             ├─ points_ledger → community_members.points → level_for()
+             └─ notifications  → user:<id> topic
 ```
 
-Realtime topics: `room:<id>` (messages, reactions, board, typing), `community:<id>` (room list and activity pings), `user:<id>` (mentions and replies).
+Realtime topics: `room:<id>` (messages, reactions, board, typing), `post:<id>` (comments and edits on one post), `community:<id>` (room list, activity pings, new posts, events), `user:<id>` (mentions, replies, notifications).
 
 ## Scaling notes
 
@@ -86,6 +109,8 @@ Realtime topics: `room:<id>` (messages, reactions, board, typing), `community:<i
 
 ## Roadmap
 
+- Paid memberships and paid courses (Stripe)
+- Quizzes and completion certificates in the Classroom
 - File and image uploads (Supabase Storage)
 - Direct messages and group DMs
 - Mobile apps (the web app is responsive and installable today)

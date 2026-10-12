@@ -26,6 +26,7 @@ export function MessageItem({
   me,
   canModerate,
   highlight,
+  level,
   actions,
 }: {
   message: Message;
@@ -35,6 +36,7 @@ export function MessageItem({
   me: Profile;
   canModerate: boolean;
   highlight?: boolean;
+  level?: number;
   actions: MessageActions;
 }) {
   const [editing, setEditing] = useState(false);
@@ -74,7 +76,7 @@ export function MessageItem({
             {timeLabel(m.created_at)}
           </span>
         ) : (
-          <Avatar profile={author} />
+          <Avatar profile={author} level={level} />
         )}
       </div>
       <div className="min-w-0 flex-1">

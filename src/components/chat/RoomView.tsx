@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
+import { levelFor } from "@/lib/levels";
 import { useBroadcast } from "@/lib/realtime";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type BoardItem, type CatchUp, type Message, type Profile, type Reaction, type Room, type Unread } from "@/lib/types";
@@ -44,7 +45,7 @@ export function RoomView({
   hasMore: boolean;
   focusMessageId: string | null;
 }) {
-  const { me, role, community, profiles, ensureProfiles, addProfiles, currentRoomId, unreads, setUnreads, setNavOpen, livekit } = useCommunity();
+  const { me, role, community, profiles, points, ensureProfiles, addProfiles, currentRoomId, unreads, setUnreads, setNavOpen, livekit } = useCommunity();
   const supabase = supabaseBrowser();
 
   const [messages, setMessages] = useState(initialMessages);
@@ -435,6 +436,7 @@ export function RoomView({
                 me={me}
                 canModerate={canModerate}
                 highlight={highlight === message.id}
+                level={points[message.author_id] !== undefined ? levelFor(points[message.author_id]) : undefined}
                 actions={actions}
               />
             </div>

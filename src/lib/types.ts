@@ -91,3 +91,126 @@ export const ROLE_RANK: Record<Role, number> = { owner: 4, admin: 3, mod: 2, mem
 export function atLeast(role: Role | null | undefined, min: Role): boolean {
   return role ? ROLE_RANK[role] >= ROLE_RANK[min] : false;
 }
+
+export interface Category {
+  id: string;
+  community_id: string;
+  name: string;
+  emoji: string;
+  position: number;
+  post_min_role: Role;
+  answers: boolean;
+}
+
+export interface Post {
+  id: string;
+  community_id: string;
+  category_id: string | null;
+  author_id: string;
+  title: string;
+  body: string;
+  pinned: boolean;
+  like_count: number;
+  comment_count: number;
+  answer_comment_id: string | null;
+  last_activity_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+  created_at: string;
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  community_id: string;
+  author_id: string;
+  parent_id: string | null;
+  body: string;
+  like_count: number;
+  edited_at: string | null;
+  deleted_at: string | null;
+  created_at: string;
+}
+
+export interface CourseCard {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  published: boolean;
+  unlock_level: number;
+  lesson_count: number;
+  done_count: number;
+  locked: boolean;
+}
+
+export interface Course {
+  id: string;
+  community_id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  position: number;
+  unlock_level: number;
+  published: boolean;
+}
+
+export interface CourseModule {
+  id: string;
+  course_id: string;
+  title: string;
+  position: number;
+}
+
+export interface LessonRow {
+  id: string;
+  module_id: string;
+  title: string;
+  position: number;
+  drip_days: number;
+  done: boolean;
+  locked: boolean;
+  opens_at: string;
+}
+
+export interface LessonContent {
+  lesson_id: string;
+  body: string;
+  video_url: string | null;
+}
+
+export interface CalendarEvent {
+  id: string;
+  community_id: string;
+  title: string;
+  description: string;
+  starts_at: string;
+  ends_at: string;
+  room_id: string | null;
+  location_url: string | null;
+  created_by: string;
+}
+
+export type RsvpStatus = "going" | "maybe" | "no";
+
+export interface AppNotification {
+  id: string;
+  community_id: string;
+  kind: "comment" | "reply" | "mention" | "answer";
+  actor_id: string | null;
+  actor?: string;
+  post_id: string | null;
+  comment_id: string | null;
+  preview: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface Standing {
+  points: number;
+  level: number;
+  level_floor: number;
+  next_level_at: number | null;
+  week_points: number;
+  levels: { level: number; members: number }[];
+}
