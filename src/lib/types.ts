@@ -30,9 +30,27 @@ export interface Room {
   slug: string;
   name: string;
   topic: string;
+  /** Longer plain-text note shown in the room info panel (0007). */
+  description: string;
   kind: "text" | "voice";
   post_min_role: Role;
   position: number;
+  /** Sidebar section (0007); null means no section. */
+  section_id: string | null;
+}
+
+/** A named, ordered group of rooms in the sidebar (0007). */
+export interface RoomSection {
+  id: string;
+  community_id: string;
+  name: string;
+  position: number;
+}
+
+/** A personal pin (0007): the room shows under "Pinned" for this person only. */
+export interface RoomPin {
+  room_id: string;
+  created_at: string;
 }
 
 export interface Message {

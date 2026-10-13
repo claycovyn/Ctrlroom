@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { cloudErrorText } from "@/lib/cloudErrors";
-import { slugify } from "@/lib/format";
 import { CommunityImages } from "@/components/CommunityImages";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { atLeast, ROLE_RANK, type Profile, type Role, type Room } from "@/lib/types";
+import { atLeast, ROLE_RANK, type Profile, type Role } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
 import { MenuIcon, TrashIcon } from "./icons";
+import { RoomsSettings } from "./RoomsSettings";
 
 interface Invite {
   code: string;
@@ -44,7 +44,7 @@ export function SettingsView({
   /** Plan, usage and email confirmation for the owner (rendered on the server). */
   cloudPanel?: React.ReactNode;
 }) {
-  const { me, role, community, rooms, setRooms, setNavOpen, addProfiles } = useCommunity();
+  const { me, role, community, setNavOpen, addProfiles } = useCommunity();
   const supabase = supabaseBrowser();
   const router = useRouter();
   const isMod = atLeast(role, "mod");
@@ -95,12 +95,6 @@ export function SettingsView({
   const [description, setDescription] = useState(community.description);
   const [icon, setIcon] = useState(community.icon);
   const [isPublic, setIsPublic] = useState(community.is_public);
-
-  // ── new room
-  const [roomName, setRoomName] = useState("");
-  const [roomKind, setRoomKind] = useState<Room["kind"]>("text");
-  const [roomTopic, setRoomTopic] = useState("");
-  const [announce, setAnnounce] = useState(false);
 
   const myRank = role ? ROLE_RANK[role] : 0;
   const shownMembers = members.filter(
@@ -216,74 +210,7 @@ export function SettingsView({
             </section>
           )}
 
-          {isAdmin && (
-            <section id="rooms" className="card p-5">
-              <h2 className="font-medium">Rooms</h2>
-              <p className="mb-4 text-sm text-muted">Text rooms for chat. Voice rooms open a call when you walk in.</p>
-              <form
-                className="grid gap-3 sm:grid-cols-[1fr_8rem]"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const slug = slugify(roomName, 32);
-                  if (!slug) return say("Give the room a name.", true);
-                  const { data, error: err } = await supabase
-                    .from("rooms")
-                    .insert({
-                      community_id: community.id,
-                      slug,
-                      name: slug,
-                      topic: roomTopic.trim(),
-                      kind: roomKind,
-                      post_min_role: announce ? "mod" : "member",
-                      position: rooms.length,
-                    })
-                    .select()
-                    .single();
-                  if (err) return say(err.code === "23505" ? `#${slug} already exists.` : "Couldn't add the room.", true);
-                  setRooms((list) => [...list.filter((r) => r.id !== (data as Room).id), data as Room]);
-                  setRoomName("");
-                  setRoomTopic("");
-                  setAnnounce(false);
-                  say(`#${slug} added.`);
-                }}
-              >
-                <input className="input" placeholder="room-name" value={roomName} onChange={(e) => setRoomName(e.target.value)} maxLength={32} required />
-                <select className="input" value={roomKind} onChange={(e) => setRoomKind(e.target.value as Room["kind"])} aria-label="Room type">
-                  <option value="text">Text</option>
-                  <option value="voice">Voice</option>
-                </select>
-                <input className="input sm:col-span-2" placeholder="Topic (optional)" value={roomTopic} onChange={(e) => setRoomTopic(e.target.value)} maxLength={280} />
-                <label className="flex items-center gap-2 text-sm text-muted sm:col-span-2">
-                  <input type="checkbox" checked={announce} onChange={(e) => setAnnounce(e.target.checked)} /> Announcements only (mods post, everyone can reply in threads)
-                </label>
-                <button className="btn-primary sm:col-span-2 sm:justify-self-start">Add room</button>
-              </form>
-              <ul className="mt-4 divide-y divide-line rounded-md border border-line">
-                {rooms.map((r) => (
-                  <li key={r.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-                    <span className="font-medium">
-                      {r.kind === "voice" ? "🔊 " : "#"}
-                      {r.name}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-muted">{r.topic}</span>
-                    {r.post_min_role !== "member" && <span className="rounded bg-raised px-1.5 text-xs text-muted">announcements</span>}
-                    <button
-                      className="rounded p-1 text-muted hover:text-alert"
-                      aria-label={`Delete ${r.name}`}
-                      onClick={async () => {
-                        if (!confirm(`Delete #${r.name} and all its messages? This can't be undone.`)) return;
-                        const { error: err } = await supabase.from("rooms").delete().eq("id", r.id);
-                        if (err) return say("Couldn't delete the room.", true);
-                        setRooms((list) => list.filter((x) => x.id !== r.id));
-                      }}
-                    >
-                      <TrashIcon />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {isAdmin && <RoomsSettings say={say} />}
 
           <section id="people" className="card p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

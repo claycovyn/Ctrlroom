@@ -1,8 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { cloudErrorText } from "@/lib/cloudErrors";
+import { syncFromServer } from "@/lib/rooms";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import type { Community, Profile, Role, Room, Unread } from "@/lib/types";
+import type { Community, Profile, Role, Room, RoomPin, RoomSection, Unread } from "@/lib/types";
 
 export interface CommunityCtx {
   me: Profile;
@@ -11,6 +13,12 @@ export interface CommunityCtx {
   communities: Community[];
   rooms: Room[];
   setRooms: React.Dispatch<React.SetStateAction<Room[]>>;
+  sections: RoomSection[];
+  setSections: React.Dispatch<React.SetStateAction<RoomSection[]>>;
+  /** Your own pins in this community (personal; never shown to anyone else). */
+  pins: RoomPin[];
+  /** Pin or unpin a room, optimistically. Resolves to an error to show, or null. */
+  togglePin: (roomId: string) => Promise<string | null>;
   unreads: Record<string, Unread>;
   setUnreads: React.Dispatch<React.SetStateAction<Record<string, Unread>>>;
   currentRoomId: React.MutableRefObject<string | null>;
@@ -36,6 +44,8 @@ export function CommunityProvider({
   community,
   communities,
   initialRooms,
+  initialSections,
+  initialPins,
   livekit,
   children,
 }: {
@@ -44,10 +54,50 @@ export function CommunityProvider({
   community: Community;
   communities: Community[];
   initialRooms: Room[];
+  initialSections: RoomSection[];
+  initialPins: RoomPin[];
   livekit: boolean;
   children: React.ReactNode;
 }) {
   const [rooms, setRooms] = useState(initialRooms);
+  const [sections, setSections] = useState(initialSections);
+  const [pins, setPins] = useState(initialPins);
+  const pinsRef = useRef(initialPins);
+  pinsRef.current = pins;
+
+  // A fresh server payload (router.refresh() after an edit, or coming back into the community) always wins over
+  // what this browser had. Without this, the router cache can remount the provider with an old room list.
+  const [server, setServer] = useState({ rooms: initialRooms, sections: initialSections, pins: initialPins });
+  if (server.rooms !== initialRooms || server.sections !== initialSections || server.pins !== initialPins) {
+    setServer({ rooms: initialRooms, sections: initialSections, pins: initialPins });
+    setRooms((cur) => syncFromServer(cur, server.rooms, initialRooms));
+    setSections((cur) => syncFromServer(cur, server.sections, initialSections));
+    setPins((cur) => syncFromServer(cur, server.pins, initialPins));
+  }
+
+  // The payload itself can be a cached one (back/forward). Re-read the lists once per visit so they're current;
+  // after that, the community broadcast (rooms_broadcast / room_sections_broadcast) keeps them live.
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = supabaseBrowser();
+    (async () => {
+      const [{ data: r }, { data: s }, { data: p }] = await Promise.all([
+        supabase.from("rooms").select("*").eq("community_id", community.id).order("position").order("name"),
+        supabase.from("room_sections").select("id, community_id, name, position").eq("community_id", community.id).order("position").order("name"),
+        supabase.from("room_pins").select("room_id, created_at").order("created_at"),
+      ]);
+      if (cancelled) return;
+      if (r) setRooms(r as Room[]);
+      if (s) setSections(s as RoomSection[]);
+      if (r && p) {
+        const ids = new Set((r as Room[]).map((x) => x.id));
+        setPins((p as RoomPin[]).filter((x) => ids.has(x.room_id)));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [community.id]);
   const [unreads, setUnreads] = useState<Record<string, Unread>>({});
   const [profiles, setProfiles] = useState<Record<string, Profile>>({ [me.id]: me });
   const [navOpen, setNavOpen] = useState(false);
@@ -85,6 +135,31 @@ export function CommunityProvider({
     [addProfiles],
   );
 
+  const togglePin = useCallback(
+    async (roomId: string): Promise<string | null> => {
+      const supabase = supabaseBrowser();
+      const existing = pinsRef.current.find((p) => p.room_id === roomId);
+      if (existing) {
+        setPins((list) => list.filter((p) => p.room_id !== roomId));
+        const { error } = await supabase.from("room_pins").delete().eq("user_id", me.id).eq("room_id", roomId);
+        if (error) {
+          setPins((list) => (list.some((p) => p.room_id === roomId) ? list : [...list, existing]));
+          return "Couldn't unpin that room.";
+        }
+        return null;
+      }
+      const pin = { room_id: roomId, created_at: new Date().toISOString() };
+      setPins((list) => [...list.filter((p) => p.room_id !== roomId), pin]);
+      const { error } = await supabase.from("room_pins").insert({ user_id: me.id, room_id: roomId });
+      if (error) {
+        setPins((list) => list.filter((p) => p !== pin));
+        return cloudErrorText(error.message) ?? "Couldn't pin that room.";
+      }
+      return null;
+    },
+    [me.id],
+  );
+
   return (
     <Ctx.Provider
       value={{
@@ -94,6 +169,10 @@ export function CommunityProvider({
         communities,
         rooms,
         setRooms,
+        sections,
+        setSections,
+        pins,
+        togglePin,
         unreads,
         setUnreads,
         currentRoomId,

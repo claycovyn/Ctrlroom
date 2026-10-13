@@ -234,6 +234,47 @@ try {
     await a.getByText("Call in #lounge").waitFor();
   });
 
+  await step("a new room is still listed after going to /app and back", async () => {
+    await a.goto(`${base}/c/${slug}/settings#rooms`);
+    await a.getByLabel("Room name").fill("planning");
+    await a.getByRole("button", { name: "Add room" }).click();
+    await a.getByText("#planning added.").waitFor();
+    const nav = a.getByRole("navigation", { name: "Communities" });
+    // client-side navigation both ways, so the router cache is what's being tested
+    await nav.getByTitle("All communities").click();
+    await a.waitForURL(`${base}/app`);
+    await a.locator(`a[href="/c/${slug}"]`).first().click();
+    await a.waitForURL(new RegExp(`/c/${slug}`));
+    await a.locator(`aside a[href="/c/${slug}/planning"]`).waitFor();
+    await a.goBack();
+    await a.waitForURL(`${base}/app`);
+    await a.goForward();
+    await a.locator(`aside a[href="/c/${slug}/planning"]`).waitFor();
+    // and other members see it live
+    await b.locator(`aside a[href="/c/${slug}/planning"]`).waitFor();
+  });
+
+  await step("rooms: edit the description, pin, sections", async () => {
+    await a.goto(`${base}/c/${slug}/planning`);
+    await a.getByRole("button", { name: "Edit room" }).click();
+    await a.getByLabel("Description").fill("Plans for the meetup. Notes: https://example.com/notes");
+    await a.getByRole("button", { name: "Save" }).click();
+    await a.getByRole("button", { name: "Room info" }).click();
+    await a.getByRole("link", { name: "https://example.com/notes" }).waitFor();
+    await b.goto(`${base}/c/${slug}/general`);
+    await b.getByRole("button", { name: "Pin planning" }).click({ force: true });
+    await b.getByRole("heading", { name: "Pinned" }).waitFor();
+    await b.reload();
+    await b.getByRole("heading", { name: "Pinned" }).waitFor();
+    await a.getByRole("heading", { name: "Pinned" }).waitFor({ state: "detached" });
+    await a.goto(`${base}/c/${slug}/settings#rooms`);
+    await a.getByLabel("New section name").fill("Events");
+    await a.getByRole("button", { name: "Add section" }).click();
+    await a.getByLabel("Move general to section").selectOption({ label: "Events" });
+    await a.locator("aside").getByRole("button", { name: "Events" }).waitFor();
+    await a.screenshot({ path: path.join(SHOTS, "rooms-sections.png") });
+  });
+
   await step("strangers can't see the community", async () => {
     const c = await newPerson();
     await signUp(c, { name: "Carol", username: `carol${run}`, email: `carol-${run}@example.com` }, `${base}/login?mode=signup`);

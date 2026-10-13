@@ -31,3 +31,8 @@ export const FlagIcon = svg(<><path d="M4 22V4" /><path d="M4 4h13l-2 4 2 4H4" /
 export const CheckIcon = svg(<path d="M20 6 9 17l-5-5" />);
 export const SendIcon = svg(<path d="m22 2-7 20-4-9-9-4 20-7Z" />);
 export const PlusIcon = svg(<path d="M12 5v14M5 12h14" />);
+export const InfoIcon = svg(<><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></>);
+export const ChevronDownIcon = svg(<path d="m6 9 6 6 6-6" />);
+export const ArrowUpIcon = svg(<path d="M12 19V5M5 12l7-7 7 7" />);
+export const ArrowDownIcon = svg(<path d="M12 5v14M19 12l-7 7-7-7" />);
+export const MoreIcon = svg(<><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>);

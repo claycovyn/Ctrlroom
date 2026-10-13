@@ -1,22 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { LogoMark } from "@/components/Logo";
+import { cloudErrorText } from "@/lib/cloudErrors";
+import { slugify } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
+import { applyChange, nextPosition, readCollapsed, sidebarLayout, writeCollapsed } from "@/lib/rooms";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { atLeast, type Room, type Unread } from "@/lib/types";
+import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
-import { BellIcon, CloseIcon, HashIcon, MegaphoneIcon, PlusIcon, SettingsIcon, VoiceIcon } from "./icons";
+import { BellIcon, ChevronDownIcon, CloseIcon, HashIcon, MegaphoneIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon, VoiceIcon } from "./icons";
 
 export function Sidebar() {
   const ctx = useCommunity();
-  const { me, role, community, communities, rooms, setRooms, unreads, setUnreads, currentRoomId, navOpen, setNavOpen } = ctx;
+  const { me, role, community, communities, rooms, setRooms, sections, setSections, pins, togglePin, unreads, setUnreads, currentRoomId, navOpen, setNavOpen } = ctx;
   const pathname = usePathname();
+  const router = useRouter();
+  const isAdmin = atLeast(role, "admin");
   const [alerts, setAlerts] = useState<NotificationPermission | "unsupported">("default");
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => setCollapsed(readCollapsed(community.id)), [community.id]);
+  const toggleCollapsed = (id: string) => {
+    const next = collapsed.includes(id) ? collapsed.filter((x) => x !== id) : [...collapsed, id];
+    setCollapsed(next);
+    writeCollapsed(community.id, next);
+  };
+  const flash = (msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 5000);
+  };
 
   useEffect(() => {
     setAlerts(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
@@ -58,13 +76,8 @@ export function Sidebar() {
         return { ...u, [p.room_id]: { ...cur, unread: Math.min(cur.unread + 1, 100) } };
       });
     },
-    rooms: (p: { op: string; room: Room }) => {
-      setRooms((list) => {
-        const rest = list.filter((r) => r.id !== p.room.id);
-        const next = p.op === "delete" ? rest : [...rest, p.room];
-        return next.sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
-      });
-    },
+    rooms: (p: { op: string; room: Room }) => setRooms((list) => applyChange(list, p.op, p.room)),
+    sections: (p: { op: string; section: RoomSection }) => setSections((list) => applyChange(list, p.op, p.section)),
   });
 
   useBroadcast(`user:${me.id}`, {
@@ -88,8 +101,45 @@ export function Sidebar() {
     },
   });
 
-  const text = rooms.filter((r) => r.kind === "text");
-  const voice = rooms.filter((r) => r.kind === "voice");
+  const layout = sidebarLayout(rooms, sections, pins);
+  const text = layout.loose.filter((r) => r.kind === "text");
+  const voice = layout.loose.filter((r) => r.kind === "voice");
+
+  const renameSection = async (sec: RoomSection) => {
+    const name = prompt("Section name", sec.name)?.trim().slice(0, 48);
+    if (!name || name === sec.name) return;
+    const { error: err } = await supabaseBrowser().from("room_sections").update({ name }).eq("id", sec.id);
+    if (err) return flash("Couldn't rename the section.");
+    setSections((list) => applyChange(list, "update", { ...sec, name }));
+    router.refresh();
+  };
+
+  const addRoomIn = async (sec: RoomSection) => {
+    const raw = prompt(`New text room in ${sec.name}`);
+    if (raw === null) return;
+    const slug = slugify(raw, 32);
+    if (!slug) return flash("Give the room a name.");
+    const { data, error: err } = await supabaseBrowser()
+      .from("rooms")
+      .insert({
+        community_id: community.id,
+        slug,
+        name: slug,
+        kind: "text",
+        section_id: sec.id,
+        position: nextPosition(rooms.filter((r) => r.section_id === sec.id)),
+      })
+      .select()
+      .single();
+    if (err) return flash(err.code === "23505" ? `#${slug} already exists.` : (cloudErrorText(err.message) ?? "Couldn't add the room."));
+    setRooms((list) => applyChange(list, "insert", data as Room));
+    router.refresh();
+  };
+
+  const onPin = async (id: string) => {
+    const err = await togglePin(id);
+    if (err) flash(err);
+  };
 
   return (
     <>
@@ -142,9 +192,57 @@ export function Sidebar() {
           </div>
 
           <div className="scroll-thin flex-1 overflow-y-auto px-2 py-3">
-            {roomGroup("Rooms", text)}
+            {error && (
+              <p role="alert" className="mx-2 mb-2 text-xs text-alert">
+                {error}
+              </p>
+            )}
+            {layout.pinned.length > 0 && roomGroup("Pinned", layout.pinned, true)}
+            {(text.length > 0 || layout.sections.length === 0) && roomGroup("Rooms", text)}
             {voice.length > 0 && roomGroup("Voice", voice)}
-            {atLeast(role, "admin") && (
+            {layout.sections.map(({ section, rooms: list, total }) => {
+              if (total === 0 && !isAdmin) return null;
+              const shut = collapsed.includes(section.id);
+              return (
+                <div key={section.id} className="mb-4">
+                  <div className="flex items-center gap-1 pr-1">
+                    <button
+                      className="flex min-w-0 flex-1 items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted hover:text-fg"
+                      onClick={() => toggleCollapsed(section.id)}
+                      aria-expanded={!shut}
+                    >
+                      <ChevronDownIcon className={`h-3 w-3 shrink-0 transition-transform ${shut ? "-rotate-90" : ""}`} />
+                      <span className="truncate">{section.name}</span>
+                    </button>
+                    {isAdmin && (
+                      <details className="relative">
+                        <summary
+                          className="flex cursor-pointer list-none items-center rounded p-1 text-muted hover:bg-raised hover:text-fg [&::-webkit-details-marker]:hidden"
+                          aria-label={`Options for ${section.name}`}
+                          title="Section options"
+                        >
+                          <MoreIcon className="h-3.5 w-3.5" />
+                        </summary>
+                        <div className="absolute right-0 z-10 mt-1 w-44 rounded-md border border-line bg-panel py-1 text-sm shadow-lg">
+                          <SectionMenuButton onClick={() => addRoomIn(section)}>Add a room here</SectionMenuButton>
+                          <SectionMenuButton onClick={() => renameSection(section)}>Rename</SectionMenuButton>
+                          <Link href={`/c/${community.slug}/settings#rooms`} className="block px-3 py-1.5 hover:bg-raised">
+                            Order and delete
+                          </Link>
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                  {!shut &&
+                    (total === 0 ? (
+                      <p className="px-2 py-1 text-xs text-muted">No rooms yet. Add one from the … menu, or move rooms here in Settings.</p>
+                    ) : (
+                      roomList(list)
+                    ))}
+                </div>
+              );
+            })}
+            {isAdmin && (
               <Link href={`/c/${community.slug}/settings#rooms`} className="mt-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted hover:bg-raised hover:text-fg">
                 <PlusIcon className="h-4 w-4" /> Add a room
               </Link>
@@ -181,35 +279,70 @@ export function Sidebar() {
     </>
   );
 
-  function roomGroup(title: string, rooms: Room[]) {
+  function roomGroup(title: string, rooms: Room[], isPinned = false) {
     return (
       <div className="mb-4">
-        <h3 className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{title}</h3>
-        <ul>
-          {rooms.map((r) => {
-            const u = unreads[r.id];
-            const active = pathname === `/c/${community.slug}/${r.slug}`;
-            const bold = !active && u && u.unread > 0 && u.notify !== "none";
-            const Icon = r.kind === "voice" ? VoiceIcon : r.post_min_role !== "member" ? MegaphoneIcon : HashIcon;
-            return (
-              <li key={r.id}>
-                <Link
-                  href={`/c/${community.slug}/${r.slug}`}
-                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
-                    active ? "bg-raised font-medium text-fg" : bold ? "font-semibold text-fg hover:bg-raised" : "text-muted hover:bg-raised hover:text-fg"
-                  } ${u?.notify === "none" && !active ? "opacity-60" : ""}`}
-                >
-                  <Icon className="h-4 w-4 shrink-0 opacity-70" />
-                  <span className="truncate">{r.name}</span>
-                  {!active && u && u.mentions > 0 && (
-                    <span className="ml-auto rounded-full bg-signal px-1.5 text-[11px] font-bold text-signal-fg">{u.mentions}</span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <h3 className="mb-1 flex items-center gap-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+          {isPinned && <PinIcon className="h-3 w-3" />}
+          {title}
+        </h3>
+        {roomList(rooms)}
       </div>
     );
   }
+
+  function roomList(rooms: Room[]) {
+    return (
+      <ul>
+        {rooms.map((r) => {
+          const u = unreads[r.id];
+          const active = pathname === `/c/${community.slug}/${r.slug}`;
+          const bold = !active && u && u.unread > 0 && u.notify !== "none";
+          const Icon = r.kind === "voice" ? VoiceIcon : r.post_min_role !== "member" ? MegaphoneIcon : HashIcon;
+          const isPinned = pins.some((p) => p.room_id === r.id);
+          return (
+            <li key={r.id} className="group relative flex items-center">
+              <Link
+                href={`/c/${community.slug}/${r.slug}`}
+                className={`flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 pl-2 pr-8 text-sm ${
+                  active ? "bg-raised font-medium text-fg" : bold ? "font-semibold text-fg hover:bg-raised" : "text-muted hover:bg-raised hover:text-fg"
+                } ${u?.notify === "none" && !active ? "opacity-60" : ""}`}
+              >
+                <Icon className="h-4 w-4 shrink-0 opacity-70" />
+                <span className="truncate">{r.name}</span>
+                {!active && u && u.mentions > 0 && (
+                  <span className="ml-auto rounded-full bg-signal px-1.5 text-[11px] font-bold text-signal-fg">{u.mentions}</span>
+                )}
+              </Link>
+              <button
+                className={`absolute right-1 rounded p-1 text-muted hover:bg-line hover:text-fg focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60 ${
+                  isPinned ? "opacity-60" : "opacity-0"
+                }`}
+                onClick={() => onPin(r.id)}
+                aria-label={isPinned ? `Unpin ${r.name}` : `Pin ${r.name}`}
+                aria-pressed={isPinned}
+                title={isPinned ? "Unpin" : "Pin to top (just for you)"}
+              >
+                <PinIcon className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+}
+
+function SectionMenuButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      className="block w-full px-3 py-1.5 text-left hover:bg-raised"
+      onClick={(e) => {
+        e.currentTarget.closest("details")?.removeAttribute("open");
+        onClick();
+      }}
+    >
+      {children}
+    </button>
+  );
 }

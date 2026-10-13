@@ -5,14 +5,18 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
+import { POST_ROLE_LABEL } from "@/lib/rooms";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type BoardItem, type CatchUp, type Message, type Profile, type Reaction, type Room, type Unread, type AgentJob } from "@/lib/types";
 import { BoardPanel } from "./BoardPanel";
 import { CatchUpBanner } from "./CatchUpBanner";
 import { useCommunity } from "./CommunityContext";
 import { Composer } from "./Composer";
-import { BellIcon, BellOffIcon, BoardIcon, HashIcon, MegaphoneIcon, MenuIcon, PhoneIcon, SearchIcon, UsersIcon, VoiceIcon } from "./icons";
+import { BellIcon, BellOffIcon, BoardIcon, HashIcon, InfoIcon, MegaphoneIcon, MenuIcon, PhoneIcon, PinIcon, SearchIcon, SettingsIcon, UsersIcon, VoiceIcon } from "./icons";
+import { LinkedText } from "./LinkedText";
 import { MembersPanel } from "./MembersPanel";
+import { Panel } from "./Panel";
+import { RoomEditDialog } from "./RoomEditDialog";
 import { MessageItem, type MessageActions } from "./MessageItem";
 import { SearchPanel } from "./SearchPanel";
 import { ThreadPanel } from "./ThreadPanel";
@@ -28,7 +32,7 @@ function agentLine(jobs: AgentJob[]): string | null {
   if (!j) return null;
   return `${BOT_NAME[j.bot]} ${j.status === "queued" ? "is on it…" : j.step ? `· ${j.step}` : "is thinking…"}`;
 }
-type PanelKind = "thread" | "board" | "search" | "members" | null;
+type PanelKind = "thread" | "board" | "search" | "members" | "info" | null;
 
 function mergeReactions(list: Reaction[], add: Reaction[]): Reaction[] {
   const key = (r: Reaction) => `${r.message_id}|${r.user_id}|${r.emoji}`;
@@ -37,7 +41,7 @@ function mergeReactions(list: Reaction[], add: Reaction[]): Reaction[] {
 }
 
 export function RoomView({
-  room,
+  room: initialRoom,
   initialMessages,
   initialReactions,
   initialBoard,
@@ -53,8 +57,14 @@ export function RoomView({
   hasMore: boolean;
   focusMessageId: string | null;
 }) {
-  const { me, role, community, profiles, ensureProfiles, addProfiles, currentRoomId, unreads, setUnreads, setNavOpen, livekit } = useCommunity();
+  const { me, role, community, rooms, pins, togglePin, profiles, ensureProfiles, addProfiles, currentRoomId, unreads, setUnreads, setNavOpen, livekit } =
+    useCommunity();
   const supabase = supabaseBrowser();
+  // The live room: edits (yours or another admin's, via the community broadcast) show without a reload.
+  const room = rooms.find((r) => r.id === initialRoom.id) ?? initialRoom;
+  const pinned = pins.some((p) => p.room_id === room.id);
+  const canEdit = atLeast(role, "admin");
+  const [editing, setEditing] = useState(false);
 
   const [messages, setMessages] = useState(initialMessages);
   const [reactions, setReactions] = useState(initialReactions);
@@ -272,7 +282,9 @@ export function RoomView({
     if (err) {
       flash(
         cloudErrorText(err.message) ??
-          (err.message.includes("only") ? "Only mods can start posts in this room." : "Message didn't send. Try again."),
+          (err.message.includes("only")
+            ? `${POST_ROLE_LABEL[room.post_min_role]} can start posts in this room.`
+            : "Message didn't send. Try again."),
       );
       return false;
     }
@@ -377,6 +389,11 @@ export function RoomView({
     },
   };
 
+  const onTogglePin = async () => {
+    const err = await togglePin(room.id);
+    if (err) flash(err);
+  };
+
   const setNotify = async (level: Unread["notify"]) => {
     setUnreads((u) => ({ ...u, [room.id]: { ...(u[room.id] ?? { room_id: room.id, unread: 0, mentions: 0 }), notify: level } }));
     await supabase.rpc("set_room_notify", { p_room: room.id, p_notify: level });
@@ -395,9 +412,42 @@ export function RoomView({
             <MenuIcon className="h-5 w-5" />
           </button>
           <RoomIcon className="h-4 w-4 shrink-0 text-muted" />
-          <h1 className="truncate font-semibold">{room.name}</h1>
-          {room.topic && <p className="hidden truncate border-l border-line pl-3 text-sm text-muted lg:block">{room.topic}</p>}
+          <h1 className="min-w-0 truncate font-semibold">
+            <button
+              className="max-w-full truncate rounded hover:underline focus-visible:underline"
+              onClick={() => setPanel(panel === "info" ? null : "info")}
+              title="Room info"
+              aria-expanded={panel === "info"}
+            >
+              {room.name}
+            </button>
+          </h1>
+          {room.topic && (
+            <button
+              className="hidden min-w-0 truncate border-l border-line pl-3 text-left text-sm text-muted hover:text-fg lg:block"
+              onClick={() => setPanel("info")}
+              title={room.description ? `${room.topic}
+
+${room.description}` : room.topic}
+              aria-label={`Topic: ${room.topic}. Show room info`}
+            >
+              {room.topic}
+            </button>
+          )}
           <div className="ml-auto flex shrink-0 items-center">
+            <span className="hidden items-center sm:flex">
+              <HeaderButton label={pinned ? "Unpin room" : "Pin room"} active={pinned} onClick={onTogglePin}>
+                <PinIcon />
+              </HeaderButton>
+              <HeaderButton label="Room info" active={panel === "info"} onClick={() => setPanel(panel === "info" ? null : "info")}>
+                <InfoIcon />
+              </HeaderButton>
+              {canEdit && (
+                <HeaderButton label="Edit room" onClick={() => setEditing(true)}>
+                  <SettingsIcon />
+                </HeaderButton>
+              )}
+            </span>
             <HeaderButton label={callOpen ? "Hide call" : "Start or join a call"} active={callOpen} onClick={() => setCallOpen((v) => !v)}>
               <PhoneIcon />
             </HeaderButton>
@@ -507,7 +557,7 @@ export function RoomView({
           placeholder={`Message #${room.name} · @ctrl for AI help`}
           communityId={community.id}
           disabled={!canPost}
-          disabledReason="Only mods post here. You can still reply in threads."
+          disabledReason={`${POST_ROLE_LABEL[room.post_min_role]} can start posts here. You can still reply in threads.`}
           onSend={(body) => send(body)}
           onTyping={sendTyping}
         />
@@ -581,7 +631,43 @@ export function RoomView({
           }}
         />
       )}
+      {panel === "info" && (
+        <Panel title={`About #${room.name}`} onClose={() => setPanel(null)}>
+          <div className="space-y-5 p-4 text-sm">
+            {room.topic && <p className="font-medium">{room.topic}</p>}
+            {room.description ? (
+              <p className="whitespace-pre-wrap break-words leading-relaxed">
+                <LinkedText text={room.description} />
+              </p>
+            ) : (
+              <p className="text-muted">{canEdit ? "No description yet. Add one with Edit room." : "No description yet."}</p>
+            )}
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+              <dt className="text-muted">Type</dt>
+              <dd>{room.kind === "voice" ? "Voice" : "Text"}</dd>
+              <dt className="text-muted">Who can start posts</dt>
+              <dd>{POST_ROLE_LABEL[room.post_min_role]}</dd>
+              <dt className="text-muted">Link</dt>
+              <dd className="break-all">
+                /c/{community.slug}/{room.slug}
+              </dd>
+            </dl>
+            <div className="flex flex-wrap gap-2">
+              <button className="btn-outline" onClick={onTogglePin} aria-pressed={pinned}>
+                <PinIcon /> {pinned ? "Unpin" : "Pin to top"}
+              </button>
+              {canEdit && (
+                <button className="btn-outline" onClick={() => setEditing(true)}>
+                  <SettingsIcon /> Edit room
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-muted">Pins are just for you.</p>
+          </div>
+        </Panel>
+      )}
       {panel === "search" && <SearchPanel onClose={() => setPanel(null)} />}
+      {editing && <RoomEditDialog room={room} onClose={() => setEditing(false)} />}
       {panel === "members" && <MembersPanel onClose={() => setPanel(null)} />}
     </div>
   );

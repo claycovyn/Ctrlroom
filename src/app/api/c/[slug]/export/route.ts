@@ -7,8 +7,8 @@ export const maxDuration = 60;
 const PAGE = 1000;
 
 /**
- * Full export of a community as JSON: rooms, every message and thread reply (deleted ones as tombstones), board,
- * members. Owners and admins only. Works on every plan, over every limit and after a takedown: usage never
+ * Full export of a community as JSON: rooms (with descriptions and sections), every message and thread reply (deleted ones as tombstones), board,
+ * members. Personal room pins are not included. Owners and admins only. Works on every plan, over every limit and after a takedown: usage never
  * locks anyone out of their own history. Reads go through row-level security with the caller's session.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -33,8 +33,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   };
 
   try {
-    const [rooms, messages, board] = await Promise.all([
-      all("rooms", "id, slug, name, topic, kind, post_min_role, position, created_at", "position"),
+    const [rooms, sections, messages, board] = await Promise.all([
+      all("rooms", "id, slug, name, topic, description, kind, post_min_role, position, section_id, created_at", "position"),
+      all("room_sections", "id, name, position, created_at", "position"),
       all("messages", "id, room_id, parent_id, author_id, body, reply_count, resolved_at, outcome, edited_at, deleted_at, created_at", "created_at"),
       all("board_items", "id, room_id, kind, title, url, body, message_id, created_by, created_at", "created_at"),
     ]);
@@ -48,6 +49,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
       exported_at: new Date().toISOString(),
       community: { id: community.id, slug: community.slug, name: community.name, description: community.description, icon: community.icon, icon_url: community.icon_url ?? null, cover_url: community.cover_url ?? null, is_public: community.is_public, created_at: community.created_at },
       rooms,
+      sections,
       members: members ?? [],
       messages,
       board,

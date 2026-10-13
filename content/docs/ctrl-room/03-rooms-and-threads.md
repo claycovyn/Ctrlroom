@@ -13,6 +13,20 @@ description: Sending messages, mentions, reactions, editing, and threads that cl
 
 Admins add rooms in **Settings → Rooms**: give it a name, choose Text or Voice, and optionally make it announcements only. Deleting a room deletes all its messages.
 
+## Room info and editing
+
+Click the room name in the header (or the info button) to see the room's topic, description and who can start posts. Links in the description are clickable.
+
+Owners and admins can **Edit room** from the header or from **Settings → Rooms**: change the name, topic, description (up to 1,000 characters), Text or Voice, and who can start posts. The room's link never changes. Use the arrows in Settings → Rooms to change the order.
+
+## Sections
+
+Owners and admins can group rooms under headings in **Settings → Rooms → Sections**: add, rename, reorder and delete sections, and move rooms between them. Deleting a section keeps its rooms. In the sidebar, click a section's name to collapse it; this is remembered in your browser. Admins can also rename a section or add a room to it from the **…** next to its name.
+
+## Pin rooms
+
+Pin a room with the pin button next to it in the sidebar, in the header, or in the room info. Pinned rooms show under **Pinned** at the top of the room list, in the order you pinned them. Pins are just for you, and you can pin up to 20 rooms per community.
+
 ## Send a message
 
 - **Enter** sends. **Shift+Enter** adds a new line.

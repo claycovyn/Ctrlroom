@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CommunityLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { community, role, me, rooms, communities } = await loadCommunity(slug);
+  const { community, role, me, rooms, sections, pins, communities } = await loadCommunity(slug);
 
   if (!role) {
     // Only public communities are visible to non-members (RLS hides the rest → 404 above).
@@ -53,6 +53,8 @@ export default async function CommunityLayout({ children, params }: { children: 
       community={community}
       communities={communities}
       initialRooms={rooms}
+      initialSections={sections}
+      initialPins={pins}
       livekit={Boolean(process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET && process.env.NEXT_PUBLIC_LIVEKIT_URL)}
     >
       <div className="flex h-[100dvh] flex-col overflow-hidden">
