@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { WITH_ATTACHMENTS } from "@/lib/attachments";
 import { cloudErrorText } from "@/lib/cloudErrors";
-import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
+import { buildRows, keepSameSummaries, summarizeReactions, upsertMessage, type ReactionSummary, type Row } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
 import { markPushMoment, nudgePush } from "@/lib/pushClient";
 import { POST_ROLE_LABEL } from "@/lib/rooms";
@@ -139,7 +139,9 @@ export function RoomView({
   const notify = unreads[room.id]?.notify ?? "mentions";
   const canPost = atLeast(role, room.post_min_role);
   const canModerate = atLeast(role, "mod");
-  const summary = useMemo(() => summarizeReactions(reactions, me.id), [reactions, me.id]);
+  // Per message, the same list as before when its reactions didn't change (the rows are memoized).
+  const lastSummary = useRef<Map<string, ReactionSummary[]> | null>(null);
+  const summary = useMemo(() => (lastSummary.current = keepSameSummaries(lastSummary.current, summarizeReactions(reactions, me.id))), [reactions, me.id]);
   const rows = useMemo(() => buildRows(messages), [messages]);
 
   const flash = (msg: string) => {
@@ -538,6 +540,23 @@ export function RoomView({
     },
   };
 
+  // Stable handles for the memoized message rows: they always call the latest closures above.
+  const live = useRef({ actions, deliver, discard });
+  live.current = { actions, deliver, discard };
+  const rowActions = useMemo<MessageActions>(
+    () => ({
+      report: (m) => live.current.actions.report?.(m),
+      react: (m, emoji) => live.current.actions.react(m, emoji),
+      openThread: (m) => live.current.actions.openThread?.(m),
+      pin: (m) => live.current.actions.pin?.(m),
+      edit: (m, body) => live.current.actions.edit(m, body),
+      remove: (m) => live.current.actions.remove(m),
+    }),
+    [],
+  );
+  const retry = useCallback((m: Message) => void live.current.deliver(m), []);
+  const drop = useCallback((id: string) => live.current.discard(id), []);
+
   const onTogglePin = async () => {
     const err = await togglePin(room.id);
     if (err) flash(err);
@@ -690,41 +709,19 @@ ${room.description}` : room.topic}
               <p className="mt-1 text-sm text-muted">{room.topic || "This is the start of the room."}</p>
             </div>
           )}
-          {rows.map(({ message, compact, day }) => (
-            <div
-              key={message.id}
-              className={`${fresh.current.has(message.id) ? "cr-msg-in" : ""} ${outgoing[message.id] === "sending" ? "opacity-60" : ""}`}
-            >
-              {day && (
-                <div className="my-3 flex items-center gap-3 px-4 text-xs font-medium text-muted">
-                  <span className="h-px flex-1 bg-line" />
-                  {day}
-                  <span className="h-px flex-1 bg-line" />
-                </div>
-              )}
-              <MessageItem
-                message={message}
-                author={profiles[message.author_id]}
-                compact={compact && !day}
-                reactions={summary.get(message.id)}
-                me={me}
-                canModerate={canModerate}
-                highlight={highlight === message.id}
-                actions={actions}
-              />
-              {outgoing[message.id] === "failed" && (
-                <div className="flex items-center gap-2 pb-1 pl-16 pr-4 text-xs" role="alert">
-                  <span className="text-alert">Didn&apos;t send.</span>
-                  <button className="rounded-full border border-line px-2.5 py-1 font-medium hover:bg-raised" onClick={() => deliver(message)}>
-                    Retry
-                  </button>
-                  <button className="rounded-full px-2 py-1 text-muted hover:text-fg" onClick={() => discard(message.id)}>
-                    Discard
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+          <MessageList
+            rows={rows}
+            profiles={profiles}
+            summary={summary}
+            me={me}
+            canModerate={canModerate}
+            highlight={highlight}
+            outgoing={outgoing}
+            fresh={fresh.current}
+            actions={rowActions}
+            onRetry={retry}
+            onDiscard={drop}
+          />
         </div>
 
         <div className="h-5 truncate px-5 text-xs text-muted" aria-live="polite">
@@ -759,7 +756,7 @@ ${room.description}` : room.topic}
           replies={threadReplies}
           reactions={reactions}
           loading={threadLoading}
-          actions={actions}
+          actions={rowActions}
           onClose={() => {
             setPanel(null);
             setThreadRoot(null);
@@ -883,6 +880,113 @@ ${room.description}` : room.topic}
     </div>
   );
 }
+
+/**
+ * The room's messages. Memoized, and so is each row: typing, presence, the composer and the panels re-render the room
+ * but not this; a new message or a reaction re-renders only the rows it touches.
+ */
+const MessageList = memo(function MessageList({
+  rows,
+  profiles,
+  summary,
+  me,
+  canModerate,
+  highlight,
+  outgoing,
+  fresh,
+  actions,
+  onRetry,
+  onDiscard,
+}: {
+  rows: Row[];
+  profiles: Record<string, Profile>;
+  summary: Map<string, ReactionSummary[]>;
+  me: Profile;
+  canModerate: boolean;
+  highlight: string | null;
+  outgoing: Record<string, "sending" | "failed">;
+  fresh: Set<string>;
+  actions: MessageActions;
+  onRetry: (m: Message) => void;
+  onDiscard: (id: string) => void;
+}) {
+  return (
+    <>
+      {rows.map(({ message, compact, day }) => (
+        <MessageRow
+          key={message.id}
+          message={message}
+          day={day}
+          compact={compact && !day}
+          author={profiles[message.author_id]}
+          reactions={summary.get(message.id)}
+          me={me}
+          canModerate={canModerate}
+          highlight={highlight === message.id}
+          state={outgoing[message.id]}
+          fresh={fresh.has(message.id)}
+          actions={actions}
+          onRetry={onRetry}
+          onDiscard={onDiscard}
+        />
+      ))}
+    </>
+  );
+});
+
+const MessageRow = memo(function MessageRow({
+  message,
+  day,
+  compact,
+  author,
+  reactions,
+  me,
+  canModerate,
+  highlight,
+  state,
+  fresh,
+  actions,
+  onRetry,
+  onDiscard,
+}: {
+  message: Message;
+  day: string | null;
+  compact: boolean;
+  author: Profile | undefined;
+  reactions: ReactionSummary[] | undefined;
+  me: Profile;
+  canModerate: boolean;
+  highlight: boolean;
+  state: "sending" | "failed" | undefined;
+  fresh: boolean;
+  actions: MessageActions;
+  onRetry: (m: Message) => void;
+  onDiscard: (id: string) => void;
+}) {
+  return (
+    <div className={`${fresh ? "cr-msg-in" : ""} ${state === "sending" ? "opacity-60" : ""}`}>
+      {day && (
+        <div className="my-3 flex items-center gap-3 px-4 text-xs font-medium text-muted">
+          <span className="h-px flex-1 bg-line" />
+          {day}
+          <span className="h-px flex-1 bg-line" />
+        </div>
+      )}
+      <MessageItem message={message} author={author} compact={compact} reactions={reactions} me={me} canModerate={canModerate} highlight={highlight} actions={actions} />
+      {state === "failed" && (
+        <div className="flex items-center gap-2 pb-1 pl-16 pr-4 text-xs" role="alert">
+          <span className="text-alert">Didn&apos;t send.</span>
+          <button className="rounded-full border border-line px-2.5 py-1 font-medium hover:bg-raised" onClick={() => onRetry(message)}>
+            Retry
+          </button>
+          <button className="rounded-full px-2 py-1 text-muted hover:text-fg" onClick={() => onDiscard(message.id)}>
+            Discard
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});
 
 function HeaderButton({ label, active, onClick, children }: { label: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (

@@ -1,13 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   callRooms,
   callStarts,
+  createPeerStore,
   displayStatus,
   initialPresence,
   mergePresence,
+  parsePeerKey,
   payloadFor,
   presenceTopic,
   readManual,
@@ -19,6 +21,8 @@ import {
   type DisplayStatus,
   type ManualStatus,
   type PeerPresence,
+  type PeerStore,
+  type PeerView,
 } from "@/lib/presence";
 import { play, setDoNotDisturb } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -45,6 +49,24 @@ const Ctx = createContext<PresenceCtx | null>(null);
 /** Null outside a community (e.g. Avatar on the home page): show no status. */
 export function usePresence(): PresenceCtx | null {
   return useContext(Ctx);
+}
+
+const StoreCtx = createContext<PeerStore | null>(null);
+const noStore = () => () => {};
+const offline = () => "";
+
+/**
+ * One person's status for an avatar. Re-renders only when that person's status, label or camera changes (not on
+ * every presence sync). Null outside a community.
+ */
+export function usePeerStatus(userId: string | undefined): PeerView | null {
+  const store = useContext(StoreCtx);
+  const key = useSyncExternalStore(
+    store?.subscribe ?? noStore,
+    store && userId ? () => store.key(userId) : offline,
+    offline,
+  );
+  return useMemo(() => (key ? parsePeerKey(key) : null), [key]);
 }
 
 const TICK_MS = 15_000;
@@ -193,7 +215,20 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
     [peers, roomName],
   );
 
+  const [store] = useState(createPeerStore);
+  store.set((id) => {
+    const s = statusOf(id);
+    return { status: s.status, label: s.label, video: Boolean(s.peer?.call?.video) };
+  });
+  useLayoutEffect(() => store.notify(), [store, statusOf]);
+
+  const value = useMemo(
+    () => ({ manual: local.manual, setManual, peers, calls, statusOf, setMyCall, incoming, dismissIncoming }),
+    [local.manual, setManual, peers, calls, statusOf, setMyCall, incoming, dismissIncoming],
+  );
   return (
-    <Ctx.Provider value={{ manual: local.manual, setManual, peers, calls, statusOf, setMyCall, incoming, dismissIncoming }}>{children}</Ctx.Provider>
+    <Ctx.Provider value={value}>
+      <StoreCtx.Provider value={store}>{children}</StoreCtx.Provider>
+    </Ctx.Provider>
   );
 }

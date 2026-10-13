@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRows, dayLabel, mentionsIn, slugify, summarizeReactions, tokenize, upsertMessage } from "@/lib/format";
+import { buildRows, dayLabel, keepSameSummaries, mentionsIn, timeLabel, slugify, summarizeReactions, tokenize, upsertMessage } from "@/lib/format";
 import type { Message } from "@/lib/types";
 
 const msg = (id: string, author: string, at: string, extra: Partial<Message> = {}): Message => ({
@@ -104,5 +104,33 @@ describe("summarizeReactions", () => {
       { emoji: "🔥", count: 2, mine: true },
       { emoji: "👍", count: 1, mine: false },
     ]);
+  });
+});
+
+describe("keepSameSummaries", () => {
+  it("keeps the old list for messages whose reactions didn't change, and a new one where they did", () => {
+    const r1 = [
+      { message_id: "a", user_id: "u1", emoji: "👍" },
+      { message_id: "b", user_id: "u2", emoji: "🔥" },
+    ];
+    const prev = summarizeReactions(r1, "u1");
+    const next = keepSameSummaries(prev, summarizeReactions([...r1, { message_id: "b", user_id: "u3", emoji: "🔥" }], "u1"));
+    expect(next.get("a")).toBe(prev.get("a"));
+    expect(next.get("b")).not.toBe(prev.get("b"));
+    expect(next.get("b")).toEqual([{ emoji: "🔥", count: 2, mine: false }]);
+  });
+  it("drops messages that lost every reaction and passes through when there's nothing before", () => {
+    const prev = summarizeReactions([{ message_id: "a", user_id: "u1", emoji: "👍" }], "u1");
+    expect(keepSameSummaries(prev, summarizeReactions([], "u1")).has("a")).toBe(false);
+    const fresh = summarizeReactions([{ message_id: "a", user_id: "u1", emoji: "👍" }], "u1");
+    expect(keepSameSummaries(null, fresh)).toBe(fresh);
+  });
+});
+
+describe("timeLabel", () => {
+  it("formats like toLocaleTimeString (hour and minutes), with one shared formatter", () => {
+    for (const iso of ["2026-10-13T07:05:00Z", "2026-10-13T19:45:00Z", "2026-01-01T00:00:00Z"]) {
+      expect(timeLabel(iso)).toBe(new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }));
+    }
   });
 });

@@ -101,8 +101,13 @@ export function dayLabel(d: Date, now = new Date()): string {
   });
 }
 
+// toLocaleTimeString builds a formatter on every call (about a millisecond each on a phone, for every message on
+// screen); one shared formatter does the same work once.
+let timeFormat: Intl.DateTimeFormat | null = null;
+
 export function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  timeFormat ??= new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+  return timeFormat.format(new Date(iso));
 }
 
 export function sinceLabel(iso: string, now = new Date()): string {
@@ -145,4 +150,20 @@ export function hueFor(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
   return h;
+}
+
+/**
+ * `next` with each message's list swapped for the one in `prev` when nothing in it changed, so a reaction on one
+ * message re-renders that message only (memoized rows compare by reference).
+ */
+export function keepSameSummaries(prev: Map<string, ReactionSummary[]> | null, next: Map<string, ReactionSummary[]>): Map<string, ReactionSummary[]> {
+  if (!prev) return next;
+  const same = (a: ReactionSummary[], b: ReactionSummary[]) =>
+    a.length === b.length && a.every((x, i) => x.emoji === b[i].emoji && x.count === b[i].count && x.mine === b[i].mine);
+  const out = new Map<string, ReactionSummary[]>();
+  for (const [id, list] of next) {
+    const old = prev.get(id);
+    out.set(id, old && same(old, list) ? old : list);
+  }
+  return out;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useConfirm } from "@/components/Dialogs";
 import { timeLabel } from "@/lib/format";
 import type { ReactionSummary } from "@/lib/format";
@@ -25,7 +25,8 @@ export interface MessageActions {
   block?: (m: Message) => void;
 }
 
-export function MessageItem({
+/** Memoized: pass stable `actions` and `reactions` (RoomView does) and a message re-renders only when it changes. */
+export const MessageItem = memo(function MessageItem({
   message: m,
   author,
   compact,
@@ -47,6 +48,10 @@ export function MessageItem({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(m.body);
   const [picker, setPicker] = useState(false);
+  // The hover toolbar is half of a message's DOM: it's only built once a pointer or focus comes to the message (it
+  // still shows on hover / focus by CSS as before). A room's worth of toolbars made every restyle twice as slow.
+  const [tools, setTools] = useState(false);
+  const wantTools = tools ? undefined : () => setTools(true);
   const confirmDialog = useConfirm();
   const mine = m.author_id === me.id;
 
@@ -72,6 +77,8 @@ export function MessageItem({
   return (
     <div
       id={`m-${m.id}`}
+      onPointerEnter={wantTools}
+      onFocus={wantTools}
       className={`group relative flex gap-3 px-4 ${compact ? "py-0.5" : "pt-3 pb-0.5"} hover:bg-raised/50 ${
         highlight ? "bg-signal/10" : ""
       }`}
@@ -157,7 +164,7 @@ export function MessageItem({
         )}
       </div>
 
-      {!editing && (
+      {!editing && tools && (
         <div className="absolute -top-3 right-4 hidden items-center rounded-md border border-line bg-panel shadow-sm group-focus-within:flex group-hover:flex">
           {picker ? (
             QUICK_REACTIONS.map((e) => (
@@ -234,7 +241,7 @@ export function MessageItem({
       )}
     </div>
   );
-}
+});
 
 function ToolButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (

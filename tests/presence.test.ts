@@ -156,3 +156,30 @@ describe("calls", () => {
     expect(callStarts({}, { [ROOM]: [A] }, A)).toEqual([]); // you starting one doesn't ring you
   });
 });
+
+describe("createPeerStore", () => {
+  it("gives each person a key that only changes when what their avatar shows changes", async () => {
+    const { createPeerStore, parsePeerKey } = await import("@/lib/presence");
+    const store = createPeerStore();
+    let calls = 0;
+    const off = store.subscribe(() => calls++);
+    const views: Record<string, { status: "online" | "away"; label: string; video: boolean }> = {
+      a: { status: "online", label: "Online", video: false },
+      b: { status: "away", label: "Away", video: false },
+    };
+    store.set((id) => views[id] ?? { status: "offline", label: "Offline", video: false });
+    const a1 = store.key("a");
+    const b1 = store.key("b");
+    views.b = { status: "online", label: "Online", video: false };
+    store.set((id) => views[id] ?? { status: "offline", label: "Offline", video: false });
+    store.notify();
+    expect(calls).toBe(1);
+    expect(store.key("a")).toBe(a1);
+    expect(store.key("b")).not.toBe(b1);
+    expect(parsePeerKey(store.key("b"))).toEqual({ status: "online", label: "Online", video: false });
+    expect(parsePeerKey(store.key("zz")).status).toBe("offline");
+    off();
+    store.notify();
+    expect(calls).toBe(1);
+  });
+});

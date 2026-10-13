@@ -4,7 +4,7 @@ import type { DisplayStatus } from "@/lib/presence";
 import type { Profile } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { HeadsetIcon, VideoIcon } from "./icons";
-import { usePresence } from "./PresenceContext";
+import { usePeerStatus } from "./PresenceContext";
 
 /**
  * The status mark on an avatar. Shape, not just colour, tells them apart: a filled dot (Online, signal), a hollow
@@ -39,13 +39,13 @@ export function StatusDot({ status, label, video = false, size }: { status: Disp
 
 /** Avatar plus the person's status in this community (members only see members; outside a community, no mark). */
 export function PresenceAvatar({ profile, size = 36 }: { profile: Profile | undefined; size?: number }) {
-  const presence = usePresence();
-  if (!presence || !profile || profile.is_bot) return <Avatar profile={profile} size={size} />;
-  const { status, label, peer } = presence.statusOf(profile.id);
+  // Follows this one person, so a presence change elsewhere doesn't re-render every avatar on screen.
+  const view = usePeerStatus(profile && !profile.is_bot ? profile.id : undefined);
+  if (!view || !profile || profile.is_bot) return <Avatar profile={profile} size={size} />;
   return (
     <span className="relative inline-flex shrink-0">
       <Avatar profile={profile} size={size} />
-      <StatusDot status={status} label={`${profile.display_name}: ${label}`} video={peer?.call?.video} size={size} />
+      <StatusDot status={view.status} label={`${profile.display_name}: ${view.label}`} video={view.video} size={size} />
     </span>
   );
 }

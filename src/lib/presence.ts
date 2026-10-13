@@ -225,3 +225,51 @@ export function presenceGroup(p: PeerPresence | undefined): PresenceGroup {
   if (p.call) return "call";
   return p.status === "away" ? "away" : "online";
 }
+
+// ───────────────────────── per-person subscriptions ─────────────────────────
+
+/** What an avatar shows for one person. */
+export interface PeerView {
+  status: DisplayStatus;
+  label: string;
+  video: boolean;
+}
+
+/**
+ * Lets each avatar follow one person (useSyncExternalStore) instead of the whole presence map: a presence sync
+ * re-renders only the avatars whose status, label or camera changed. `key()` is a string, so unchanged = equal.
+ */
+export interface PeerStore {
+  subscribe: (fn: () => void) => () => void;
+  key: (userId: string) => string;
+  /** Point it at the latest lookup (during the provider's render) … */
+  set: (lookup: (userId: string) => PeerView) => void;
+  /** … and tell subscribers after the commit. */
+  notify: () => void;
+}
+
+export function createPeerStore(): PeerStore {
+  const listeners = new Set<() => void>();
+  let lookup: (userId: string) => PeerView = () => ({ status: "offline", label: "Offline", video: false });
+  return {
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    key(userId) {
+      const v = lookup(userId);
+      return `${v.status}\u0000${v.label}\u0000${v.video ? 1 : 0}`;
+    },
+    set(next) {
+      lookup = next;
+    },
+    notify() {
+      listeners.forEach((fn) => fn());
+    },
+  };
+}
+
+export function parsePeerKey(key: string): PeerView {
+  const [status, label, video] = key.split("\u0000");
+  return { status: status as DisplayStatus, label, video: video === "1" };
+}

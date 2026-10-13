@@ -183,12 +183,11 @@ export function DmProvider({ me, base, listen = false, children }: { me: Profile
   }, []);
 
   const badge = useMemo(() => badgeCount(conversations), [conversations]);
-
-  return (
-    <Ctx.Provider
-      value={{ me, base, conversations, loaded, refresh, setConversations, badge, blocked, refreshBlocks, viewing, markConversationRead, subscribe, handlers: stable }}
-    >
-      {children}
-    </Ctx.Provider>
+  // One value per real change: this provider re-renders with presence (for Do not disturb), its consumers needn't.
+  const value = useMemo(
+    () => ({ me, base, conversations, loaded, refresh, setConversations, badge, blocked, refreshBlocks, viewing, markConversationRead, subscribe, handlers: stable }),
+    [me, base, conversations, loaded, refresh, badge, blocked, refreshBlocks, markConversationRead, subscribe, stable],
   );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
