@@ -217,7 +217,8 @@ html:has(.cr-shell) body {
   overscroll-behavior: none;
 }
 .cr-shell .overflow-y-auto,
-.cr-shell .overflow-auto {
+.cr-shell .overflow-auto,
+.cr-shell textarea {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -517,7 +518,8 @@ html.cr-kb .cr-sheet {
     }
   }
   .cr-stage .overflow-y-auto,
-  .cr-stage .overflow-auto {
+  .cr-stage .overflow-auto,
+  .cr-stage textarea {
     touch-action: pan-y;
   }
   .cr-stage-row[data-nav="open"] .cr-stage {
