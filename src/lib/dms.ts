@@ -2,6 +2,7 @@
  * Direct messages (supabase/migrations/0011_dms.sql). Types and the pure logic the inbox, the rail badge and the
  * alerts run on (unit-tested in tests/dms.test.ts). The live state is in src/components/dm/DmContext.tsx.
  */
+import type { Attachment } from "./attachments";
 import type { Message } from "./types";
 
 /** People in a group, you included. The database enforces it too (dm_members_guard). */
@@ -51,6 +52,8 @@ export interface DmMessage {
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+  /** Files and images (0013). */
+  attachments?: Attachment[];
 }
 
 export interface DmReaction {
@@ -144,7 +147,7 @@ export function previewText(c: Pick<DmConversation, "last_message" | "members" |
   const m = c.last_message;
   if (!m) return "No messages yet";
   if (m.deleted) return "Message removed";
-  const body = m.body.replace(/\s+/g, " ").trim();
+  const body = m.body.replace(/\s+/g, " ").trim() || "Sent a file";
   if (m.author_id === meId) return `You: ${body}`;
   if (!c.is_group) return body;
   const who = c.members.find((x) => x.user_id === m.author_id)?.display_name.split(" ")[0] ?? "Someone";
@@ -224,6 +227,7 @@ export function asRoomMessage(m: DmMessage): Message {
     edited_at: m.edited_at,
     deleted_at: m.deleted_at,
     created_at: m.created_at,
+    attachments: m.attachments,
   };
 }
 

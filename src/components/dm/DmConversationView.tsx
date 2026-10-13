@@ -9,6 +9,9 @@ import { ArrowLeftIcon, BellIcon, BellOffIcon, MoreIcon, UsersIcon } from "@/com
 import { MessageItem, type MessageActions } from "@/components/chat/MessageItem";
 import { Panel } from "@/components/chat/Panel";
 import { PresenceAvatar } from "@/components/chat/PresenceAvatar";
+import { purgeAttachments } from "@/components/chat/attachments/signedUrls";
+import type { OutgoingAttachment } from "@/components/chat/attachments/useAttachmentDrafts";
+import { WITH_ATTACHMENTS } from "@/lib/attachments";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { asRoomMessage, conversationName, MAX_GROUP, otherMembers, requestState, upsertDm, type DmMember, type DmMessage, type DmReaction } from "@/lib/dms";
 import { buildRows, summarizeReactions } from "@/lib/format";
@@ -64,7 +67,7 @@ export function DmConversationView({ id }: { id: string }) {
     viewing.current = id;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.from("dm_messages").select("*").eq("conversation_id", id).order("created_at", { ascending: false }).limit(PAGE);
+      const { data } = await supabase.from("dm_messages").select(WITH_ATTACHMENTS).eq("conversation_id", id).order("created_at", { ascending: false }).limit(PAGE);
       if (cancelled) return;
       const list = ((data ?? []) as DmMessage[]).reverse();
       setMessages(list);
@@ -119,7 +122,7 @@ export function DmConversationView({ id }: { id: string }) {
     setLoadingMore(true);
     const { data } = await supabase
       .from("dm_messages")
-      .select("*")
+      .select(WITH_ATTACHMENTS)
       .eq("conversation_id", id)
       .lt("created_at", messages[0].created_at)
       .order("created_at", { ascending: false })
@@ -180,8 +183,10 @@ export function DmConversationView({ id }: { id: string }) {
     router.refresh();
   };
 
-  const send = async (body: string): Promise<boolean> => {
-    const { data, error: err } = await supabase.from("dm_messages").insert({ conversation_id: id, author_id: me.id, body }).select().single();
+  const send = async (body: string, files: OutgoingAttachment[]): Promise<boolean> => {
+    const { data, error: err } = files.length
+      ? await supabase.rpc("post_dm", { p_conv: id, p_body: body, p_attachments: files })
+      : await supabase.from("dm_messages").insert({ conversation_id: id, author_id: me.id, body }).select().single();
     if (err) {
       flash(cloudErrorText(err.message) ?? "Message didn't send. Try again.");
       return false;
@@ -241,7 +246,8 @@ export function DmConversationView({ id }: { id: string }) {
     remove: async (m) => {
       const { error: err } = await supabase.rpc("delete_dm_message", { p_message: m.id });
       if (err) return flash("You can't delete that message.");
-      setMessages((list) => upsertDm(list, { ...(messages.find((x) => x.id === m.id) as DmMessage), body: "", deleted_at: new Date().toISOString() }));
+      purgeAttachments(m.attachments);
+      setMessages((list) => upsertDm(list, { ...(messages.find((x) => x.id === m.id) as DmMessage), body: "", deleted_at: new Date().toISOString(), attachments: [] }));
       setReactions((list) => list.filter((r) => r.message_id !== m.id));
     },
     report: (m: Message) => {
@@ -433,6 +439,7 @@ export function DmConversationView({ id }: { id: string }) {
           disabled={state !== "chat"}
           disabledReason="Accept the request to reply."
           onSend={send}
+          attach={{ kind: "dm", conversationId: id }}
           autoFocus={state === "chat"}
         />
       </section>

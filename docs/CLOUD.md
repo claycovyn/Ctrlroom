@@ -25,7 +25,12 @@ These numbers are placeholders until real usage and the LiveKit and Supabase bil
   minute (`/api/livekit/webhook`, idempotent per event id).
 - **AI answers** are counted when a helper posts a real answer (`record_ai_reply`, called by `src/lib/agent/run.ts`);
   limit notices and error replies don't count. Bot replies don't count as messages and skip the flood guard.
-- Cost-only numbers (emails sent) feed the cost-to-serve estimate on `/admin`.
+- Cost-only numbers (emails sent, and chat file bytes as `attachment_bytes` in `usage_daily`, 0013) feed the
+  cost-to-serve estimate on `/admin`. Files have no meter, Free limit or fair-use limit in `openctrl.json` (the kit
+  needs a fair-use number for every meter, and none has been chosen), so they never pause anything. DM files aren't
+  in any workspace; each person has a 500 MB cap on them instead (`attachment_dm_cap_bytes`).
+- The daily cron also removes the Storage bytes of deleted messages' files and of uploads never sent within 24 hours
+  (`attachments_cleanup`). That's people's own deletions, never usage.
 
 ## Plans
 

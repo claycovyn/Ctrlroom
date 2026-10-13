@@ -1,3 +1,5 @@
+import type { Attachment } from "./attachments";
+
 export type Role = "owner" | "admin" | "mod" | "member";
 
 export interface Profile {
@@ -96,6 +98,8 @@ export interface Message {
   edited_at: string | null;
   deleted_at: string | null;
   created_at: string;
+  /** Files and images (0013), in order. Loaded with WITH_ATTACHMENTS and carried by message events. */
+  attachments?: Attachment[];
 }
 
 export interface Reaction {

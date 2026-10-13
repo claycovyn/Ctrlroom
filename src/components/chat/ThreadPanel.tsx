@@ -4,6 +4,7 @@ import { useState } from "react";
 import { buildRows, summarizeReactions } from "@/lib/format";
 import { atLeast, type Message, type Reaction } from "@/lib/types";
 import { useCommunity } from "./CommunityContext";
+import type { OutgoingAttachment } from "./attachments/useAttachmentDrafts";
 import { Composer } from "./Composer";
 import { MessageItem, type MessageActions } from "./MessageItem";
 import { Panel } from "./Panel";
@@ -26,7 +27,7 @@ export function ThreadPanel({
   loading: boolean;
   actions: MessageActions;
   onClose: () => void;
-  onReply: (body: string) => Promise<boolean>;
+  onReply: (body: string, attachments: OutgoingAttachment[]) => Promise<boolean>;
   agentStatus?: string | null;
   onResolve: (outcome: string, pin: boolean) => Promise<boolean>;
   onReopen: () => void;
@@ -54,7 +55,13 @@ export function ThreadPanel({
                 </span>
               )}
             </p>
-            <Composer placeholder="Reply… (@ctrl to ask AI)" communityId={community.id} onSend={onReply} autoFocus />
+            <Composer
+              placeholder="Reply… (@ctrl to ask AI)"
+              communityId={community.id}
+              onSend={onReply}
+              attach={{ kind: "room", roomId: root.room_id }}
+              autoFocus
+            />
           </div>
         )
       }

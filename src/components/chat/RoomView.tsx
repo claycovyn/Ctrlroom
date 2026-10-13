@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { WITH_ATTACHMENTS } from "@/lib/attachments";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
@@ -12,6 +13,8 @@ import { atLeast, type BoardItem, type CatchUp, type Message, type Profile, type
 import { BoardPanel } from "./BoardPanel";
 import { CatchUpBanner } from "./CatchUpBanner";
 import { useCommunity } from "./CommunityContext";
+import { purgeAttachments } from "./attachments/signedUrls";
+import type { OutgoingAttachment } from "./attachments/useAttachmentDrafts";
 import { Composer } from "./Composer";
 import { BellIcon, BellOffIcon, BoardIcon, HeadsetIcon, InfoIcon, MenuIcon, PhoneIcon, PinIcon, SearchIcon, SettingsIcon, UsersIcon } from "./icons";
 import { PresenceAvatar } from "./PresenceAvatar";
@@ -261,7 +264,7 @@ export function RoomView({
     setLoadingMore(true);
     const { data } = await supabase
       .from("messages")
-      .select("*")
+      .select(WITH_ATTACHMENTS)
       .eq("room_id", room.id)
       .is("parent_id", null)
       .lt("created_at", messages[0].created_at)
@@ -288,12 +291,11 @@ export function RoomView({
   };
 
   // ── actions
-  const send = async (body: string, parentId: string | null = null): Promise<boolean> => {
-    const { data, error: err } = await supabase
-      .from("messages")
-      .insert({ room_id: room.id, author_id: me.id, body, parent_id: parentId })
-      .select()
-      .single();
+  const send = async (body: string, parentId: string | null = null, files: OutgoingAttachment[] = []): Promise<boolean> => {
+    // With files: post_message links them in the same insert (0013). Without: a plain insert, as before.
+    const { data, error: err } = files.length
+      ? await supabase.rpc("post_message", { p_room: room.id, p_body: body, p_parent: parentId, p_attachments: files })
+      : await supabase.from("messages").insert({ room_id: room.id, author_id: me.id, body, parent_id: parentId }).select().single();
     if (err) {
       flash(
         cloudErrorText(err.message) ??
@@ -323,7 +325,7 @@ export function RoomView({
     setPanel("thread");
     setThreadReplies([]);
     setThreadLoading(true);
-    const { data } = await supabase.from("messages").select("*").eq("parent_id", m.id).order("created_at").limit(500);
+    const { data } = await supabase.from("messages").select(WITH_ATTACHMENTS).eq("parent_id", m.id).order("created_at").limit(500);
     const replies = (data ?? []) as Message[];
     ensureProfiles([...new Set(replies.map((r) => r.author_id))]);
     if (replies.length) {
@@ -339,11 +341,11 @@ export function RoomView({
   const openThreadById = async (id: string) => {
     const local = messages.find((m) => m.id === id);
     if (local) return openThread(local);
-    const { data } = await supabase.from("messages").select("*").eq("id", id).maybeSingle();
+    const { data } = await supabase.from("messages").select(WITH_ATTACHMENTS).eq("id", id).maybeSingle();
     if (!data) return;
     const m = data as Message;
     if (m.parent_id) {
-      const { data: parent } = await supabase.from("messages").select("*").eq("id", m.parent_id).maybeSingle();
+      const { data: parent } = await supabase.from("messages").select(WITH_ATTACHMENTS).eq("id", m.parent_id).maybeSingle();
       if (parent) {
         ensureProfiles([(parent as Message).author_id]);
         openThread(parent as Message);
@@ -374,7 +376,7 @@ export function RoomView({
         room_id: room.id,
         created_by: me.id,
         kind: "note",
-        title: m.body.replace(/\s+/g, " ").slice(0, 140),
+        title: (m.body || m.attachments?.[0]?.name || "File").replace(/\s+/g, " ").slice(0, 140),
         body: m.body.length > 140 ? m.body.slice(0, 2000) : "",
         message_id: m.id,
       });
@@ -398,7 +400,9 @@ export function RoomView({
     remove: async (m) => {
       const { error: err } = await supabase.rpc("delete_message", { p_message: m.id });
       if (err) return flash("You can't delete that message.");
-      const gone = { ...m, deleted_at: new Date().toISOString(), body: "" };
+      // The database already deleted the files; remove their bytes now instead of at the daily cleanup.
+      purgeAttachments(m.attachments);
+      const gone = { ...m, deleted_at: new Date().toISOString(), body: "", attachments: [] };
       if (m.parent_id) setThreadReplies((list) => upsertMessage(list, gone));
       else setMessages((list) => upsertMessage(list, gone));
       if (threadRoot?.id === m.id) setThreadRoot(gone);
@@ -599,7 +603,8 @@ ${room.description}` : room.topic}
           communityId={community.id}
           disabled={!canPost}
           disabledReason={`${POST_ROLE_LABEL[room.post_min_role]} can start posts here. You can still reply in threads.`}
-          onSend={(body) => send(body)}
+          onSend={(body, files) => send(body, null, files)}
+          attach={{ kind: "room", roomId: room.id }}
           onTyping={sendTyping}
         />
       </section>
@@ -615,7 +620,7 @@ ${room.description}` : room.topic}
             setPanel(null);
             setThreadRoot(null);
           }}
-          onReply={(body) => send(body, threadRoot.id)}
+          onReply={(body, files) => send(body, threadRoot.id, files)}
           agentStatus={threadAgentStatus}
           onResolve={async (outcome, pin) => {
             const { error: err } = await supabase.rpc("resolve_thread", { p_message: threadRoot.id, p_outcome: outcome, p_pin: pin });

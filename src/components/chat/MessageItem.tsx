@@ -5,6 +5,7 @@ import { useConfirm } from "@/components/Dialogs";
 import { timeLabel } from "@/lib/format";
 import type { ReactionSummary } from "@/lib/format";
 import type { Message, Profile } from "@/lib/types";
+import { MessageAttachments } from "./attachments/MessageAttachments";
 import { PresenceAvatar } from "./PresenceAvatar";
 import { BlockIcon, CheckIcon, EditIcon, FlagIcon, PinIcon, SmileIcon, ThreadIcon, TrashIcon } from "./icons";
 import { RichText } from "./RichText";
@@ -110,11 +111,14 @@ export function MessageItem({
             <p className="mt-1 text-xs text-muted">Enter to save · Esc to cancel</p>
           </div>
         ) : (
-          <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-            <RichText body={m.body} myUsername={me.username} />
-            {m.edited_at && <span className="ml-1 text-xs text-muted">(edited)</span>}
-          </div>
+          m.body && (
+            <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+              <RichText body={m.body} myUsername={me.username} />
+              {m.edited_at && <span className="ml-1 text-xs text-muted">(edited)</span>}
+            </div>
+          )
         )}
+        {!editing && <MessageAttachments attachments={m.attachments} />}
 
         {m.outcome && (
           <div className="mt-1.5 flex items-start gap-2 rounded-md border border-signal/40 bg-signal/10 px-3 py-2 text-sm">
@@ -203,6 +207,7 @@ export function MessageItem({
                       title: mine ? "Delete your message?" : `Delete ${author?.display_name ?? "this person"}’s message?`,
                       body:
                         "It shows as “Message removed” for everyone and its reactions are cleared." +
+                        (m.attachments?.length ? " Its files are deleted too." : "") +
                         (m.reply_count > 0 ? ` The ${m.reply_count === 1 ? "reply" : `${m.reply_count} replies`} in its thread stay.` : ""),
                       confirmLabel: "Delete",
                       tone: "danger",

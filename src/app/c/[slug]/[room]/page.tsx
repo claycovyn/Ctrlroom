@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { RoomView } from "@/components/chat/RoomView";
+import { WITH_ATTACHMENTS } from "@/lib/attachments";
 import { loadCommunity } from "@/lib/community";
 import type { BoardItem, Message, Profile, Reaction } from "@/lib/types";
 
@@ -27,7 +28,7 @@ export default async function RoomPage({
   const [{ data: latest }, { data: board }] = await Promise.all([
     supabase
       .from("messages")
-      .select("*")
+      .select(WITH_ATTACHMENTS)
       .eq("room_id", room.id)
       .is("parent_id", null)
       .order("created_at", { ascending: false })

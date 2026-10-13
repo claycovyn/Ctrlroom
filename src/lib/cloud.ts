@@ -159,11 +159,13 @@ export interface UnitCosts {
   perAiReply: number;
   /** Dollars per email sent. */
   perEmail: number;
+  /** Dollars per GB of chat files attached in the workspace's communities this month (usage_daily attachment_bytes, 0013). */
+  perGbFiles: number;
   /** Fixed dollars per workspace per month (share of hosting). */
   perWorkspace: number;
 }
 
-export const DEFAULT_COSTS: UnitCosts = { per1kMessages: 0, perCallMinute: 0, perAiReply: 0, perEmail: 0, perWorkspace: 0 };
+export const DEFAULT_COSTS: UnitCosts = { per1kMessages: 0, perCallMinute: 0, perAiReply: 0, perEmail: 0, perGbFiles: 0, perWorkspace: 0 };
 
 export function cleanCosts(value: unknown): UnitCosts {
   const v = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
@@ -171,12 +173,21 @@ export function cleanCosts(value: unknown): UnitCosts {
     const x = Number(v[k]);
     return Number.isFinite(x) && x >= 0 ? x : 0;
   };
-  return { per1kMessages: n("per1kMessages"), perCallMinute: n("perCallMinute"), perAiReply: n("perAiReply"), perEmail: n("perEmail"), perWorkspace: n("perWorkspace") };
+  return { per1kMessages: n("per1kMessages"), perCallMinute: n("perCallMinute"), perAiReply: n("perAiReply"), perEmail: n("perEmail"), perGbFiles: n("perGbFiles"), perWorkspace: n("perWorkspace") };
 }
 
 export function estimateCost(usage: Record<string, number | string>, costs: UnitCosts, emails = 0): number {
   const messages = Number(usage.messages) || 0;
   const minutes = Number(usage.call_minutes) || 0;
   const ai = Number(usage.ai_replies) || 0;
-  return (messages / 1000) * costs.per1kMessages + minutes * costs.perCallMinute + ai * costs.perAiReply + emails * costs.perEmail + costs.perWorkspace;
+  // Cost only: files have no meter or limit in openctrl.json.
+  const gb = (Number(usage.attachment_bytes) || 0) / 1024 ** 3;
+  return (
+    (messages / 1000) * costs.per1kMessages +
+    minutes * costs.perCallMinute +
+    ai * costs.perAiReply +
+    emails * costs.perEmail +
+    gb * costs.perGbFiles +
+    costs.perWorkspace
+  );
 }

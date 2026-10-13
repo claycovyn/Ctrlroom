@@ -8,7 +8,7 @@ const PAGE = 1000;
 
 /**
  * Full export of a community as JSON: rooms (with descriptions and sections), every message and thread reply (deleted ones as tombstones), board,
- * members. Personal room pins are not included. Owners and admins only. Works on every plan, over every limit and after a takedown: usage never
+ * members, and attachment metadata (name, type, size and storage path; not the files themselves). Personal room pins are not included. Owners and admins only. Works on every plan, over every limit and after a takedown: usage never
  * locks anyone out of their own history. Reads go through row-level security with the caller's session.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -33,11 +33,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   };
 
   try {
-    const [rooms, sections, messages, board] = await Promise.all([
+    const [rooms, sections, messages, board, attachments] = await Promise.all([
       all("rooms", "id, slug, name, topic, description, kind, post_min_role, position, section_id, icon, created_at", "position"),
       all("room_sections", "id, name, position, created_at", "position"),
       all("messages", "id, room_id, parent_id, author_id, body, reply_count, resolved_at, outcome, edited_at, deleted_at, created_at", "created_at"),
       all("board_items", "id, room_id, kind, title, url, body, message_id, created_by, created_at", "created_at"),
+      // Files sent in the community (0013): metadata only, no bytes. Unsent uploads aren't included.
+      all("message_attachments", "id, message_id, room_id, uploader_id, name, mime, size_bytes, width, height, alt, position, path, created_at", "created_at").then(
+        (rows) => rows.filter((r) => r.message_id),
+      ),
     ]);
     const { data: members } = await supabase
       .from("community_members")
@@ -53,6 +57,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
       members: members ?? [],
       messages,
       board,
+      attachments,
     };
     return new NextResponse(JSON.stringify(body, null, 2), {
       headers: {

@@ -285,6 +285,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               ["perCallMinute", "Dollars per call minute"],
               ["perAiReply", "Dollars per AI answer"],
               ["perEmail", "Dollars per email"],
+              ["perGbFiles", "Dollars per GB of chat files"],
               ["perWorkspace", "Fixed dollars per workspace a month"],
             ] as const
           ).map(([k, label]) => (

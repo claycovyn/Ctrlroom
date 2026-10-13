@@ -121,7 +121,7 @@ export function DmProvider({ me, base, listen = false, children }: { me: Profile
     if (alert && typeof Notification !== "undefined" && Notification.permission === "granted") {
       const url = `${base}/${e.conversation_id}`;
       const n = new Notification(e.status === "request" ? `Message request from ${e.author}` : e.author, {
-        body: e.message.body.slice(0, 140),
+        body: e.message.body.slice(0, 140) || "Sent a file",
         tag: url,
       });
       n.onclick = () => {

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { AttachButton, AttachmentTray } from "./attachments/AttachmentTray";
+import { useAttachmentDrafts, type AttachScope, type OutgoingAttachment } from "./attachments/useAttachmentDrafts";
 import { SendIcon } from "./icons";
 
 interface Suggestion {
@@ -23,15 +25,18 @@ export function Composer({
   onSend,
   onTyping,
   autoFocus,
+  attach,
 }: {
   placeholder: string;
   /** For @mention suggestions; null turns them off (direct messages). */
   communityId: string | null;
   disabled?: boolean;
   disabledReason?: string;
-  onSend: (body: string) => Promise<boolean>;
+  onSend: (body: string, attachments: OutgoingAttachment[]) => Promise<boolean>;
   onTyping?: () => void;
   autoFocus?: boolean;
+  /** Where attached files go; leave it out for a composer without files. */
+  attach?: AttachScope;
 }) {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -39,6 +44,9 @@ export function Composer({
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const lastTyping = useRef(0);
+  const files = useAttachmentDrafts(attach ?? null);
+  const [dragging, setDragging] = useState(false);
+  const [hold, setHold] = useState<string | null>(null);
 
   // Grow with content, up to a limit.
   useEffect(() => {
@@ -94,13 +102,22 @@ export function Composer({
 
   const submit = async () => {
     const text = body.trim();
-    if (!text || sending || disabled) return;
+    if ((!text && !files.ready.length) || sending || disabled) return;
+    if (files.busy || files.failed) {
+      setHold(files.busy ? "Wait for the files to finish uploading." : "Retry or remove the files that didn’t upload.");
+      return;
+    }
+    setHold(null);
     setSending(true);
-    const ok = await onSend(text);
+    const ok = await onSend(text, files.ready);
     setSending(false);
-    if (ok) setBody("");
+    if (ok) {
+      setBody("");
+      files.clear();
+    }
     ref.current?.focus();
   };
+  const canSend = (Boolean(body.trim()) || files.ready.length > 0) && !sending && !files.busy;
 
   if (disabled) {
     return (
@@ -110,8 +127,34 @@ export function Composer({
     );
   }
 
+  // Files can be dropped anywhere on the composer (only when it takes files).
+  const drop = files.enabled
+    ? {
+        onDragOver: (e: React.DragEvent) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDragging(true);
+        },
+        onDragLeave: (e: React.DragEvent) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+        },
+        onDrop: (e: React.DragEvent) => {
+          if (!e.dataTransfer.files.length) return;
+          e.preventDefault();
+          setDragging(false);
+          files.add(Array.from(e.dataTransfer.files));
+          ref.current?.focus();
+        },
+      }
+    : {};
+
   return (
-    <div className="relative px-4 pb-4">
+    <div className="relative px-4 pb-4" {...drop}>
+      {dragging && (
+        <div className="pointer-events-none absolute inset-x-4 bottom-4 top-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-signal bg-panel/90 text-sm font-medium">
+          Drop files to attach
+        </div>
+      )}
       {suggestions.length > 0 && (
         <ul className="absolute bottom-full left-4 right-4 mb-1 overflow-hidden rounded-lg border border-line bg-panel shadow-lg" role="listbox">
           {suggestions.map((s, i) => (
@@ -134,59 +177,70 @@ export function Composer({
           ))}
         </ul>
       )}
-      <div className="flex items-end gap-2 rounded-lg border border-line bg-panel px-3 py-2 focus-within:border-signal">
-        <textarea
-          ref={ref}
-          rows={1}
-          value={body}
-          autoFocus={autoFocus}
-          maxLength={4000}
-          placeholder={placeholder}
-          className="scroll-thin max-h-60 flex-1 resize-none bg-transparent py-1 text-[15px] placeholder:text-muted focus:outline-none"
-          onChange={(e) => {
-            setBody(e.target.value);
-            const now = Date.now();
-            if (onTyping && now - lastTyping.current > 3000) {
-              lastTyping.current = now;
-              onTyping();
-            }
-          }}
-          onKeyDown={(e) => {
-            if (suggestions.length) {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setActive((a) => (a + 1) % suggestions.length);
-                return;
-              }
-              if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setActive((a) => (a - 1 + suggestions.length) % suggestions.length);
-                return;
-              }
-              if (e.key === "Enter" || e.key === "Tab") {
-                e.preventDefault();
-                pick(suggestions[active]);
-                return;
-              }
-              if (e.key === "Escape") {
-                setSuggestions([]);
-                return;
-              }
-            }
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+      {hold && (
+        <p role="status" className="px-1 pb-1 text-xs text-muted">
+          {hold}
+        </p>
+      )}
+      <div className="rounded-lg border border-line bg-panel px-3 py-2 focus-within:border-signal">
+        {files.enabled && <AttachmentTray files={files} />}
+        <div className="flex items-end gap-2">
+          {files.enabled && <AttachButton files={files} disabled={sending} />}
+          <textarea
+            ref={ref}
+            rows={1}
+            value={body}
+            autoFocus={autoFocus}
+            maxLength={4000}
+            placeholder={placeholder}
+            className="scroll-thin max-h-60 flex-1 resize-none bg-transparent py-1 text-[15px] placeholder:text-muted focus:outline-none"
+            onPaste={(e) => {
+              if (!files.enabled) return;
+              const pasted = Array.from(e.clipboardData.files);
+              if (!pasted.length) return;
               e.preventDefault();
-              submit();
-            }
-          }}
-        />
-        <button
-          className="rounded-md p-1.5 text-muted hover:text-signal disabled:opacity-40"
-          onClick={submit}
-          disabled={!body.trim() || sending}
-          aria-label="Send"
-        >
-          <SendIcon />
-        </button>
+              files.add(pasted);
+            }}
+            onChange={(e) => {
+              setBody(e.target.value);
+              const now = Date.now();
+              if (onTyping && now - lastTyping.current > 3000) {
+                lastTyping.current = now;
+                onTyping();
+              }
+            }}
+            onKeyDown={(e) => {
+              if (suggestions.length) {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActive((a) => (a + 1) % suggestions.length);
+                  return;
+                }
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActive((a) => (a - 1 + suggestions.length) % suggestions.length);
+                  return;
+                }
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  pick(suggestions[active]);
+                  return;
+                }
+                if (e.key === "Escape") {
+                  setSuggestions([]);
+                  return;
+                }
+              }
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
+          <button className="rounded-md p-1.5 text-muted hover:text-signal disabled:opacity-40" onClick={submit} disabled={!canSend} aria-label="Send">
+            <SendIcon />
+          </button>
+        </div>
       </div>
     </div>
   );
