@@ -30,6 +30,11 @@ app is code-signed with the hardened runtime; the current unsigned build relies 
 
 ## Get it
 
+People download it from [openctrlroom.app/download](https://www.openctrlroom.app/download), which lists the latest release of
+the public [claycovyn/ctrlroom-downloads](https://github.com/claycovyn/ctrlroom-downloads) repo (set `CTRLROOM_DESKTOP_REPO`
+to use another). To ship a new version: bump it, push a tag `desktop-vX.Y.Z`, then copy the installers from that tag's draft
+release here to a release on the downloads repo (`gh release download` then `gh release create`; the code repo is private).
+
 GitHub → Actions → **Desktop**: every change to `desktop/` builds installers (`.msi` / `.exe`, `.dmg`,
 `.deb` / `.AppImage` / `.rpm`) as workflow artifacts. Push a tag `desktop-vX.Y.Z` to attach them to a draft release.
 

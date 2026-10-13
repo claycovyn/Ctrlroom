@@ -136,6 +136,9 @@ export default function Home() {
             <Link href="/docs" className="btn-ghost hidden sm:inline-flex">
               Docs
             </Link>
+            <Link href="/download" className="btn-ghost hidden md:inline-flex">
+              Download
+            </Link>
             {cloud && (
               <Link href="/pricing" className="btn-ghost hidden sm:inline-flex">
                 Pricing
@@ -381,6 +384,9 @@ export default function Home() {
           <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Footer">
             <Link href="/docs" className="hover:text-fg">
               Docs
+            </Link>
+            <Link href="/download" className="hover:text-fg">
+              Desktop app
             </Link>
             {cloud && (
               <Link href="/pricing" className="hover:text-fg">

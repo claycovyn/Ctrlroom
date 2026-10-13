@@ -168,6 +168,14 @@ export function SettingsView({
           <NotificationSettings userId={me.id} />
           <SoundSettings />
 
+          <section id="desktop" className="card p-5">
+            <h2 className="font-medium">Desktop app</h2>
+            <p className="mb-3 text-sm text-muted">Ctrl Room in its own window on Windows, macOS or Linux, with the same account.</p>
+            <a href="/download" className="btn-outline inline-flex">
+              Get the desktop app
+            </a>
+          </section>
+
           <DmPrivacySettings />
 
           {isMod && (
