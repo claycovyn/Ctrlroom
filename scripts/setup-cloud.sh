@@ -14,6 +14,10 @@
 #   AI_BASE_URL=... AI_MODEL=... AI_API_KEY=...   SEARCH_PROVIDER=brave BRAVE_API_KEY=...   (@ctrl, @openctrl)
 #   SEARCH_MONTHLY_LIMIT=900   (web searches a month for the whole server; brave defaults to 900, under its $5 credit)
 #   SUPPORT_EMAIL=help@ctrlroom.app   OPENCTRL_CLOUD_URL=https://...   VERCEL_PROJECT=ctrlroom   VERCEL_SCOPE=<team>
+#   VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=...   (push notifications; generated on the first run and kept in
+#                                                 .env.vapid.local, which git ignores. Keep them: new keys mean every
+#                                                 device has to turn notifications on again)
+#   VAPID_SUBJECT=mailto:you@example.com   (defaults to mailto:ADMIN_EMAIL)   PUSH_DISPATCH_SECRET=...   (generated)
 #   DRY_RUN=1   print what would happen, change nothing
 #
 # It never turns limits on: CTRLROOM_CLOUD stays unset until you launch Free Cloud (docs/CLOUD.md, last step).
@@ -65,9 +69,49 @@ if [ -n "$DRY" ]; then echo "DRY: join a Realtime channel"; else
   ' "$REF" "$ANON"
 fi
 
-step "Supabase: link and apply migrations (0001 init, 0002 AI helpers, 0003 Cloud)"
+step "Supabase: link and apply migrations (0001 init … 0014 push; 0014 enables pg_net when the project has it)"
 run npx --yes supabase link --project-ref "$REF"
 run npx --yes supabase db push
+
+step "Push notifications: VAPID keys, and the dispatch URL and secret in the database (0014_push.sql)"
+VAPID_FILE=.env.vapid.local
+if [ -z "${VAPID_PUBLIC_KEY:-}" ] || [ -z "${VAPID_PRIVATE_KEY:-}" ]; then
+  if [ -s "$VAPID_FILE" ]; then
+    # shellcheck disable=SC1090
+    . "./$VAPID_FILE"
+    echo "VAPID keys read from $VAPID_FILE"
+  else
+    # A P-256 key pair in the base64url forms web-push uses (public: the uncompressed point; private: d).
+    read -r VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY < <(node -e '
+      const { generateKeyPairSync } = require("crypto");
+      const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+      const pub = publicKey.export({ format: "jwk" });
+      const raw = Buffer.concat([Buffer.from([4]), Buffer.from(pub.x, "base64url"), Buffer.from(pub.y, "base64url")]);
+      console.log(raw.toString("base64url"), privateKey.export({ format: "jwk" }).d);
+    ')
+    if [ -n "$DRY" ]; then echo "DRY: generated a VAPID key pair (not saved)"; else
+      umask 077
+      printf 'VAPID_PUBLIC_KEY=%s
+VAPID_PRIVATE_KEY=%s
+' "$VAPID_PUBLIC_KEY" "$VAPID_PRIVATE_KEY" > "$VAPID_FILE"
+      echo "Generated a VAPID key pair and saved it to $VAPID_FILE (git ignores it; keep a copy somewhere safe)"
+    fi
+  fi
+fi
+VAPID_SUBJECT_VALUE="${VAPID_SUBJECT:-mailto:$ADMIN_EMAIL}"
+PUSH_SECRET_VALUE="${PUSH_DISPATCH_SECRET:-$(openssl rand -hex 32)}"
+DISPATCH_URL="$SITE_URL/api/push/dispatch"
+# Both go into SQL literals below: refuse anything that could break out of one.
+[[ "$PUSH_SECRET_VALUE" =~ ^[A-Za-z0-9_-]{32,200}$ ]] || { echo "PUSH_DISPATCH_SECRET must be 32+ letters, digits, - or _." >&2; exit 1; }
+[[ "$DISPATCH_URL" =~ ^https?://[A-Za-z0-9.:/_-]+$ ]] || { echo "SITE_URL has characters the dispatch URL can't use." >&2; exit 1; }
+PUSH_SQL="update private.push_config set dispatch_url = '$DISPATCH_URL', secret = '$PUSH_SECRET_VALUE', updated_at = now() where id = 1;"
+if [ -n "$DRY" ]; then
+  echo "DRY: SQL update private.push_config (dispatch_url = $DISPATCH_URL, secret = <${#PUSH_SECRET_VALUE} chars>)" >&2
+  echo "DRY: POST $API/database/query" >&2
+else
+  supa POST /database/query "$(jq -n --arg q "$PUSH_SQL" '{query: $q}')" >/dev/null
+  echo "Dispatch URL and secret stored in private.push_config"
+fi
 
 step "Supabase Auth: site URL, redirects, confirm email, send through Resend, branded emails"
 # Supabase's built-in mailer only sends a few emails an hour, so production auth mail goes through Resend's SMTP.
@@ -145,6 +189,10 @@ setenv SEARCH_PROVIDER "${SEARCH_PROVIDER:-}"
 setenv SEARXNG_URL "${SEARXNG_URL:-}"
 setenv BRAVE_API_KEY "${BRAVE_API_KEY:-}"
 setenv SEARCH_MONTHLY_LIMIT "${SEARCH_MONTHLY_LIMIT:-}"
+setenv NEXT_PUBLIC_VAPID_PUBLIC_KEY "$VAPID_PUBLIC_KEY"
+setenv VAPID_PRIVATE_KEY "$VAPID_PRIVATE_KEY"
+setenv VAPID_SUBJECT "$VAPID_SUBJECT_VALUE"
+setenv PUSH_DISPATCH_SECRET "$PUSH_SECRET_VALUE"
 
 step "Vercel: deploy to production"
 run vercel deploy --prod --yes "${SCOPE[@]}"

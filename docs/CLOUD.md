@@ -126,7 +126,7 @@ locally. After editing one, run the script again to update the hosted project. T
 
 1. Apply the migrations: `npx supabase db push` (`0003_cloud.sql` adds everything above).
 2. In Vercel set `SUPABASE_SERVICE_ROLE_KEY`, `CTRLROOM_ADMIN_EMAILS`, `RESEND_API_KEY`, `CTRLROOM_EMAIL_FROM`,
-   `CTRLROOM_SUPPORT_EMAIL`, `CRON_SECRET` (and `OPENCTRL_CLOUD_URL` once billing is live). Leave `CTRLROOM_CLOUD`
+   `CTRLROOM_SUPPORT_EMAIL`, `CRON_SECRET`, the push keys (Push notifications, below) (and `OPENCTRL_CLOUD_URL` once billing is live). Leave `CTRLROOM_CLOUD`
    unset until launch.
 3. LiveKit → Project settings → Webhooks: add `https://<your domain>/api/livekit/webhook` (signed with the same API
    key and secret).
@@ -134,11 +134,46 @@ locally. After editing one, run the script again to update the hosted project. T
 5. Open `/admin`: check every line is green, send yourself a test email, enter unit costs.
 6. Launch: set `CTRLROOM_CLOUD=1` and redeploy (the landing page copy is built with it). `/admin` shows "Limits: on".
 
+## Push notifications
+
+Web Push to iPhone/iPad Home Screen apps (iOS 16.4+), Android and desktop browsers. How a mention becomes a
+notification:
+
+1. The message insert writes `public.mentions` (0001). The `mentions_push` trigger (0014) checks the recipient's
+   `push_prefs` (kind switches, quiet hours), the room's mute, blocks (0011) and that they have a subscribed device,
+   then writes one `push_outbox` row (duplicates collapse). Direct messages (`dm_messages_push`) and call starts
+   (`push_call_started`, from the LiveKit `participant_joined` webhook) do the same through `enqueue_push`.
+2. `push_nudge()` calls `POST /api/push/dispatch` through **pg_net** once per transaction, after commit, with
+   `Authorization: Bearer <secret>` from `private.push_config` (a schema signed-in people can't read).
+3. The route claims rows with the service role (`claim_push`), sends with `web-push` (VAPID), and reports back
+   (`finish_push`): sent rows are deleted, subscriptions answering 404/410 are deleted, other failures retry (3 tries,
+   within an hour; older rows are dropped).
+4. The service worker (`public/sw.js`) shows it; a tap opens the message.
+
+Fallback without pg_net: after sending a message with an @mention, a thread reply or a DM, the app itself calls the
+dispatch route (signed-in users only; it only sends what the database already queued). Vercel Hobby crons run daily,
+so they can't be the fallback. Supabase's pg_cron could call `push_nudge()` every minute if you want one more.
+
+Setup (`scripts/setup-cloud.sh` does all of it):
+
+- pg_net: the 0014 migration runs `create extension if not exists pg_net with schema extensions` when the server has
+  it (hosted Supabase does; Dashboard → Database → Extensions shows it). Without it, only the app's own nudge delivers.
+- Vercel env: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:`), `PUSH_DISPATCH_SECRET`.
+  Keep the VAPID pair stable: a new pair means every device has to turn notifications on again.
+- The database: `private.push_config` gets the dispatch URL (`<site>/api/push/dispatch`) and the same secret, via
+  the Management API's SQL endpoint.
+
+Not applied on the server: Do not disturb and Away (presence lives only in the browser). Quiet hours are the server
+side equivalent.
+
 ## Tests
 
 - `npm run db:test`: `supabase/tests/3_cloud.test.sql` (plans, metering, Free pause, subscriber never paused, calls,
   email gate, reports, takedowns, flood guard, Cloud off = unlimited) against a real Postgres.
 - `npm run db:test`: `supabase/tests/5_service_quota.test.sql` (search budget stops at the limit, per service and month,
   server only). `npm test`: `tests/searchQuota.test.ts` (limit from env, no Brave call when the budget is spent or unreadable).
+- `npm run db:test`: `supabase/tests/14_push.test.sql` (own devices and settings only, mention/reply/DM/call rules,
+  mutes, blocks, quiet hours, one nudge per transaction, the secret and outbox unreadable). `npm test`:
+  `tests/push.test.ts` (subscription parsing, payloads, outbox draining with a fake sender, 404/410 cleanup).
 - `npm test`: `tests/cloud.test.ts` (manifest, tiers, packs, notices, call minutes, costs, and a check that no Cloud
   code path deletes data).

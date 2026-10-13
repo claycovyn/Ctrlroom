@@ -51,3 +51,10 @@ grant usage on schema storage to anon, authenticated, service_role;
 grant select, insert, update, delete on storage.objects to anon, authenticated, service_role;
 grant select on storage.buckets to anon, authenticated, service_role;
 grant execute on function storage.foldername(text) to anon, authenticated, service_role;
+
+-- pg_net (0014_push): records each request instead of sending it.
+create schema net;
+create table net.sent (id bigserial primary key, url text, body jsonb, headers jsonb, at timestamptz default now());
+create function net.http_post(url text, body jsonb default '{}'::jsonb, params jsonb default '{}'::jsonb,
+  headers jsonb default '{"Content-Type": "application/json"}'::jsonb, timeout_milliseconds int default 2000) returns bigint
+language sql as $$ insert into net.sent (url, body, headers) values (url, body, headers) returning id $$;
