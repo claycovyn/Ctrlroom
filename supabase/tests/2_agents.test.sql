@@ -40,6 +40,33 @@ select tests.ok((select count(*) from public.bot_jobs) = 3, 'bot replies never s
 select tests.ok(exists (select 1 from public.mentions where user_id = '00000000-0000-0000-0000-000000000201'), 'asker is pinged when the bot answers');
 select tests.ok(exists (select 1 from realtime.messages where event = 'agent' and payload ->> 'status' = 'running'), 'job status is broadcast');
 
+-- follow-ups and edits (0016)
+update public.bot_jobs set status = 'done', reply_id = (select id from public.messages where parent_id = :'ask' and author_id = '00000000-0000-4000-8000-00000000c7a1' limit 1)
+  where message_id = :'ask' and bot = 'ctrl';
+insert into public.community_members (community_id, user_id) values (:'c', '00000000-0000-0000-0000-000000000203');
+set role authenticated;
+select tests.login('00000000-0000-0000-0000-000000000201');
+insert into public.messages (room_id, author_id, body, parent_id) values (:'general', '00000000-0000-0000-0000-000000000201', 'thanks, and what about 18?', :'ask')
+  returning id as more \gset
+select tests.ok((select count(*) from public.bot_jobs where message_id = :'more' and bot = 'ctrl' and thread_id = :'ask'::uuid) = 1, 'a reply in a thread the bot answered continues without @ctrl');
+select tests.ok((select count(*) from public.bot_jobs where message_id = :'more' and bot = 'openctrl') = 0, 'only bots that already answered there');
+insert into public.messages (room_id, author_id, body, parent_id) values (:'general', '00000000-0000-0000-0000-000000000201', '@cy what do you think?', :'ask')
+  returning id as aside \gset
+select tests.ok((select count(*) from public.bot_jobs where message_id = :'aside') = 0, 'mentioning someone else is talking to them, not the bot');
+insert into public.messages (room_id, author_id, body) values (:'general', '00000000-0000-0000-0000-000000000201', 'unrelated top-level message')
+  returning id as top \gset
+select tests.ok((select count(*) from public.bot_jobs where message_id = :'top') = 0, 'top-level messages still need @ctrl');
+select tests.login('00000000-0000-0000-0000-000000000203');
+insert into public.messages (room_id, author_id, body, parent_id) values (:'general', '00000000-0000-0000-0000-000000000203', 'me too', :'ask')
+  returning id as other \gset
+select tests.ok((select count(*) from public.bot_jobs where message_id = :'other') = 0, 'someone who never asked here needs @ctrl');
+update public.messages set body = 'me too @ctrl' where id = :'other';
+select tests.ok((select count(*) from public.bot_jobs where message_id = :'other' and bot = 'ctrl') = 1, 'adding @ctrl in an edit asks');
+update public.messages set body = 'me too @ctrl, edited again' where id = :'other';
+select tests.ok((select count(*) from public.bot_jobs where message_id = :'other') = 1, 'editing again doesn''t ask twice');
+select tests.ok(tests.throws($$ select public.queue_bot_job((select m from public.messages m limit 1), 'ctrl') $$), 'people can''t queue jobs directly');
+reset role;
+
 -- rate limit
 do $$ begin perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000201', false); end $$;
 set role authenticated;

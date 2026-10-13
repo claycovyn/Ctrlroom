@@ -439,7 +439,9 @@ export function RoomView({
     nudgePush(m.body, Boolean(parentId));
     markPushMoment();
     nearBottom.current = true;
-    if (BOT_MENTION.test(body)) {
+    // A reply in a thread the bot already answered continues the conversation (0016); the database decides.
+    const botThread = Boolean(parentId) && threadReplies.some((r) => profiles[r.author_id]?.is_bot);
+    if (BOT_MENTION.test(body) || botThread) {
       fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: m.id }) }).catch(() => {});
     }
     if (parentId) {
@@ -523,6 +525,10 @@ export function RoomView({
         return false;
       }
       const updated = data as Message;
+      // Adding @ctrl in an edit asks it too (0016).
+      if (BOT_MENTION.test(body) && !BOT_MENTION.test(m.body)) {
+        fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: updated.id }) }).catch(() => {});
+      }
       if (updated.parent_id) setThreadReplies((list) => upsertMessage(list, updated));
       else setMessages((list) => upsertMessage(list, updated));
       if (threadRoot?.id === updated.id) setThreadRoot(updated);
