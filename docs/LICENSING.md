@@ -1,7 +1,7 @@
 # Licensing
 
-Ctrl Room is an OPENCTRL Original, licensed under the **GNU Affero General Public License v3.0 only**
-(`AGPL-3.0-only`), the license OPENCTRL chose for every Original (build plan decision 1, approved by counsel,
+Ctrl Room is an OpenCtrl Original, licensed under the **GNU Affero General Public License v3.0 only**
+(`AGPL-3.0-only`), the license OpenCtrl chose for every Original (build plan decision 1, approved by counsel,
 2026-10-12). Copyright Clayton Sinclair.
 
 > This page explains the license in plain words; it isn't legal advice, and the [LICENSE](../LICENSE) file is what
@@ -9,7 +9,7 @@ Ctrl Room is an OPENCTRL Original, licensed under the **GNU Affero General Publi
 
 ## Why AGPL-3.0
 
-Ctrl Room is free to use and self-host, and OPENCTRL Cloud offers a hosted version as a paid service. The AGPL keeps
+Ctrl Room is free to use and self-host, and OpenCtrl Cloud offers a hosted version as a paid service. The AGPL keeps
 it free for everyone while asking one thing of people who run a **modified** version for others over a network: offer
 those users the modified source (section 13). `-only` (not `-or-later`) so future license versions are a decision for
 the copyright holder.

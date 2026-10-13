@@ -76,10 +76,10 @@ export function UsageCard({ cloud }: { cloud: MyCloud }) {
         <p className={`mt-4 text-sm ${anyWarn ? "" : "text-muted"}`}>
           {cloud.upgrade.url ? (
             <a href={cloud.upgrade.url} className="font-medium underline underline-offset-2">
-              Join OPENCTRL Cloud for {cloud.upgrade.price}
+              Join OpenCtrl Cloud for {cloud.upgrade.price}
             </a>
           ) : (
-            <>Join OPENCTRL Cloud for {cloud.upgrade.price}</>
+            <>Join OpenCtrl Cloud for {cloud.upgrade.price}</>
           )}
           : every OpenCtrl original, with fair-use limits.{cloud.upgrade.url ? "" : " (Coming soon.)"}{" "}
           <Link href="/pricing" className="underline underline-offset-2">

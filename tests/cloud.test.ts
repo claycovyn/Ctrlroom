@@ -24,7 +24,7 @@ import { sendUsageNotices, type OverviewRow } from "@/lib/notices";
 const migration = readFileSync(path.join(__dirname, "../supabase/migrations/0003_cloud.sql"), "utf8");
 
 describe("openctrl.json", () => {
-  it("is a valid OPENCTRL manifest with a cloud section", () => {
+  it("is a valid OpenCtrl manifest with a cloud section", () => {
     expect(parseManifest(manifest)).toMatchObject({ ok: true });
     expect(Object.keys(CLOUD.meters).sort()).toEqual(["ai_replies", "call_minutes", "messages"]);
   });
@@ -68,7 +68,7 @@ describe("workspace status", () => {
     expect(s.meters.find((m) => m.meter === "call_minutes")?.state).toBe("ok");
   });
 
-  it("never pauses an OPENCTRL Cloud subscriber, even far over fair use", () => {
+  it("never pauses an OpenCtrl Cloud subscriber, even far over fair use", () => {
     const s = workspaceStatus({ plan: "cloud", packs: {}, usage: { messages: CLOUD.fair_use.messages * 3 } }, true);
     expect(s.meters.find((m) => m.meter === "messages")?.state).toBe("over");
     expect(s.paused).toEqual([]);
@@ -95,7 +95,7 @@ describe("workspace status", () => {
 });
 
 describe("notices", () => {
-  it("Free at 100%: says what paused, offers OPENCTRL Cloud, promises nothing was deleted", () => {
+  it("Free at 100%: says what paused, offers OpenCtrl Cloud, promises nothing was deleted", () => {
     const s = workspaceStatus({ plan: "free", packs: {}, usage: { messages: 10_000 } }, true);
     const m = s.meters.find((x) => x.meter === "messages")!;
     const { subject, text } = noticeFor(s, m, 100);

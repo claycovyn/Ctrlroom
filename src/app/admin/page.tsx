@@ -78,7 +78,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       {sp.error && <p role="alert" className="card border-alert/60 px-4 py-3 text-sm text-alert">{sp.error}</p>}
 
       <section className="card p-5">
-        <h2 className="font-medium">OPENCTRL Cloud</h2>
+        <h2 className="font-medium">OpenCtrl Cloud</h2>
         <ul className="mt-3 space-y-1 text-sm">
           <li>
             Limits: <strong>{enabled ? "on" : "off"}</strong> ({cloudEnabled() ? "CTRLROOM_CLOUD=1" : "CTRLROOM_CLOUD not set, so nobody is limited"})
@@ -87,7 +87,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <li>
             Free tier: {Object.entries(CLOUD.free).map(([k, v]) => `${formatAmount(v)} ${CLOUD.meters[k].unit}`).join(" · ")} a month per owner
           </li>
-          <li>Fair use (OPENCTRL Cloud): {Object.entries(CLOUD.fair_use).map(([k, v]) => `${formatAmount(v)} ${CLOUD.meters[k].unit}`).join(" · ")} a month</li>
+          <li>Fair use (OpenCtrl Cloud): {Object.entries(CLOUD.fair_use).map(([k, v]) => `${formatAmount(v)} ${CLOUD.meters[k].unit}`).join(" · ")} a month</li>
           <li>
             Email: {emailConfigured() ? "configured (Resend)" : <span className="text-alert">not configured: usage notices aren&apos;t sent (set RESEND_API_KEY and CTRLROOM_EMAIL_FROM)</span>}
           </li>
@@ -126,11 +126,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <section className="card p-5">
         <h2 className="font-medium">This month</h2>
         <p className="mt-2 text-sm">
-          {rows.length} workspace{rows.length === 1 ? "" : "s"} · {subscribers} on OPENCTRL Cloud · cost to serve {money(totalCost)} (estimate from the
+          {rows.length} workspace{rows.length === 1 ? "" : "s"} · {subscribers} on OpenCtrl Cloud · cost to serve {money(totalCost)} (estimate from the
           unit costs below)
         </p>
         <p className="mt-1 text-xs text-muted">
-          Revenue isn&apos;t per app: one $12 OPENCTRL Cloud subscription covers every Original, so compare this cost with Ctrl Room&apos;s share.
+          Revenue isn&apos;t per app: one $12 OpenCtrl Cloud subscription covers every Original, so compare this cost with Ctrl Room&apos;s share.
         </p>
       </section>
 
@@ -206,7 +206,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </tbody>
           </table>
         )}
-        <p className="mt-3 text-xs text-muted">Plans and packs are set here by hand until OPENCTRL billing sets them.</p>
+        <p className="mt-3 text-xs text-muted">Plans and packs are set here by hand until OpenCtrl billing sets them.</p>
       </section>
 
       <section className="card p-5">

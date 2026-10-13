@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets up Ctrl Room's production Supabase project and Vercel project for OPENCTRL Cloud.
+# Sets up Ctrl Room's production Supabase project and Vercel project for OpenCtrl Cloud.
 # Run it from the repo root on a machine where the Vercel CLI is logged in (`vercel login`) and you have a Supabase
 # personal access token. Safe to re-run: every step overwrites the previous value.
 #

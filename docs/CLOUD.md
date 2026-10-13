@@ -1,8 +1,8 @@
-# OPENCTRL Cloud: operator guide
+# OpenCtrl Cloud: operator guide
 
-Ctrl Room runs on OPENCTRL Cloud with a **Free tier** and the **$12/month OPENCTRL Cloud** subscription, which covers
+Ctrl Room runs on OpenCtrl Cloud with a **Free tier** and the **$12/month OpenCtrl Cloud** subscription, which covers
 every OpenCtrl original. This page covers what's limited, how it's enforced, and what to set up. The rules follow the
-OPENCTRL build plan (Phase 7) and the kit checklist (`packages/mcp-kit/templates/CHECKLIST.md` in the OPENCTRL repo).
+OpenCtrl build plan (Phase 7) and the kit checklist (`packages/mcp-kit/templates/CHECKLIST.md` in the OpenCtrl repo).
 
 **A self-hosted Ctrl Room is never limited.** All of this is off unless `CTRLROOM_CLOUD=1`.
 
@@ -10,7 +10,7 @@ OPENCTRL build plan (Phase 7) and the kit checklist (`packages/mcp-kit/templates
 
 Limits come from the `cloud` section of [`openctrl.json`](../openctrl.json), never from constants in the code.
 
-| Meter | Unit | Free | OPENCTRL Cloud (fair use) | Pack |
+| Meter | Unit | Free | OpenCtrl Cloud (fair use) | Pack |
 | --- | --- | --- | --- | --- |
 | `messages` | messages a month (every message and thread reply people post) | 10,000 | 1,000,000 | +1,000,000 (`messages_1m`) |
 | `call_minutes` | call minutes a month (per person in a call) | 300 | 10,000 | +10,000 (`calls_10k`) |
@@ -19,7 +19,7 @@ Limits come from the `cloud` section of [`openctrl.json`](../openctrl.json), nev
 These numbers are placeholders until real usage and the LiveKit and Supabase bills set them.
 
 - **The workspace is the community owner.** Usage from every community someone owns adds up on their account, the
-  same account an OPENCTRL Cloud subscription belongs to. Members, communities and history are never limited.
+  same account an OpenCtrl Cloud subscription belongs to. Members, communities and history are never limited.
 - **Messages** are counted by a database trigger as they're written (`messages_meter`).
 - **Call minutes** are counted from LiveKit's `participant_left` webhook: time from join to leave, rounded up to the
   minute (`/api/livekit/webhook`, idempotent per event id).
@@ -36,7 +36,7 @@ These numbers are placeholders until real usage and the LiveKit and Supabase bil
 | `grandfathered` (or no row) | unlimited | none |
 
 Everyone who signed up before Cloud was switched on has no row and stays unlimited. New sign-ups get `free` only
-while Cloud is on (`profiles_cloud_plan` trigger). Plans and packs are set by hand on `/admin` until OPENCTRL billing
+while Cloud is on (`profiles_cloud_plan` trigger). Plans and packs are set by hand on `/admin` until OpenCtrl billing
 sets them (build plan 7.3, through the Cloud contract's `setEntitlements`). Ctrl Room never calls Stripe.
 
 ## What happens at a limit
@@ -46,7 +46,7 @@ Nothing is ever deleted for going over. Reading, history, search and export alwa
 - **Free tier at 100%:** new messages, new calls or new AI answers in that owner's communities pause until the
   month resets (UTC). Members see the reason when they try to post; the helper explains its own pause. Calls already
   running carry on. (The helpers' hourly and daily limits from `0002_agents.sql` apply on every plan.)
-- **OPENCTRL Cloud subscriber:** never paused. Over fair use the dashboard and email offer the matching pack.
+- **OpenCtrl Cloud subscriber:** never paused. Over fair use the dashboard and email offer the matching pack.
 - **Notices** at 80% and 100%, once per meter per month, by email (daily cron, `/api/cron/usage`) and live on the
   owner's dashboard (`/app` and community Settings).
 

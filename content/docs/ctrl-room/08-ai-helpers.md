@@ -29,7 +29,7 @@ Mention **@openctrl** with a question about Ctrl Room or another OpenCtrl app ("
 ## Limits
 
 - Each person can ask **20 times an hour** in each community, and each community gets **300 answers a day**. Past that, the helper replies that the limit was reached.
-- On OPENCTRL Cloud's Free tier, the communities someone owns share **100 AI answers a month**; OPENCTRL Cloud subscribers get far more. A self-hosted Ctrl Room has no monthly limit.
+- On OpenCtrl Cloud's Free tier, the communities someone owns share **100 AI answers a month**; OpenCtrl Cloud subscribers get far more. A self-hosted Ctrl Room has no monthly limit.
 - Answers can be wrong. Check anything important, and follow the sources.
 
 ## What the helper sees

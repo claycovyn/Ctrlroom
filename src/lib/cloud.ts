@@ -1,4 +1,4 @@
-// OPENCTRL Cloud for Ctrl Room: plans, limits and usage, from the `cloud` section of openctrl.json.
+// OpenCtrl Cloud for Ctrl Room: plans, limits and usage, from the `cloud` section of openctrl.json.
 // Pure (no database, no secrets), so pages, routes and tests share one source of truth. Enforcement lives in
 // the database (supabase/migrations/0003_cloud.sql); this file decides what people see.
 import manifestJson from "../../openctrl.json";
@@ -12,7 +12,7 @@ export type PlanId = "free" | "cloud" | "grandfathered";
 
 export const PLANS: Record<PlanId, { name: string; priceCents: number; tier: Tier }> = {
   free: { name: "Free Cloud", priceCents: 0, tier: "free" },
-  cloud: { name: "OPENCTRL Cloud", priceCents: 1200, tier: "cloud" },
+  cloud: { name: "OpenCtrl Cloud", priceCents: 1200, tier: "cloud" },
   grandfathered: { name: "Early account", priceCents: 0, tier: "unlimited" },
 };
 
@@ -106,7 +106,7 @@ export function packOffer(meter: string): string[] {
   return packsFor(CLOUD, meter).map((p) => p.label);
 }
 
-const FREE_UPGRADE = `Join OPENCTRL Cloud for ${CLOUD_PRICE_LABEL}: every OpenCtrl original, with fair-use limits.`;
+const FREE_UPGRADE = `Join OpenCtrl Cloud for ${CLOUD_PRICE_LABEL}: every OpenCtrl original, with fair-use limits.`;
 
 /** The 80% / 100% notice for one meter. */
 export function noticeFor(status: WorkspaceStatus, m: MeterStatus, pct: 80 | 100): { subject: string; text: string } {

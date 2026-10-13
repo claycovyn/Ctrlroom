@@ -33,14 +33,14 @@ const FIXES = [
   },
 ];
 
-// A self-hosted install has no paid tier at all; on OPENCTRL Cloud the copy says what the plans are.
+// A self-hosted install has no paid tier at all; on OpenCtrl Cloud the copy says what the plans are.
 const NO_UPSELLS = {
   title: "No upsells, no ID checks",
   body: "No paid tier and no ID scans. Ctrl Room keeps only what it needs to run your community.",
 };
 const CLOUD_PLANS = {
   title: "Every feature, every plan",
-  body: "No feature paywalls and no ID scans. Start free; one $12/month OPENCTRL Cloud plan covers every OpenCtrl original. Self-host it with no limits.",
+  body: "No feature paywalls and no ID scans. Start free; one $12/month OpenCtrl Cloud plan covers every OpenCtrl original. Self-host it with no limits.",
 };
 
 export default function Home() {

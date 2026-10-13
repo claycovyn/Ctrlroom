@@ -7,7 +7,7 @@ export interface MyCloud {
   owns: number;
   emailConfirmed: boolean;
   status: WorkspaceStatus;
-  /** Shown with the usage: where to join OPENCTRL Cloud (OPENCTRL_CLOUD_URL), or null while billing isn't live. */
+  /** Shown with the usage: where to join OpenCtrl Cloud (OPENCTRL_CLOUD_URL), or null while billing isn't live. */
   upgrade: { price: string; url: string | null };
   /** Pack labels per meter, for "add a pack" offers to subscribers. */
   packs: Record<string, string[]>;

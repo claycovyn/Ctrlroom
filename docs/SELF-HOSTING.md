@@ -1,7 +1,7 @@
 # Self-hosting Ctrl Room
 
-Self-hosting is free and **never limited**: every feature, no message or call caps, no plan. The OPENCTRL Cloud
-limits in `openctrl.json` only apply when `CTRLROOM_CLOUD=1`, which only the hosted OPENCTRL Cloud sets.
+Self-hosting is free and **never limited**: every feature, no message or call caps, no plan. The OpenCtrl Cloud
+limits in `openctrl.json` only apply when `CTRLROOM_CLOUD=1`, which only the hosted OpenCtrl Cloud sets.
 
 ## What you need
 
@@ -13,7 +13,7 @@ limits in `openctrl.json` only apply when `CTRLROOM_CLOUD=1`, which only the hos
 
 1. `npx supabase link --project-ref <ref>` and `npx supabase db push` (applies every file in `supabase/migrations`).
 2. Set the env vars from `.env.example`: the Supabase URL and anon key, `NEXT_PUBLIC_SITE_URL`, and the three
-   `LIVEKIT_*` values if you want calls. Leave the OPENCTRL Cloud block unset.
+   `LIVEKIT_*` values if you want calls. Leave the OpenCtrl Cloud block unset.
 3. In Supabase → Authentication → URL configuration, set the Site URL to your domain and add
    `https://<domain>/**` as a redirect URL (covers `/auth/callback` and `/auth/confirm`). For email links that work
    on any device, paste `supabase/templates/*.html` into Authentication → Email Templates (see "Email links and

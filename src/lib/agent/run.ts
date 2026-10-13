@@ -191,7 +191,7 @@ export async function runJob(db: SupabaseClient, job: BotJob): Promise<void> {
     if (!answer) answer = "Sorry, I couldn't put an answer together. Try asking in a different way.";
     const id = await postReply(db, job, answer, mention);
     await db.from("bot_jobs").update({ status: "done", step: "", reply_id: id }).eq("id", job.id);
-    // OPENCTRL Cloud usage: one AI answer for the community owner. Never fails the job.
+    // OpenCtrl Cloud usage: one AI answer for the community owner. Never fails the job.
     await db.rpc("record_ai_reply", { p_job: job.id }).then(
       () => undefined,
       () => undefined,

@@ -1,4 +1,4 @@
--- OPENCTRL Cloud tests for 0003_cloud.sql: plans, metering, Free limits, calls, takedowns, reports.
+-- OpenCtrl Cloud tests for 0003_cloud.sql: plans, metering, Free limits, calls, takedowns, reports.
 -- Runs in one transaction and rolls back, so the other test files start from a clean database.
 \set QUIET on
 begin;
@@ -75,7 +75,7 @@ select ct.ok(ct.post(:'old_general', '10000000-0000-0000-0000-00000000000a', 'a'
          and ct.post(:'old_general', '10000000-0000-0000-0000-00000000000a', 'c') is null
          and ct.post(:'old_general', '10000000-0000-0000-0000-00000000000a', 'd') is null, 'grandfathered owner posts past the Free limit');
 
--- ── OPENCTRL Cloud subscriber is never paused
+-- ── OpenCtrl Cloud subscriber is never paused
 select ct.login('10000000-0000-0000-0000-0000000000c1');
 select (public.create_community('Paid Co', 'paidco')).id as paid_c \gset
 select id as paid_general from public.rooms where community_id = :'paid_c' and slug = 'general' \gset

@@ -1,6 +1,6 @@
 # Ctrl Room — notes for Claude Code
 
-Community chat (rooms, threads, boards, voice/video). An OPENCTRL Original. Next.js 15 App Router, React 19,
+Community chat (rooms, threads, boards, voice/video). An OpenCtrl Original. Next.js 15 App Router, React 19,
 TypeScript, Tailwind, Supabase (Postgres + Auth + Realtime), LiveKit.
 
 ## Commands
@@ -18,9 +18,9 @@ TypeScript, Tailwind, Supabase (Postgres + Auth + Realtime), LiveKit.
 - The service-role client (`src/lib/supabase/admin.ts`) is only for operator work (Cloud sync, webhook metering,
   notices, `/admin`) and the AI helpers' bot work, never to read or write on behalf of a signed-in person.
 
-## OPENCTRL Cloud (build plan 7.1–7.2) — guide: `docs/CLOUD.md`
+## OpenCtrl Cloud (build plan 7.1–7.2) — guide: `docs/CLOUD.md`
 - Limits come from `openctrl.json` → `cloud` via the vendored kit (`src/lib/mcp-kit/`, MIT, don't edit it here;
-  change `packages/mcp-kit` in the OPENCTRL repo and copy `manifest.ts`/`cloud.ts` back). `src/lib/cloud.ts` is the
+  change `packages/mcp-kit` in the OpenCtrl repo and copy `manifest.ts`/`cloud.ts` back). `src/lib/cloud.ts` is the
   pure layer (plans, tiers, status, notices, costs).
 - **Limits only when `CTRLROOM_CLOUD=1`**; self-hosted is never limited. The DB enforces from `cloud_config`, which
   `src/lib/cloudSync.ts` writes on server start (`src/instrumentation.ts`) and on `/admin` load.
@@ -42,5 +42,5 @@ Check new dependencies' licenses for AGPL compatibility.
 
 ## Rules
 - Copy: plain, short, no AI buzzwords. Brand: black, white and silver; `signal` is the accent; `alert` only for
-  errors and paused states. Product name "Ctrl Room", maker "OpenCtrl"; the subscription is "OPENCTRL Cloud".
+  errors and paused states. Product name "Ctrl Room", maker "OpenCtrl"; the subscription is "OpenCtrl Cloud".
 - Never claim a feature that isn't built. The only prices in copy are $0 and $12/month.

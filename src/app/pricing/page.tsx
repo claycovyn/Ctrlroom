@@ -5,7 +5,7 @@ import { amountLine, CLOUD, CLOUD_PRICE_LABEL } from "@/lib/cloud";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Ctrl Room is free to self-host. Hosted: start free, or get every OpenCtrl original with OPENCTRL Cloud.",
+  description: "Ctrl Room is free to self-host. Hosted: start free, or get every OpenCtrl original with OpenCtrl Cloud.",
 };
 
 export default function Pricing() {
@@ -39,7 +39,7 @@ export default function Pricing() {
             <li>Every feature, unlimited members and communities</li>
             <li>At a limit, new messages or calls pause until the month resets. History, search and export keep working, and nothing is deleted.</li>
           </Plan>
-          <Plan name="OPENCTRL Cloud" price={CLOUD_PRICE_LABEL.replace("/month", "")} note="a month" highlight cta={{ label: "Coming soon" }}>
+          <Plan name="OpenCtrl Cloud" price={CLOUD_PRICE_LABEL.replace("/month", "")} note="a month" highlight cta={{ label: "Coming soon" }}>
             <li className="font-medium">Every hosted OpenCtrl original, one subscription.</li>
             {meters.map((k) => (
               <li key={k}>Up to {amountLine(k, CLOUD.fair_use[k])} in Ctrl Room (fair use)</li>
