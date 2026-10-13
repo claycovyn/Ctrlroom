@@ -8,6 +8,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Role, Room } from "@/lib/types";
 import { useCommunity } from "./CommunityContext";
 import { CloseIcon } from "./icons";
+import { RoomIconPicker } from "./RoomIconPicker";
 
 /**
  * Edit a room (owners and admins; the rooms_update policy decides). The slug never changes, so links keep working.
@@ -23,6 +24,8 @@ export function RoomEditDialog({ room, onClose }: { room: Room; onClose: () => v
   const [kind, setKind] = useState<Room["kind"]>(room.kind);
   const [postMin, setPostMin] = useState<Role>(room.post_min_role);
   const [sectionId, setSectionId] = useState(room.section_id ?? "");
+  // An id this version doesn't know shows as Default; saving without touching it keeps the saved value.
+  const [icon, setIcon] = useState<string | null>(room.icon ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +47,7 @@ export function RoomEditDialog({ room, onClose }: { room: Room; onClose: () => v
       kind,
       post_min_role: postMin,
       section_id: section,
+      icon,
     };
     // Moving to another section puts the room at the end of it.
     if (section !== (room.section_id ?? null)) {
@@ -81,6 +85,7 @@ export function RoomEditDialog({ room, onClose }: { room: Room; onClose: () => v
             <input id="room-name" className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={48} required />
             <p className="mt-1 text-xs text-muted">The link stays /{room.slug}.</p>
           </div>
+          <RoomIconPicker value={icon} onChange={setIcon} room={{ kind, post_min_role: postMin }} hint="Shows next to the room in the sidebar and header." />
           <div>
             <label className="label" htmlFor="room-topic">
               Topic

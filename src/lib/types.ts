@@ -63,6 +63,8 @@ export interface Room {
   position: number;
   /** Sidebar section (0007); null means no section. */
   section_id: string | null;
+  /** Built-in icon id (0009, src/lib/roomIcons.ts); null or unknown shows the default # / speaker. */
+  icon?: string | null;
 }
 
 /** A named, ordered group of rooms in the sidebar (0007). */

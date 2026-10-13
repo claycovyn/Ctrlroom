@@ -13,7 +13,8 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
-import { BellIcon, ChevronDownIcon, CloseIcon, HashIcon, MegaphoneIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon, VoiceIcon } from "./icons";
+import { BellIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
+import { RoomIcon } from "./RoomIcon";
 
 export function Sidebar() {
   const ctx = useCommunity();
@@ -327,7 +328,6 @@ export function Sidebar() {
           const u = unreads[r.id];
           const active = pathname === `/c/${community.slug}/${r.slug}`;
           const bold = !active && u && u.unread > 0 && u.notify !== "none";
-          const Icon = r.kind === "voice" ? VoiceIcon : r.post_min_role !== "member" ? MegaphoneIcon : HashIcon;
           const isPinned = pins.some((p) => p.room_id === r.id);
           return (
             <li key={r.id} className="group relative flex items-center">
@@ -337,7 +337,7 @@ export function Sidebar() {
                   active ? "bg-raised font-medium text-fg" : bold ? "font-semibold text-fg hover:bg-raised" : "text-muted hover:bg-raised hover:text-fg"
                 } ${u?.notify === "none" && !active ? "opacity-60" : ""}`}
               >
-                <Icon className="h-4 w-4 shrink-0 opacity-70" />
+                <RoomIcon room={r} className="h-4 w-4 shrink-0 opacity-70" />
                 <span className="truncate">{r.name}</span>
                 {!active && u && u.mentions > 0 && (
                   <span className="ml-auto rounded-full bg-signal px-1.5 text-[11px] font-bold text-signal-fg">{u.mentions}</span>

@@ -8,7 +8,10 @@ import { applyChange, applyPositions, byPosition, moveInList, nextPosition, POST
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Room, RoomSection } from "@/lib/types";
 import { useCommunity } from "./CommunityContext";
+import { suggestRoomIcon } from "@/lib/roomIcons";
 import { ArrowDownIcon, ArrowUpIcon, EditIcon, TrashIcon } from "./icons";
+import { RoomIcon } from "./RoomIcon";
+import { RoomIconPicker } from "./RoomIconPicker";
 import { RoomEditDialog } from "./RoomEditDialog";
 
 /** Settings → Rooms (owners and admins): add, edit, order, group into sections, delete. */
@@ -25,6 +28,9 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
   const [roomTopic, setRoomTopic] = useState("");
   const [roomSection, setRoomSection] = useState("");
   const [announce, setAnnounce] = useState(false);
+  // The icon follows the name (suggestRoomIcon) until someone picks one; undefined = not picked yet.
+  const [pickedIcon, setPickedIcon] = useState<string | null | undefined>(undefined);
+  const roomIcon = pickedIcon === undefined ? suggestRoomIcon(roomName) : pickedIcon;
   // ── new section
   const [sectionName, setSectionName] = useState("");
 
@@ -78,6 +84,7 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
               kind: roomKind,
               post_min_role: announce ? "mod" : "member",
               section_id: section,
+              icon: roomIcon,
               position: nextPosition(rooms.filter((r) => groupOf(r) === section)),
             })
             .select()
@@ -87,6 +94,7 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
           setRoomName("");
           setRoomTopic("");
           setAnnounce(false);
+          setPickedIcon(undefined);
           say(`#${slug} added.`);
           router.refresh();
         }}
@@ -107,6 +115,14 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
             ))}
           </select>
         )}
+        <div className="sm:col-span-2">
+          <RoomIconPicker
+            value={roomIcon}
+            onChange={setPickedIcon}
+            room={{ kind: roomKind, post_min_role: announce ? "mod" : "member" }}
+            hint={pickedIcon === undefined && roomIcon ? "Picked from the name. Change it if you like." : undefined}
+          />
+        </div>
         <label className="flex items-center gap-2 text-sm text-muted sm:col-span-2">
           <input type="checkbox" checked={announce} onChange={(e) => setAnnounce(e.target.checked)} /> Announcements only (mods post, everyone can reply in threads)
         </label>
@@ -193,10 +209,8 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
                   <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 text-sm">
                     <div className="min-w-0 flex-1 basis-40">
                       <div className="flex items-center gap-2">
-                        <span className="truncate font-medium">
-                          {r.kind === "voice" ? "🔊 " : "#"}
-                          {r.name}
-                        </span>
+                        <RoomIcon room={r} className="h-4 w-4 shrink-0 text-muted" />
+                        <span className="truncate font-medium">{r.name}</span>
                         {r.post_min_role !== "member" && (
                           <span className="shrink-0 rounded bg-raised px-1.5 text-xs text-muted">{POST_ROLE_LABEL[r.post_min_role].toLowerCase()} post</span>
                         )}

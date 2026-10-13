@@ -17,7 +17,7 @@ Admins add rooms in **Settings → Rooms**: give it a name, choose Text or Voice
 
 Click the room name in the header (or the info button) to see the room's topic, description and who can start posts. Links in the description are clickable.
 
-Owners and admins can **Edit room** from the header or from **Settings → Rooms**: change the name, topic, description (up to 1,000 characters), Text or Voice, and who can start posts. The room's link never changes. Use the arrows in Settings → Rooms to change the order.
+Owners and admins can **Edit room** from the header or from **Settings → Rooms**: change the name, icon, topic, description (up to 1,000 characters), Text or Voice, and who can start posts. The room's link never changes. The icon shows next to the room in the sidebar, the header and the room info; pick one from the grid (search by name) or choose **Default** for # (or a speaker for voice rooms). When you add a room in Settings → Rooms, Ctrl Room suggests an icon from its name (for example *announcements*, *dev* or *memes*); change it before you save if you like. Use the arrows in Settings → Rooms to change the order.
 
 ## Sections
 

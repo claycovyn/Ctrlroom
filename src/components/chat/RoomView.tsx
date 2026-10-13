@@ -12,7 +12,8 @@ import { BoardPanel } from "./BoardPanel";
 import { CatchUpBanner } from "./CatchUpBanner";
 import { useCommunity } from "./CommunityContext";
 import { Composer } from "./Composer";
-import { BellIcon, BellOffIcon, BoardIcon, HashIcon, InfoIcon, MegaphoneIcon, MenuIcon, PhoneIcon, PinIcon, SearchIcon, SettingsIcon, UsersIcon, VoiceIcon } from "./icons";
+import { BellIcon, BellOffIcon, BoardIcon, InfoIcon, MenuIcon, PhoneIcon, PinIcon, SearchIcon, SettingsIcon, UsersIcon } from "./icons";
+import { RoomIcon } from "./RoomIcon";
 import { LinkedText } from "./LinkedText";
 import { MembersPanel } from "./MembersPanel";
 import { Panel } from "./Panel";
@@ -402,7 +403,6 @@ export function RoomView({
   const typingNames = Object.values(typing).map((t) => t.name);
   const agentStatus = agentLine(Object.values(agents));
   const threadAgentStatus = threadRoot ? agentLine(Object.values(agents).filter((j) => j.thread_id === threadRoot.id)) : null;
-  const RoomIcon = room.kind === "voice" ? VoiceIcon : room.post_min_role !== "member" ? MegaphoneIcon : HashIcon;
 
   return (
     <div className="flex min-w-0 flex-1">
@@ -411,7 +411,7 @@ export function RoomView({
           <button className="rounded p-1.5 text-muted hover:bg-raised md:hidden" onClick={() => setNavOpen(true)} aria-label="Open menu">
             <MenuIcon className="h-5 w-5" />
           </button>
-          <RoomIcon className="h-4 w-4 shrink-0 text-muted" />
+          <RoomIcon room={room} className="h-4 w-4 shrink-0 text-muted" />
           <h1 className="min-w-0 truncate font-semibold">
             <button
               className="max-w-full truncate rounded hover:underline focus-visible:underline"
@@ -510,7 +510,7 @@ ${room.description}` : room.topic}
           ) : (
             <div className="px-4 pb-4 pt-10">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-raised">
-                <RoomIcon className="h-6 w-6" />
+                <RoomIcon room={room} className="h-6 w-6" />
               </div>
               <h2 className="text-2xl font-semibold">Welcome to #{room.name}</h2>
               <p className="mt-1 text-sm text-muted">{room.topic || "This is the start of the room."}</p>
@@ -634,7 +634,12 @@ ${room.description}` : room.topic}
       {panel === "info" && (
         <Panel title={`About #${room.name}`} onClose={() => setPanel(null)}>
           <div className="space-y-5 p-4 text-sm">
-            {room.topic && <p className="font-medium">{room.topic}</p>}
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-raised">
+                <RoomIcon room={room} className="h-5 w-5" />
+              </span>
+              <p className="min-w-0 font-medium">{room.topic || room.name}</p>
+            </div>
             {room.description ? (
               <p className="whitespace-pre-wrap break-words leading-relaxed">
                 <LinkedText text={room.description} />

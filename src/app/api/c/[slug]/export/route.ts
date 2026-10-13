@@ -34,7 +34,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
 
   try {
     const [rooms, sections, messages, board] = await Promise.all([
-      all("rooms", "id, slug, name, topic, description, kind, post_min_role, position, section_id, created_at", "position"),
+      all("rooms", "id, slug, name, topic, description, kind, post_min_role, position, section_id, icon, created_at", "position"),
       all("room_sections", "id, name, position, created_at", "position"),
       all("messages", "id, room_id, parent_id, author_id, body, reply_count, resolved_at, outcome, edited_at, deleted_at, created_at", "created_at"),
       all("board_items", "id, room_id, kind, title, url, body, message_id, created_by, created_at", "created_at"),
