@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useConfirm } from "@/components/Dialogs";
 import { timeLabel } from "@/lib/format";
 import type { ReactionSummary } from "@/lib/format";
 import type { Message, Profile } from "@/lib/types";
@@ -42,6 +43,7 @@ export function MessageItem({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(m.body);
   const [picker, setPicker] = useState(false);
+  const confirmDialog = useConfirm();
   const mine = m.author_id === me.id;
 
   if (m.deleted_at) {
@@ -191,8 +193,16 @@ export function MessageItem({
               {(mine || canModerate) && (
                 <ToolButton
                   label="Delete"
-                  onClick={() => {
-                    if (confirm("Delete this message?")) actions.remove(m);
+                  onClick={async () => {
+                    const ok = await confirmDialog({
+                      title: mine ? "Delete your message?" : `Delete ${author?.display_name ?? "this person"}’s message?`,
+                      body:
+                        "It shows as “Message removed” for everyone and its reactions are cleared." +
+                        (m.reply_count > 0 ? ` The ${m.reply_count === 1 ? "reply" : `${m.reply_count} replies`} in its thread stay.` : ""),
+                      confirmLabel: "Delete",
+                      tone: "danger",
+                    });
+                    if (ok) actions.remove(m);
                   }}
                 >
                   <TrashIcon />

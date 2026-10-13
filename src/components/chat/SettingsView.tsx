@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useConfirm, usePrompt } from "@/components/Dialogs";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { CommunityImages } from "@/components/CommunityImages";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
@@ -48,6 +49,8 @@ export function SettingsView({
   const { me, role, community, setNavOpen, addProfiles } = useCommunity();
   const supabase = supabaseBrowser();
   const router = useRouter();
+  const confirmDialog = useConfirm();
+  const promptDialog = usePrompt();
   const isMod = atLeast(role, "mod");
   const isAdmin = atLeast(role, "admin");
   const [error, setError] = useState<string | null>(null);
@@ -327,7 +330,15 @@ export function SettingsView({
                         <button
                           className="btn-ghost py-1 text-xs"
                           onClick={async () => {
-                            if (!confirm(`Remove ${m.profiles.display_name}? They can rejoin with an invite.`)) return;
+                            const ok = await confirmDialog({
+                              title: `Remove ${m.profiles.display_name} from ${community.name}?`,
+                              body: community.is_public
+                                ? `Their messages stay. They can join again from /c/${community.slug}.`
+                                : "Their messages stay. They can rejoin with an invite.",
+                              confirmLabel: "Remove",
+                              tone: "danger",
+                            });
+                            if (!ok) return;
                             const { error: err } = await supabase.rpc("remove_member", { p_community: community.id, p_user: m.user_id });
                             if (err) return say("Couldn't remove them.", true);
                             loadMembers();
@@ -338,7 +349,15 @@ export function SettingsView({
                         <button
                           className="btn-ghost py-1 text-xs text-alert"
                           onClick={async () => {
-                            const reason = prompt(`Ban ${m.profiles.display_name}? Add a reason (only mods see it).`);
+                            const reason = await promptDialog({
+                              title: `Ban ${m.profiles.display_name} from ${community.name}?`,
+                              body: "They’re removed and can’t join again until a mod unbans them. Their messages stay.",
+                              label: "Reason (optional, only mods see it)",
+                              required: false,
+                              maxLength: 280,
+                              confirmLabel: "Ban",
+                              tone: "danger",
+                            });
                             if (reason === null) return;
                             const { error: err } = await supabase.rpc("remove_member", {
                               p_community: community.id,
@@ -453,7 +472,13 @@ export function SettingsView({
               <button
                 className="btn-outline text-alert"
                 onClick={async () => {
-                  if (!confirm(`Leave ${community.name}?`)) return;
+                  const ok = await confirmDialog({
+                    title: `Leave ${community.name}?`,
+                    body: community.is_public ? `You can join again from /c/${community.slug}.` : "You’ll need a new invite to come back.",
+                    confirmLabel: "Leave",
+                    tone: "danger",
+                  });
+                  if (!ok) return;
                   const { error: err } = await supabase.rpc("leave_community", { p_community: community.id });
                   if (err) return say("Couldn't leave.", true);
                   router.push("/app");

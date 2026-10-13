@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useConfirm, usePrompt } from "@/components/Dialogs";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { slugify } from "@/lib/format";
 import { applyChange, applyPositions, byPosition, moveInList, nextPosition, POST_ROLE_LABEL } from "@/lib/rooms";
@@ -19,6 +20,8 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
   const { community, rooms, setRooms, sections, setSections } = useCommunity();
   const supabase = supabaseBrowser();
   const router = useRouter();
+  const confirmDialog = useConfirm();
+  const promptDialog = usePrompt();
   const [editing, setEditing] = useState<Room | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -174,7 +177,7 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
                   <IconButton
                     label={`Rename ${section.name}`}
                     onClick={async () => {
-                      const name = prompt("Section name", section.name)?.trim().slice(0, 48);
+                      const name = await promptDialog(renameSectionDialog(section.name));
                       if (!name || name === section.name) return;
                       const { error } = await supabase.from("room_sections").update({ name }).eq("id", section.id);
                       if (error) return say("Couldn't rename the section.", true);
@@ -188,7 +191,15 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
                     label={`Delete ${section.name}`}
                     danger
                     onClick={async () => {
-                      if (!confirm(`Delete the ${section.name} section? Its rooms stay, with no section.`)) return;
+                      const ok = await confirmDialog({
+                        title: `Delete the ${section.name} section?`,
+                        body: list.length
+                          ? `Its ${list.length === 1 ? "room stays" : `${list.length} rooms stay`}, with no section.`
+                          : "It has no rooms. Only the heading goes.",
+                        confirmLabel: "Delete section",
+                        tone: "danger",
+                      });
+                      if (!ok) return;
                       const { error } = await supabase.from("room_sections").delete().eq("id", section.id);
                       if (error) return say("Couldn't delete the section.", true);
                       setSections((l) => l.filter((s) => s.id !== section.id));
@@ -246,7 +257,13 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
                         label={`Delete ${r.name}`}
                         danger
                         onClick={async () => {
-                          if (!confirm(`Delete #${r.name} and all its messages? This can't be undone.`)) return;
+                          const ok = await confirmDialog({
+                            title: `Delete #${r.name}?`,
+                            body: "Every message, thread and board item in it is deleted too. This can’t be undone.",
+                            confirmLabel: "Delete room",
+                            tone: "danger",
+                          });
+                          if (!ok) return;
                           const { error: err } = await supabase.from("rooms").delete().eq("id", r.id);
                           if (err) return say("Couldn't delete the room.", true);
                           setRooms((l) => l.filter((x) => x.id !== r.id));
@@ -271,6 +288,17 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
       )}
     </section>
   );
+}
+
+/** Settings → Rooms and the sidebar's section menu rename a section with the same dialog. */
+export function renameSectionDialog(current: string) {
+  return {
+    title: `Rename ${current}`,
+    label: "Section name",
+    defaultValue: current,
+    maxLength: 48,
+    confirmLabel: "Rename",
+  };
 }
 
 function IconButton({ label, onClick, disabled, danger, children }: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean; children: React.ReactNode }) {

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { DialogProvider } from "@/components/Dialogs";
 import { siteUrl } from "@/lib/env";
 import "./globals.css";
 
@@ -21,7 +22,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <DialogProvider>{children}</DialogProvider>
+      </body>
     </html>
   );
 }

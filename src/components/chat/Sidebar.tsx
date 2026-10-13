@@ -4,17 +4,19 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
+import { usePrompt } from "@/components/Dialogs";
 import { LogoMark } from "@/components/Logo";
 import { cloudErrorText } from "@/lib/cloudErrors";
-import { slugify } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
 import { applyChange, nextPosition, readCollapsed, sidebarLayout, writeCollapsed } from "@/lib/rooms";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
+import { AddRoomDialog, type NewRoom } from "./AddRoomDialog";
 import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
 import { BellIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
 import { RoomIcon } from "./RoomIcon";
+import { renameSectionDialog } from "./RoomsSettings";
 
 export function Sidebar() {
   const ctx = useCommunity();
@@ -25,6 +27,8 @@ export function Sidebar() {
   const [alerts, setAlerts] = useState<NotificationPermission | "unsupported">("default");
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const promptDialog = usePrompt();
+  const [addingIn, setAddingIn] = useState<RoomSection | null>(null);
   // Pending join requests (0008), owners and admins only. Refreshed on the join_request event below.
   const [requests, setRequests] = useState(0);
   const loadRequests = useCallback(async () => {
@@ -127,7 +131,7 @@ export function Sidebar() {
   const voice = layout.loose.filter((r) => r.kind === "voice");
 
   const renameSection = async (sec: RoomSection) => {
-    const name = prompt("Section name", sec.name)?.trim().slice(0, 48);
+    const name = await promptDialog(renameSectionDialog(sec.name));
     if (!name || name === sec.name) return;
     const { error: err } = await supabaseBrowser().from("room_sections").update({ name }).eq("id", sec.id);
     if (err) return flash("Couldn't rename the section.");
@@ -135,26 +139,26 @@ export function Sidebar() {
     router.refresh();
   };
 
-  const addRoomIn = async (sec: RoomSection) => {
-    const raw = prompt(`New text room in ${sec.name}`);
-    if (raw === null) return;
-    const slug = slugify(raw, 32);
-    if (!slug) return flash("Give the room a name.");
+  /** Saves a room from AddRoomDialog; returns the error to show in the dialog, or null (and closes it). */
+  const addRoomIn = async (sec: RoomSection, { slug, kind, icon }: NewRoom): Promise<string | null> => {
     const { data, error: err } = await supabaseBrowser()
       .from("rooms")
       .insert({
         community_id: community.id,
         slug,
         name: slug,
-        kind: "text",
+        kind,
+        icon,
         section_id: sec.id,
         position: nextPosition(rooms.filter((r) => r.section_id === sec.id)),
       })
       .select()
       .single();
-    if (err) return flash(err.code === "23505" ? `#${slug} already exists.` : (cloudErrorText(err.message) ?? "Couldn't add the room."));
+    if (err) return err.code === "23505" ? `#${slug} already exists.` : (cloudErrorText(err.message) ?? "Couldn't add the room.");
     setRooms((list) => applyChange(list, "insert", data as Room));
+    setAddingIn(null);
     router.refresh();
+    return null;
   };
 
   const onPin = async (id: string) => {
@@ -254,7 +258,7 @@ export function Sidebar() {
                           <MoreIcon className="h-3.5 w-3.5" />
                         </summary>
                         <div className="absolute right-0 z-10 mt-1 w-44 rounded-md border border-line bg-panel py-1 text-sm shadow-lg">
-                          <SectionMenuButton onClick={() => addRoomIn(section)}>Add a room here</SectionMenuButton>
+                          <SectionMenuButton onClick={() => setAddingIn(section)}>Add a room here</SectionMenuButton>
                           <SectionMenuButton onClick={() => renameSection(section)}>Rename</SectionMenuButton>
                           <Link href={`/c/${community.slug}/settings#rooms`} className="block px-3 py-1.5 hover:bg-raised">
                             Order and delete
@@ -306,6 +310,7 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
+      {addingIn && <AddRoomDialog section={addingIn} onCancel={() => setAddingIn(null)} onCreate={(room) => addRoomIn(addingIn, room)} />}
     </>
   );
 

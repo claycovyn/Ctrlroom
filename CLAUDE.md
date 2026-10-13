@@ -43,4 +43,6 @@ Check new dependencies' licenses for AGPL compatibility.
 ## Rules
 - Copy: plain, short, no AI buzzwords. Brand: black, white and silver; `signal` is the accent; `alert` only for
   errors and paused states. Product name "Ctrl Room", maker "OpenCtrl"; the subscription is "OpenCtrl Cloud".
+- Dialogs: `useConfirm()` / `usePrompt()` from `src/components/Dialogs.tsx` (custom forms: its `<ModalSheet>`); never
+  the browser's `confirm()`, `prompt()` or `alert()`.
 - Never claim a feature that isn't built. The only prices in copy are $0 and $12/month.

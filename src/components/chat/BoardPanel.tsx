@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useConfirm } from "@/components/Dialogs";
 import { sinceLabel } from "@/lib/format";
 import { atLeast, type BoardItem } from "@/lib/types";
 import { useCommunity } from "./CommunityContext";
@@ -35,6 +36,7 @@ export function BoardPanel({
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [body, setBody] = useState("");
+  const confirmDialog = useConfirm();
   const [filter, setFilter] = useState<BoardItem["kind"] | "all">("all");
   const shown = items.filter((i) => filter === "all" || i.kind === filter);
 
@@ -131,7 +133,17 @@ export function BoardPanel({
                 {(i.created_by === me.id || atLeast(role, "mod")) && (
                   <button
                     className="invisible rounded p-1 text-muted hover:text-alert group-hover:visible"
-                    onClick={() => confirm("Remove from the board?") && onDelete(i)}
+                    onClick={async () => {
+                      const ok = await confirmDialog({
+                        title: `Remove “${i.title}” from the board?`,
+                        body: i.message_id
+                          ? `It’s removed from the #${roomName} board for everyone. The message it came from stays.`
+                          : `It’s removed from the #${roomName} board for everyone.`,
+                        confirmLabel: "Remove",
+                        tone: "danger",
+                      });
+                      if (ok) onDelete(i);
+                    }}
                     aria-label="Remove from board"
                   >
                     <TrashIcon />

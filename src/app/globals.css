@@ -72,6 +72,64 @@ body {
   .card {
     @apply rounded-xl border border-line bg-panel;
   }
+  /* Destructive actions in dialogs only. text-bg keeps contrast on the alert red in both themes. */
+  .btn-danger {
+    @apply btn bg-alert text-bg hover:opacity-90;
+  }
+
+  /* In-app dialogs (src/components/Dialogs.tsx): a bottom sheet on phones, a centred card from 640px. */
+  .cr-sheet {
+    @apply fixed inset-x-0 bottom-0 top-auto m-0 w-full max-w-none overflow-hidden rounded-t-2xl border border-b-0 border-line bg-panel p-0 shadow-2xl;
+    max-height: calc(100dvh - 2rem);
+  }
+  .cr-sheet::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+  .cr-sheet-body {
+    @apply flex flex-col;
+    max-height: calc(100dvh - 2rem);
+  }
+  .cr-sheet-actions {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  @media (min-width: 640px) {
+    .cr-sheet {
+      @apply inset-0 m-auto h-fit w-[min(28rem,calc(100vw-2rem))] rounded-xl border-b;
+    }
+    .cr-sheet-actions {
+      padding-bottom: 0.75rem;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .cr-sheet[open] {
+      animation: cr-sheet-up 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .cr-sheet[open]::backdrop {
+      animation: cr-fade 180ms ease-out;
+    }
+    @media (min-width: 640px) {
+      .cr-sheet[open] {
+        animation: cr-pop 140ms ease-out;
+      }
+    }
+  }
+}
+
+@keyframes cr-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes cr-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes cr-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 .scroll-thin {
