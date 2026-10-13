@@ -2,15 +2,38 @@ import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@/lib/supabase/server";
-import type { Community, Profile, Role, Room, RoomPin, RoomSection } from "@/lib/types";
+import type { Community, Profile, RequestCard, Role, Room, RoomPin, RoomSection } from "@/lib/types";
 
-/** Everything the community layout and its pages share. Cached per request. */
+/**
+ * Everything the community layout and its pages share. Cached per request.
+ *
+ * A private community the viewer isn't in is hidden by row-level security. If it accepts join requests (0008),
+ * `request` holds the few fields the request page shows and `community` is built from them; role stays null,
+ * so every page below the layout renders nothing and the layout shows the request card.
+ */
 export const loadCommunity = cache(async (slug: string) => {
   const { supabase, user } = await currentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(`/c/${slug}`)}`);
 
   const { data: community } = await supabase.from("communities").select("*").eq("slug", slug).maybeSingle();
-  if (!community) notFound();
+  if (!community) {
+    const { data: cards } = await supabase.rpc("community_request_card", { p_slug: slug });
+    const card = ((cards ?? []) as RequestCard[])[0];
+    if (!card) notFound();
+    const { data: me } = await supabase.from("profiles").select("id, username, display_name, avatar_url, is_bot").eq("id", user.id).single();
+    return {
+      supabase,
+      user,
+      community: { ...card, is_public: false, owner_id: "", accepts_requests: true } as Community,
+      request: card,
+      role: null as Role | null,
+      me: me as Profile,
+      rooms: [] as Room[],
+      sections: [] as RoomSection[],
+      pins: [] as RoomPin[],
+      communities: [] as Community[],
+    };
+  }
 
   const [{ data: membership }, { data: me }, { data: rooms }, { data: mine }, { data: sections }, { data: pins }] = await Promise.all([
     supabase.from("community_members").select("role").eq("community_id", community.id).eq("user_id", user.id).maybeSingle(),
@@ -28,6 +51,7 @@ export const loadCommunity = cache(async (slug: string) => {
     supabase,
     user,
     community: community as Community,
+    request: null as RequestCard | null,
     role: (membership?.role ?? null) as Role | null,
     me: me as Profile,
     rooms: roomList,

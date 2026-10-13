@@ -7,7 +7,8 @@ import { cloudErrorText } from "@/lib/cloudErrors";
 import { CommunityImages } from "@/components/CommunityImages";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { atLeast, ROLE_RANK, type Profile, type Role } from "@/lib/types";
+import { atLeast, ROLE_RANK, type JoinRequest, type Profile, type Role } from "@/lib/types";
+import { sinceLabel } from "@/lib/format";
 import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
 import { MenuIcon, TrashIcon } from "./icons";
@@ -85,16 +86,48 @@ export function SettingsView({
     }
   }, [supabase, community.id, isMod]);
 
+  // ── join requests (0008): owners and admins
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const loadRequests = useCallback(async () => {
+    if (!isAdmin) return;
+    const { data } = await supabase.rpc("join_requests_for", { p_community: community.id });
+    setRequests((data ?? []) as JoinRequest[]);
+  }, [isAdmin, supabase, community.id]);
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const decide = async (r: JoinRequest, approve: boolean) => {
+    setDeciding(r.id);
+    const res = await fetch(`/api/c/${community.slug}/join-requests`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: r.id, approve }),
+    }).catch(() => null);
+    setDeciding(null);
+    const body = (await res?.json().catch(() => null)) as { error?: string } | null;
+    if (!res?.ok) return say(body?.error ?? "Couldn't answer the request.", true);
+    say(approve ? `${r.display_name} is in.` : "Request declined.");
+    loadRequests();
+    if (approve) loadMembers();
+  };
+
   useEffect(() => {
     loadInvites();
     loadMembers();
-  }, [loadInvites, loadMembers]);
+    loadRequests();
+  }, [loadInvites, loadMembers, loadRequests]);
+
+  // The sidebar hears join_request events on your user topic and passes them on.
+  useEffect(() => {
+    const onChange = () => loadRequests();
+    window.addEventListener("ctrlroom:join-requests", onChange);
+    return () => window.removeEventListener("ctrlroom:join-requests", onChange);
+  }, [loadRequests]);
 
   // ── community details
   const [name, setName] = useState(community.name);
   const [description, setDescription] = useState(community.description);
   const [icon, setIcon] = useState(community.icon);
   const [isPublic, setIsPublic] = useState(community.is_public);
+  const [acceptsRequests, setAcceptsRequests] = useState(Boolean(community.accepts_requests));
 
   const myRank = role ? ROLE_RANK[role] : 0;
   const shownMembers = members.filter(
@@ -205,6 +238,41 @@ export function SettingsView({
                       </li>
                     );
                   })}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {isAdmin && (community.accepts_requests || requests.length > 0) && (
+            <section id="requests" className="card p-5">
+              <h2 className="font-medium">Join requests{requests.length > 0 ? ` · ${requests.length}` : ""}</h2>
+              <p className="mb-4 text-sm text-muted">
+                People who asked to join from /c/{community.slug}. Approve to add them as members.
+              </p>
+              {requests.length === 0 ? (
+                <p className="text-sm text-muted">No requests right now.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {requests.map((r) => (
+                    <li key={r.id} className="flex flex-wrap items-start gap-3 py-3">
+                      <Avatar profile={{ id: r.user_id, username: r.username, display_name: r.display_name, avatar_url: r.avatar_url }} size={30} />
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="truncate text-sm font-medium">{r.display_name}</div>
+                        <div className="truncate text-xs text-muted">
+                          @{r.username} · {sinceLabel(r.created_at)}
+                        </div>
+                        {r.message && <p className="mt-1.5 whitespace-pre-wrap break-words text-sm">{r.message}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="btn-primary py-1 text-xs" disabled={deciding === r.id} onClick={() => decide(r, true)}>
+                          Approve
+                        </button>
+                        <button className="btn-outline py-1 text-xs" disabled={deciding === r.id} onClick={() => decide(r, false)}>
+                          Decline
+                        </button>
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               )}
             </section>
@@ -325,7 +393,13 @@ export function SettingsView({
                   e.preventDefault();
                   const { error: err } = await supabase
                     .from("communities")
-                    .update({ name: name.trim(), description: description.trim(), icon: icon.trim(), is_public: isPublic })
+                    .update({
+                      name: name.trim(),
+                      description: description.trim(),
+                      icon: icon.trim(),
+                      is_public: isPublic,
+                      accepts_requests: acceptsRequests,
+                    })
                     .eq("id", community.id);
                   if (err) return say(cloudErrorText(err.message) ?? "Couldn't save.", true);
                   say("Saved.");
@@ -341,6 +415,13 @@ export function SettingsView({
                   <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
                   Public: anyone signed in with the link /c/{community.slug} can join without an invite
                 </label>
+                {!isPublic && (
+                  <label className="flex items-center gap-2 text-sm text-muted">
+                    <input type="checkbox" checked={acceptsRequests} onChange={(e) => setAcceptsRequests(e.target.checked)} />
+                    Let people ask to join: anyone signed in with the link /c/{community.slug} sees its name, image and description, and can
+                    send a request for an owner or admin to approve
+                  </label>
+                )}
                 <button className="btn-primary">Save</button>
               </form>
             </section>

@@ -22,6 +22,32 @@ export interface Community {
   owner_id: string;
   taken_down_at?: string | null;
   taken_down_reason?: string | null;
+  /** "Let people ask to join" (0008): signed-in non-members can request to join a private community. */
+  accepts_requests?: boolean;
+}
+
+/** What a signed-in non-member sees of a community that accepts join requests (community_request_card, 0008). */
+export interface RequestCard {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  icon_url: string | null;
+  cover_url: string | null;
+  /** The viewer already has a pending request. */
+  pending: boolean;
+}
+
+/** A pending join request as owners and admins see it (join_requests_for, 0008). */
+export interface JoinRequest {
+  id: string;
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+  message: string;
+  created_at: string;
 }
 
 export interface Room {

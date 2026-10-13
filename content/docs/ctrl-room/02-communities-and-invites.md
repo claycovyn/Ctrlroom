@@ -1,6 +1,6 @@
 ---
 title: Communities and invites
-description: Invite links, public communities and leaving a community.
+description: Invite links, public communities, requests to join and leaving a community.
 ---
 
 # Communities and invites
@@ -17,6 +17,22 @@ Copy the link and share it. Revoke a link with the trash button. A link stops wo
 ## Public communities
 
 Admins can make a community **public** in **Settings → Community**. Anyone signed in can then open `/c/your-link` and join without an invite. Private communities (the default) are invisible to anyone who isn't a member: their rooms, messages and members can't be seen or searched from outside.
+
+## Requests to join
+
+A private community can let people **ask to join**. Admins and the owner turn on **Let people ask to join** in **Settings → Community**. Then anyone signed in who opens `/c/your-link` sees the community's name, image, cover and description (nothing else: no rooms, messages or members) and can choose **Request to join**, with an optional message of up to 500 characters. Signed out, they're asked to sign in first and come back to the same page.
+
+Admins and the owner see new requests in **Settings → Join requests**, with a count on the settings button next to the community name. Each request shows the person's name, photo, message and when they asked. **Approve** adds them as a member; **Decline** doesn't. The person sees the community in their list the next time they open Ctrl Room, and if this Ctrl Room can send email, they also get a short "You're in" email.
+
+A few rules:
+
+- One pending request per person per community, and at most 5 requests an hour per person.
+- Banned people can't ask, and banning someone declines their pending request.
+- Members can't ask (they're already in), and nobody can ask to join a community that was taken down.
+- You can cancel your own request from the same page. Joining with an invite instead closes the request.
+- Mods keep their invite and moderation tools but don't see or answer requests.
+
+Turn the setting off to stop new requests. Requests already waiting stay in the list until someone answers them.
 
 ## Change the name or icon
 

@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { loadCommunity } from "@/lib/community";
 import { atLeast } from "@/lib/types";
 import { JoinPublic } from "./JoinPublic";
+import { RequestToJoin } from "./RequestToJoin";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -15,10 +16,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CommunityLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { community, role, me, rooms, sections, pins, communities } = await loadCommunity(slug);
+  const { community, request, role, me, rooms, sections, pins, communities } = await loadCommunity(slug);
 
   if (!role) {
-    // Only public communities are visible to non-members (RLS hides the rest → 404 above).
+    // Non-members see public communities (join) and private ones that accept requests (ask to join);
+    // RLS and community_request_card hide the rest → 404 in loadCommunity.
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-sm">
@@ -32,15 +34,18 @@ export default async function CommunityLayout({ children, params }: { children: 
               <h1 className="text-lg font-semibold">{community.name}</h1>
               {community.description && <p className="mt-1 text-sm text-muted">{community.description}</p>}
               <div className="mt-5">
-                <JoinPublic slug={community.slug} />
+                {request ? <RequestToJoin slug={community.slug} pending={request.pending} /> : <JoinPublic slug={community.slug} />}
               </div>
             </div>
           </div>
-          <p className="mt-3 text-center text-xs text-muted">
-            <Link href={`/report/${community.slug}`} className="hover:text-fg">
-              Report this community
-            </Link>
-          </p>
+          {/* Reports cover public communities and your own (0003 report()); a request card is neither. */}
+          {!request && (
+            <p className="mt-3 text-center text-xs text-muted">
+              <Link href={`/report/${community.slug}`} className="hover:text-fg">
+                Report this community
+              </Link>
+            </p>
+          )}
         </div>
       </main>
     );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { LogoMark } from "@/components/Logo";
 import { cloudErrorText } from "@/lib/cloudErrors";
@@ -24,6 +24,20 @@ export function Sidebar() {
   const [alerts, setAlerts] = useState<NotificationPermission | "unsupported">("default");
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Pending join requests (0008), owners and admins only. Refreshed on the join_request event below.
+  const [requests, setRequests] = useState(0);
+  const loadRequests = useCallback(async () => {
+    if (!isAdmin) return setRequests(0);
+    const { count } = await supabaseBrowser()
+      .from("join_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", community.id)
+      .eq("status", "pending");
+    setRequests(count ?? 0);
+  }, [isAdmin, community.id]);
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
 
   useEffect(() => setCollapsed(readCollapsed(community.id)), [community.id]);
   const toggleCollapsed = (id: string) => {
@@ -81,6 +95,12 @@ export function Sidebar() {
   });
 
   useBroadcast(`user:${me.id}`, {
+    // Sent to owners and admins when a request in one of their communities is made, answered or withdrawn.
+    join_request: (p: { community_id: string }) => {
+      if (p.community_id !== community.id) return;
+      loadRequests();
+      window.dispatchEvent(new CustomEvent("ctrlroom:join-requests"));
+    },
     mention: (p: { kind: string; room_id: string; community_id: string; author: string; preview: string }) => {
       if (p.community_id === community.id && p.room_id !== currentRoomId.current) {
         setUnreads((u) => {
@@ -182,8 +202,17 @@ export function Sidebar() {
           <div className="flex h-14 items-center justify-between border-b border-line px-4">
             <span className="truncate font-semibold">{community.name}</span>
             <div className="flex items-center">
-              <Link href={`/c/${community.slug}/settings`} className="rounded p-1.5 text-muted hover:bg-raised hover:text-fg" title="Community settings">
+              <Link
+                href={requests > 0 ? `/c/${community.slug}/settings#requests` : `/c/${community.slug}/settings`}
+                className="relative rounded p-1.5 text-muted hover:bg-raised hover:text-fg"
+                title={requests > 0 ? `Community settings · ${requests} join ${requests === 1 ? "request" : "requests"}` : "Community settings"}
+              >
                 <SettingsIcon />
+                {requests > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-signal px-1 text-center text-[10px] font-semibold leading-4 text-signal-fg">
+                    {requests > 99 ? "99+" : requests}
+                  </span>
+                )}
               </Link>
               <button className="rounded p-1.5 text-muted hover:bg-raised md:hidden" onClick={() => setNavOpen(false)} aria-label="Close menu">
                 <CloseIcon />
