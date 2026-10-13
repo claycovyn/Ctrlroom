@@ -7,8 +7,8 @@ export const COMMUNITY_MEDIA_MAX_BYTES = 2 * 1024 * 1024;
 export type CommunityMediaKind = "icon" | "cover";
 
 export const COMMUNITY_MEDIA_HINT: Record<CommunityMediaKind, string> = {
-  icon: "PNG, JPEG or WebP, up to 2 MB. Square works best.",
-  cover: "PNG, JPEG or WebP, up to 2 MB. 1600 × 400 (4:1) works best.",
+  icon: "PNG, JPEG or WebP. We'll help you crop it.",
+  cover: "PNG, JPEG or WebP. We'll help you crop it.",
 };
 
 /** The column each kind is saved in. */

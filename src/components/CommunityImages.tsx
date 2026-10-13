@@ -7,6 +7,7 @@ import {
   COMMUNITY_MEDIA_BUCKET,
   COMMUNITY_MEDIA_COLUMN,
   COMMUNITY_MEDIA_HINT,
+  COMMUNITY_MEDIA_MAX_BYTES,
   communityMediaObjectPath,
   communityMediaPath,
   communityMediaProblem,
@@ -20,6 +21,7 @@ function useCommunitySlot(community: Community, kind: CommunityMediaKind) {
     bucket: COMMUNITY_MEDIA_BUCKET,
     initial: (kind === "icon" ? community.icon_url : community.cover_url) ?? null,
     problem: communityMediaProblem,
+    crop: { kind, maxBytes: COMMUNITY_MEDIA_MAX_BYTES, title: kind === "icon" ? "Crop the community image" : "Crop the cover photo" },
     pathFor: (file) => communityMediaPath(community.id, kind, file.type),
     objectPathOf: (url) => communityMediaObjectPath(url, community.id, kind),
     save: async (supabase, url) => {
@@ -56,7 +58,7 @@ export function CommunityImages({ community }: { community: Community }) {
       </div>
       <div>
         <h3 className="mb-1 text-sm font-medium">Cover photo</h3>
-        <p className="mb-3 text-sm text-muted">A banner at the top of the community and its join page. Other shapes are cropped to fit.</p>
+        <p className="mb-3 text-sm text-muted">A banner at the top of the community and its join page. You choose what shows in the 4:1 frame.</p>
         {cover.url ? (
           <CommunityCover url={cover.url} className="mb-3 rounded-lg border border-line" />
         ) : (

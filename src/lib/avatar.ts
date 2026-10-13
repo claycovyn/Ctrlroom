@@ -5,7 +5,7 @@ export const AVATAR_BUCKET = "avatars";
 export const AVATAR_MAX_BYTES = 1024 * 1024;
 export const AVATAR_TYPES = IMAGE_TYPES;
 export const AVATAR_ACCEPT = IMAGE_ACCEPT;
-export const AVATAR_HINT = "PNG, JPEG or WebP, up to 1 MB. Square works best.";
+export const AVATAR_HINT = "PNG, JPEG or WebP. We'll help you crop it.";
 
 /** Why a file can't be used, or null when it's fine. */
 export function avatarFileProblem(file: { type: string; size: number }): string | null {

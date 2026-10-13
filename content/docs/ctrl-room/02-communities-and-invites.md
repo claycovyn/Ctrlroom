@@ -40,7 +40,7 @@ Admins and the owner can change the name, icon and description in **Settings →
 
 ## Community image and cover photo
 
-Admins and the owner can upload a **community image** (square) and a **cover photo** (a 4:1 banner; 1600 × 400 works best) in **Settings → Images**. Both are PNG, JPEG or WebP, up to 2 MB. The image replaces the icon in the community list; the cover shows at the top of the room list and on the public join page. Replace or remove either at any time. Images are public files: anyone with the link can open them, including people who aren't members.
+Admins and the owner can upload a **community image** (square) and a **cover photo** (a 4:1 banner; 1600 × 400 works best) in **Settings → Images**. Pick any photo: you crop it to the frame (drag to move, pinch, scroll or use the slider to zoom), and Ctrl Room shrinks it in your browser to fit (512 × 512 for the image, 1600 × 400 for the cover). The image replaces the icon in the community list; the cover shows at the top of the room list and on the public join page. Replace or remove either at any time. Images are public files: anyone with the link can open them, including people who aren't members.
 
 ## Leave a community
 

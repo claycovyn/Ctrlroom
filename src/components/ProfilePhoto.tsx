@@ -2,7 +2,7 @@
 
 import { Avatar } from "@/components/chat/Avatar";
 import { ImageButtons, useImageSlot } from "@/components/ImageUpload";
-import { AVATAR_BUCKET, AVATAR_HINT, avatarFileProblem, avatarObjectPath, avatarPath } from "@/lib/avatar";
+import { AVATAR_BUCKET, AVATAR_HINT, AVATAR_MAX_BYTES, avatarFileProblem, avatarObjectPath, avatarPath } from "@/lib/avatar";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import type { Profile } from "@/lib/types";
 
@@ -12,6 +12,7 @@ export function ProfilePhoto({ profile, onChange }: { profile: Profile; onChange
     bucket: AVATAR_BUCKET,
     initial: profile.avatar_url,
     problem: avatarFileProblem,
+    crop: { kind: "photo", maxBytes: AVATAR_MAX_BYTES, title: "Crop your photo", round: true },
     pathFor: (file) => avatarPath(profile.id, file.type),
     objectPathOf: (url) => avatarObjectPath(url, profile.id),
     save: async (supabase, url) => {

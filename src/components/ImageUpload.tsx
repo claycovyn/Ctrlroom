@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { IMAGE_ACCEPT } from "@/lib/media";
+import { ImageCropper } from "@/components/ImageCropper";
+import { pickProblem, type CropKind } from "@/lib/imageResize";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Supabase = ReturnType<typeof supabaseBrowser>;
@@ -11,8 +12,10 @@ export interface ImageSlotOptions {
   bucket: string;
   /** The URL saved now (null when empty). */
   initial: string | null;
-  /** Why a file can't be used, or null. */
+  /** Why a file can't be uploaded, or null. Checked on the cropped, shrunk file (the bucket checks again). */
   problem: (file: File) => string | null;
+  /** How the picked image is cropped and shrunk before upload. */
+  crop: { kind: CropKind; maxBytes: number; title: string; round?: boolean };
   /** Where a new file goes in the bucket. */
   pathFor: (file: File) => string;
   /** The bucket path of a saved URL we own and may delete, or null. */
@@ -23,13 +26,18 @@ export interface ImageSlotOptions {
   onChange?: (url: string | null) => void;
 }
 
-/** Upload → save URL → delete the old file; remove → clear URL → delete the file. */
+/**
+ * Pick any image → crop it (ImageCropper) → shrink it to fit → upload → save URL → delete the old file;
+ * remove → clear URL → delete the file.
+ */
 export function useImageSlot(o: ImageSlotOptions) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState(o.initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The picked file while the cropper is open. */
+  const [picked, setPicked] = useState<File | null>(null);
 
   const done = (next: string | null) => {
     setUrl(next);
@@ -37,12 +45,29 @@ export function useImageSlot(o: ImageSlotOptions) {
     router.refresh();
   };
 
+  const clearInput = () => {
+    if (input.current) input.current.value = "";
+  };
+
+  /** A file was picked: open the cropper, or say why it can't be used. */
+  function pick(file: File) {
+    clearInput();
+    const problem = pickProblem(file);
+    if (problem) return setError(problem);
+    setError(null);
+    setPicked(file);
+  }
+
+  function cancelCrop(err?: string) {
+    setPicked(null);
+    if (err) setError(err);
+  }
+
+  /** The cropped, shrunk file from the cropper. */
   async function upload(file: File) {
+    setPicked(null);
     const problem = o.problem(file);
-    if (problem) {
-      if (input.current) input.current.value = "";
-      return setError(problem);
-    }
+    if (problem) return setError(problem);
     setError(null);
     setBusy(true);
     const supabase = supabaseBrowser();
@@ -62,7 +87,7 @@ export function useImageSlot(o: ImageSlotOptions) {
       done(next);
     } finally {
       setBusy(false);
-      if (input.current) input.current.value = "";
+      clearInput();
     }
   }
 
@@ -81,7 +106,7 @@ export function useImageSlot(o: ImageSlotOptions) {
     }
   }
 
-  return { url, busy, error, input, upload, remove };
+  return { url, busy, error, input, picked, crop: o.crop, pick, cancelCrop, upload, remove };
 }
 
 export type ImageSlot = ReturnType<typeof useImageSlot>;
@@ -107,14 +132,14 @@ export function ImageButtons({
         <input
           ref={slot.input}
           type="file"
-          accept={IMAGE_ACCEPT}
+          accept="image/*"
           className="sr-only"
           id={id}
           aria-label={label}
           disabled={slot.busy || !canAdd}
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) slot.upload(file);
+            if (file) slot.pick(file);
           }}
         />
         {canAdd && (
@@ -133,6 +158,17 @@ export function ImageButtons({
         <p role="alert" className="mt-1 text-xs text-alert">
           {slot.error}
         </p>
+      )}
+      {slot.picked && (
+        <ImageCropper
+          file={slot.picked}
+          kind={slot.crop.kind}
+          maxBytes={slot.crop.maxBytes}
+          title={slot.crop.title}
+          round={slot.crop.round}
+          onCancel={slot.cancelCrop}
+          onDone={slot.upload}
+        />
       )}
     </div>
   );
