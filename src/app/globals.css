@@ -462,3 +462,65 @@ html.cr-kb .cr-sheet {
     transform: translateY(-1rem);
   }
 }
+
+/* ───────────────────────── phones: rooms under the chat (ChatStage) ───────────────────────── */
+/* On phones the sidebar is a full-screen navigation panel (rail + rooms) and the chat sits on top of it. Swiping the
+   chat right (or the menu button) slides it away, leaving a strip you tap or swipe to come back. */
+.cr-nav {
+  display: contents;
+}
+@media (max-width: 767px) {
+  .cr-stage-row {
+    position: relative;
+    --cr-peek: 52px;
+    --cr-peek-px: 52px;
+  }
+  .cr-nav {
+    display: block;
+    position: absolute;
+    inset: 0 var(--cr-peek) 0 0;
+    z-index: 0;
+  }
+  .cr-nav > aside.cr-drawer {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    transform: none;
+    box-shadow: none;
+    border-right: 0;
+    padding-top: 0;
+    transition: none;
+  }
+  .cr-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: rgb(var(--bg));
+    transition: transform 380ms var(--cr-spring), box-shadow 380ms var(--cr-spring);
+    touch-action: pan-y;
+  }
+  .cr-stage .overflow-y-auto,
+  .cr-stage .overflow-auto {
+    touch-action: pan-y;
+  }
+  .cr-stage-row[data-nav="open"] .cr-stage {
+    transform: translateX(calc(100% - var(--cr-peek)));
+    box-shadow: -1px 0 0 rgb(var(--line)), -16px 0 40px rgb(0 0 0 / 0.35);
+    border-radius: 12px 0 0 12px;
+    overflow: hidden;
+  }
+  .cr-stage[data-dragging] {
+    transition: none;
+    box-shadow: -1px 0 0 rgb(var(--line)), -16px 0 40px rgb(0 0 0 / 0.35);
+  }
+  .cr-peek {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    background: rgb(var(--bg) / 0.15);
+  }
+  /* The old overlay drawer's backdrop isn't used on phones any more. */
+  .cr-scrim {
+    display: none;
+  }
+}

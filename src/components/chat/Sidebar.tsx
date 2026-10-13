@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { usePrompt } from "@/components/Dialogs";
 import { LogoMark } from "@/components/Logo";
@@ -14,7 +14,6 @@ import { disablePush, isPushActive } from "@/lib/pushClient";
 import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
-import { useEdgeSwipeOpen, useSwipeDismiss } from "@/components/useSwipeDismiss";
 import type { NewRoom } from "./AddRoomDialog";
 import { NotificationsButton } from "./NotificationsButton";
 import { navigateWithTransition, prefetchRoute } from "./roomNav";
@@ -22,7 +21,8 @@ import { navigateWithTransition, prefetchRoute } from "./roomNav";
 import { useOptionalDm } from "@/components/dm/DmContext";
 import { badgeLabel } from "@/lib/dms";
 import { useCommunity } from "./CommunityContext";
-import { ChatsIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
+import { BellIcon, ChatsIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SearchIcon, SettingsIcon, UserPlusIcon } from "./icons";
+import { OPEN_PANEL } from "./roomNav";
 import { HeadsetIcon } from "./icons";
 import { Avatar } from "./Avatar";
 import { usePresence } from "./PresenceContext";
@@ -91,12 +91,6 @@ export function Sidebar() {
   }, [community.id, currentRoomId, setUnreads]);
 
   useEffect(() => setNavOpen(false), [pathname, setNavOpen]);
-
-  // Phones: drag the drawer back to close it, or swipe in from the left edge to open it.
-  const drawerRef = useRef<HTMLElement>(null);
-  const scrimRef = useRef<HTMLDivElement>(null);
-  useSwipeDismiss({ target: drawerRef, scrim: scrimRef, direction: "left", enabled: navOpen, onDismiss: () => setNavOpen(false) });
-  useEdgeSwipeOpen(!navOpen, () => setNavOpen(true));
 
   const notify = (title: string, body: string, url: string) => {
     // With push on for this device the system notification comes from the service worker instead.
@@ -208,14 +202,8 @@ export function Sidebar() {
 
   return (
     <>
-      <div
-        ref={scrimRef}
-        aria-hidden="true"
-        className={`cr-scrim fixed inset-0 z-30 bg-black/50 md:hidden ${navOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
-        onClick={() => setNavOpen(false)}
-      />
+      {/* Tablets in portrait without the md layout never get here; on phones ChatStage puts this under the chat. */}
       <aside
-        ref={drawerRef}
         className={`cr-drawer cr-chrome fixed inset-y-0 left-0 z-40 flex w-[min(19rem,88vw)] shrink-0 border-r border-line bg-panel md:static md:w-[19rem] md:translate-x-0 ${
           navOpen ? "translate-x-0 shadow-2xl md:shadow-none" : "-translate-x-full"
         }`}
@@ -268,7 +256,9 @@ export function Sidebar() {
         <div className="flex min-w-0 flex-1 flex-col">
           <CommunityCover url={community.cover_url} className="border-b border-line" />
           <div className="flex h-14 items-center justify-between border-b border-line px-4">
-            <span className="truncate font-semibold">{community.name}</span>
+            <Link href={`/c/${community.slug}/settings`} className="min-w-0 truncate font-semibold hover:underline" title="Community info and settings">
+              {community.name}
+            </Link>
             <div className="flex items-center">
               <Link
                 href={requests > 0 ? `/c/${community.slug}/settings#requests` : `/c/${community.slug}/settings`}
@@ -282,10 +272,34 @@ export function Sidebar() {
                   </span>
                 )}
               </Link>
-              <button className="rounded p-1.5 text-muted hover:bg-raised md:hidden" onClick={() => setNavOpen(false)} aria-label="Close menu">
+              <button className="rounded p-1.5 text-muted hover:bg-raised md:hidden" onClick={() => setNavOpen(false)} aria-label="Back to the chat">
                 <CloseIcon />
               </button>
             </div>
+          </div>
+
+          {/* Phones: search and invite at the top of the rooms, like a native chat app's navigation. */}
+          <div className="flex items-center gap-2 border-b border-line px-3 py-2.5 md:hidden">
+            <button
+              type="button"
+              className="flex min-w-0 flex-1 items-center gap-2 rounded-lg bg-raised px-3 py-2 text-left text-sm text-muted"
+              onClick={() => {
+                setNavOpen(false);
+                window.dispatchEvent(new CustomEvent(OPEN_PANEL, { detail: "search" }));
+              }}
+            >
+              <SearchIcon className="h-4 w-4 shrink-0" />
+              <span className="truncate">Search {community.name}</span>
+            </button>
+            {atLeast(role, "mod") && (
+              <Link
+                href={`/c/${community.slug}/settings#invites`}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-raised px-3 py-2 text-sm font-medium"
+                title="Invite people"
+              >
+                <UserPlusIcon className="h-4 w-4" /> Invite
+              </Link>
+            )}
           </div>
 
           <div className="scroll-thin flex-1 overflow-y-auto px-2 py-3">
@@ -350,10 +364,22 @@ export function Sidebar() {
 
           <div className="flex items-center gap-2 border-t border-line px-3 py-3">
             <StatusMenu me={me} settingsHref={`/c/${community.slug}/settings#profile`} />
-            <div className="min-w-0 flex-1 leading-tight">
+            {/* The name and status open the same status menu as the avatar. */}
+            <div
+              className="min-w-0 flex-1 cursor-pointer leading-tight"
+              onClick={(e) => e.currentTarget.parentElement?.querySelector<HTMLButtonElement>("[aria-haspopup=menu]")?.click()}
+            >
               <div className="truncate text-sm font-medium">{me.display_name}</div>
               <div className="truncate text-xs text-muted">{myStatus ?? `@${me.username}`}</div>
             </div>
+            <Link
+              href={`/c/${community.slug}/settings#notifications`}
+              className="rounded p-1.5 text-muted hover:bg-raised hover:text-fg"
+              title="Notifications and settings"
+              aria-label="Notifications and settings"
+            >
+              <BellIcon className="h-4 w-4" />
+            </Link>
             <Link href="/docs" className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg" title="Help and docs">
               Help
             </Link>
@@ -410,8 +436,10 @@ export function Sidebar() {
               >
                 <RoomIcon room={r} className="h-4 w-4 shrink-0 opacity-70" />
                 <span className="truncate">{r.name}</span>
-                {!active && u && u.mentions > 0 && (
+                {!active && u && u.mentions > 0 ? (
                   <span className="ml-auto rounded-full bg-signal px-1.5 text-[11px] font-bold text-signal-fg">{u.mentions}</span>
+                ) : (
+                  bold && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-fg" aria-label="New messages" />
                 )}
               </Link>
               <button

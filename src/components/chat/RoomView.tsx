@@ -23,7 +23,7 @@ import { RoomIcon } from "./RoomIcon";
 import { LinkedText } from "./LinkedText";
 import { Panel } from "./Panel";
 import { MessageItem, type MessageActions } from "./MessageItem";
-import { ROOM_SHOWN } from "./roomNav";
+import { OPEN_PANEL, rememberRoom, ROOM_SHOWN } from "./roomNav";
 
 const CallPanel = dynamic(() => import("./CallPanel"), { ssr: false });
 // Panels open on a tap; they load in the background once the room is on screen (preloadPanels), not with the page.
@@ -268,6 +268,16 @@ export function RoomView({
     window.dispatchEvent(new CustomEvent(ROOM_SHOWN));
   }, []);
   useEffect(preloadPanels, []);
+  useEffect(() => rememberRoom(community.slug, room.slug), [community.slug, room.slug]);
+  // The phone navigation's search field opens this room's search.
+  useEffect(() => {
+    const open = (e: Event) => {
+      const p = (e as CustomEvent<string>).detail;
+      if (p === "search" || p === "members" || p === "board" || p === "info") setPanel(p);
+    };
+    window.addEventListener(OPEN_PANEL, open);
+    return () => window.removeEventListener(OPEN_PANEL, open);
+  }, []);
 
   // When the list gets shorter (the keyboard opens, the composer grows) keep the newest message in view.
   useEffect(() => {

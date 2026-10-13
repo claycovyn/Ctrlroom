@@ -15,6 +15,7 @@ import { isConfigured } from "@/lib/env";
 import { currentUser } from "@/lib/supabase/server";
 import type { Community, Profile, Role } from "@/lib/types";
 import { CreateCommunityForm, JoinCommunityForm } from "./HomeForms";
+import { LaunchRedirect } from "./LaunchRedirect";
 
 export const metadata: Metadata = { title: "Your communities" };
 
@@ -39,6 +40,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
 
   return (
     <main className="min-h-screen">
+      <LaunchRedirect />
       <header className="mx-auto flex max-w-4xl items-center justify-between px-4 py-5 sm:px-6">
         <Link href="/">
           <Logo />

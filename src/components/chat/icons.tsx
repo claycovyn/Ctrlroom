@@ -58,3 +58,4 @@ export const RetryIcon = svg(<><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="
 // iOS Share (square with an arrow up) and Add to Home Screen (square with a plus): for the install steps.
 export const ShareIcon = svg(<><path d="M12 3v12M8 7l4-4 4 4" /><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1" /></>);
 export const AddSquareIcon = svg(<><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M12 8v8M8 12h8" /></>);
+export const UserPlusIcon = svg(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></>);

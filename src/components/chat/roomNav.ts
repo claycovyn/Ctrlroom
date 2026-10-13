@@ -50,3 +50,33 @@ export function navigateWithTransition(e: React.MouseEvent<HTMLAnchorElement>, r
   );
   t.finished.finally(() => root.classList.remove("cr-vt"));
 }
+
+/** Asks the room on screen to open one of its panels (the phone navigation's search field sends "search"). */
+export const OPEN_PANEL = "ctrlroom:open-panel";
+
+/** Remembers the last room per community, so a phone opens there (the community index and the app's launch). */
+export function rememberRoom(communitySlug: string, roomSlug: string): void {
+  try {
+    localStorage.setItem(`ctrlroom:last-room:${communitySlug}`, roomSlug);
+    localStorage.setItem("ctrlroom:last-place", `/c/${communitySlug}/${roomSlug}`);
+  } catch {
+    // storage blocked
+  }
+}
+
+export function lastRoom(communitySlug: string): string | null {
+  try {
+    return localStorage.getItem(`ctrlroom:last-room:${communitySlug}`);
+  } catch {
+    return null;
+  }
+}
+
+export function lastPlace(): string | null {
+  try {
+    const v = localStorage.getItem("ctrlroom:last-place");
+    return v && /^\/c\/[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(v) ? v : null;
+  } catch {
+    return null;
+  }
+}

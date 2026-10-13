@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CommunityProvider } from "@/components/chat/CommunityContext";
 import { DmProvider } from "@/components/dm/DmContext";
 import { PresenceProvider } from "@/components/chat/PresenceContext";
+import { ChatStage } from "@/components/chat/ChatStage";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { Logo } from "@/components/Logo";
@@ -75,10 +76,7 @@ export default async function CommunityLayout({ children, params }: { children: 
               calls and joins are off. History stays readable{atLeast(role, "admin") ? ", and you can export it from Settings" : ""}.
             </p>
           )}
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            <Sidebar />
-            <main className="flex min-w-0 flex-1">{children}</main>
-          </div>
+          <ChatStage sidebar={<Sidebar />}>{children}</ChatStage>
           <PushPrompt />
         </div>
         </DmProvider>
