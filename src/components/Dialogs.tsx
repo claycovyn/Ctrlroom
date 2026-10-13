@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSwipeDismiss } from "@/components/useSwipeDismiss";
 import { createDialogStore, type ConfirmOptions, type DialogRequest, type DialogStore, type PromptOptions } from "@/lib/dialogs";
 
 /**
@@ -68,6 +69,8 @@ export function ModalSheet({
   const ref = useRef<HTMLDialogElement>(null);
   const cancel = useRef(onCancel);
   cancel.current = onCancel;
+  // A bottom sheet on phones: pull it down to dismiss, like iOS.
+  useSwipeDismiss({ target: ref, direction: "down", enabled: true, onDismiss: () => cancel.current(), exitFirst: true, maxWidth: 639 });
 
   useLayoutEffect(() => {
     const d = ref.current;
@@ -121,6 +124,7 @@ export function ModalSheet({
       onKeyDown={onKeyDown}
       className={`cr-sheet text-fg ${className}`}
     >
+      <div className="cr-sheet-grip" data-swipe-handle aria-hidden="true" />
       {children}
     </dialog>
   );

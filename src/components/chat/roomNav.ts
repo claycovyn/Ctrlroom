@@ -1,0 +1,52 @@
+"use client";
+
+import type { useRouter } from "next/navigation";
+
+type Router = ReturnType<typeof useRouter>;
+
+const prefetched = new Set<string>();
+
+/**
+ * Loads a room's page data before the tap lands (on hover, or the touchstart that precedes a tap), so switching rooms
+ * doesn't wait on the server. Once per page view per room.
+ */
+export function prefetchRoute(router: Router, href: string): void {
+  if (prefetched.has(href)) return;
+  prefetched.add(href);
+  // "full" = the page's own data too, not only its loading shell (PrefetchKind.FULL; the enum isn't exported).
+  router.prefetch(href, { kind: "full" } as unknown as Parameters<Router["prefetch"]>[1]);
+}
+
+/** RoomView fires this when a room is on screen (the end of a room-switch transition). */
+export const ROOM_SHOWN = "ctrlroom:room-shown";
+
+/**
+ * Room switching with the View Transitions API where there is one: the old room crossfades into the new one. Waits at
+ * most 300 ms for the new room (a prefetched room is there at once); otherwise RoomView's CSS fade (.cr-room-in) runs
+ * when it arrives. Plain clicks only; new-tab clicks and reduced motion are left alone.
+ */
+export function navigateWithTransition(e: React.MouseEvent<HTMLAnchorElement>, router: Router, href: string): void {
+  const doc = document as Document & { startViewTransition?: (cb: () => Promise<void>) => { finished: Promise<void> } };
+  if (!doc.startViewTransition || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (location.pathname === href) return;
+  e.preventDefault();
+  const root = document.documentElement;
+  root.classList.add("cr-vt");
+  const t = doc.startViewTransition(
+    () =>
+      new Promise<void>((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          window.removeEventListener(ROOM_SHOWN, finish);
+          resolve();
+        };
+        window.addEventListener(ROOM_SHOWN, finish);
+        setTimeout(finish, 300);
+        router.push(href);
+      }),
+  );
+  t.finished.finally(() => root.classList.remove("cr-vt"));
+}

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { applyIncoming, badgeCount, dmAlert, markRead, type DmConversation, type DmEvent, type DmMessage, type DmReaction } from "@/lib/dms";
 import { readManual } from "@/lib/presence";
+import { isPushActive } from "@/lib/pushClient";
 import { useBroadcast } from "@/lib/realtime";
 import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -118,7 +119,8 @@ export function DmProvider({ me, base, listen = false, children }: { me: Profile
       dnd: dndRef.current,
     });
     if (sound) play("dm", { roomNotify: e.muted ? "none" : "mentions" });
-    if (alert && typeof Notification !== "undefined" && Notification.permission === "granted") {
+    // With push on for this device the service worker shows it (0014 dm_messages_push); don't show it twice.
+    if (alert && !isPushActive() && typeof Notification !== "undefined" && Notification.permission === "granted") {
       const url = `${base}/${e.conversation_id}`;
       const n = new Notification(e.status === "request" ? `Message request from ${e.author}` : e.author, {
         body: e.message.body.slice(0, 140) || "Sent a file",

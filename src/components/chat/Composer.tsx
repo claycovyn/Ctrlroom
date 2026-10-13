@@ -121,7 +121,7 @@ export function Composer({
 
   if (disabled) {
     return (
-      <div className="px-4 pb-4">
+      <div className="cr-composer px-4 pb-4">
         <div className="rounded-lg border border-line bg-raised px-4 py-3 text-sm text-muted">{disabledReason}</div>
       </div>
     );
@@ -149,7 +149,7 @@ export function Composer({
     : {};
 
   return (
-    <div className="relative px-4 pb-4" {...drop}>
+    <div className="cr-composer relative px-4 pb-4" {...drop}>
       {dragging && (
         <div className="pointer-events-none absolute inset-x-4 bottom-4 top-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-signal bg-panel/90 text-sm font-medium">
           Drop files to attach

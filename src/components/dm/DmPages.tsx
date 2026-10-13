@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/Logo";
 import { ChatsIcon } from "@/components/chat/icons";
+import { PushPrompt } from "@/components/push/PushPrompt";
 import type { Profile } from "@/lib/types";
 import { DmConversationView } from "./DmConversationView";
 import { DmProvider } from "./DmContext";
@@ -42,7 +43,7 @@ export function DmConversationPage({ id }: { id: string }) {
 export function StandaloneDm({ me, id }: { me: Profile; id: string | null }) {
   return (
     <DmProvider me={me} base="/app/dm" listen>
-      <div className="flex h-[100dvh] flex-col overflow-hidden">
+      <div className="cr-shell cr-safe-top flex flex-col overflow-hidden">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-4 text-sm">
           <Link href="/app" className="flex items-center gap-2 text-muted hover:text-fg">
             <LogoMark className="h-6 w-6" />
@@ -50,6 +51,7 @@ export function StandaloneDm({ me, id }: { me: Profile; id: string | null }) {
           </Link>
         </div>
         <main className="flex min-h-0 flex-1">{id ? <DmConversationPage id={id} /> : <DmInboxPage />}</main>
+        <PushPrompt />
       </div>
     </DmProvider>
   );

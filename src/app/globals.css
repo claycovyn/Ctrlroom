@@ -36,6 +36,12 @@ body {
   height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   @apply bg-bg text-fg antialiased;
   font-feature-settings: "cv11", "ss01";
@@ -81,6 +87,7 @@ body {
   .cr-sheet {
     @apply fixed inset-x-0 bottom-0 top-auto m-0 w-full max-w-none overflow-hidden rounded-t-2xl border border-b-0 border-line bg-panel p-0 shadow-2xl;
     max-height: calc(100dvh - 2rem);
+    max-height: calc(var(--cr-vh, 100dvh) - 1rem - var(--cr-safe-top, 0px));
   }
   .cr-sheet::backdrop {
     background: rgb(0 0 0 / 0.6);
@@ -88,9 +95,25 @@ body {
   .cr-sheet-body {
     @apply flex flex-col;
     max-height: calc(100dvh - 2rem);
+    max-height: calc(var(--cr-vh, 100dvh) - 1rem - var(--cr-safe-top, 0px));
   }
   .cr-sheet-actions {
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    padding-bottom: max(0.75rem, var(--cr-safe-bottom, env(safe-area-inset-bottom)));
+  }
+  .cr-sheet[data-dragging] {
+    transition: none;
+  }
+  .cr-sheet[data-settling] {
+    transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* The grab handle (phones): a hint that the sheet can be pulled down. */
+  .cr-sheet-grip {
+    @apply flex h-6 w-full shrink-0 cursor-grab items-center justify-center sm:hidden;
+    touch-action: none;
+  }
+  .cr-sheet-grip::before {
+    content: "";
+    @apply h-1 w-9 rounded-full bg-line;
   }
   @media (min-width: 640px) {
     .cr-sheet {
@@ -102,10 +125,10 @@ body {
   }
   @media (prefers-reduced-motion: no-preference) {
     .cr-sheet[open] {
-      animation: cr-sheet-up 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: cr-sheet-up 380ms cubic-bezier(0.32, 0.72, 0, 1);
     }
     .cr-sheet[open]::backdrop {
-      animation: cr-fade 180ms ease-out;
+      animation: cr-fade 380ms cubic-bezier(0.32, 0.72, 0, 1);
     }
     @media (min-width: 640px) {
       .cr-sheet[open] {
@@ -135,6 +158,192 @@ body {
 .scroll-thin {
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--line)) transparent;
+}
+
+/* ───────────────────────── phones and the Home Screen app ───────────────────────── */
+
+:root {
+  /* iOS spring: fast out, long settle (Apple's sheet and drawer curve). */
+  --cr-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --cr-safe-top: env(safe-area-inset-top, 0px);
+  --cr-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --cr-safe-left: env(safe-area-inset-left, 0px);
+  --cr-safe-right: env(safe-area-inset-right, 0px);
+}
+/* With the keyboard up there's no home indicator to clear (NativeFeel sets .cr-kb). */
+html.cr-kb {
+  --cr-safe-bottom: 0px;
+}
+
+/* Safari zooms into any field whose text is under 16px when it's focused. Fix it at the root for touch screens, and
+   keep pinch-zoom (the viewport never sets maximum-scale or user-scalable). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]),
+  textarea,
+  select,
+  [contenteditable]:not([contenteditable="false"]) {
+    font-size: 16px !important;
+  }
+}
+
+/* No 300 ms double-tap wait on anything you tap. */
+a,
+button,
+summary,
+label,
+select,
+[role="button"],
+[role="option"],
+[role="menuitem"],
+[role="menuitemradio"],
+[role="switch"],
+input[type="checkbox"],
+input[type="radio"] {
+  touch-action: manipulation;
+}
+
+/* The app shell (community pages, DMs): sized to what's visible above the keyboard, never rubber-bands as a whole;
+   only its scroll areas scroll, and they keep their momentum to themselves. */
+.cr-shell {
+  height: 100dvh;
+  height: var(--cr-vh, 100dvh);
+  overscroll-behavior: none;
+  padding-left: var(--cr-safe-left);
+  padding-right: var(--cr-safe-right);
+}
+html:has(.cr-shell),
+html:has(.cr-shell) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.cr-shell .overflow-y-auto,
+.cr-shell .overflow-auto {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.cr-safe-top {
+  padding-top: var(--cr-safe-top);
+}
+.cr-safe-bottom {
+  padding-bottom: var(--cr-safe-bottom);
+}
+
+/* Buttons, rails and headers aren't text: no selection or callout when you press and hold them. Messages stay
+   selectable. */
+.cr-chrome,
+.cr-chrome button,
+button,
+summary,
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Pressed state on touch screens (hover never fires there). */
+@media (hover: none) {
+  button:not(:disabled),
+  a,
+  summary,
+  [role="button"] {
+    transition-property: color, background-color, border-color, opacity, transform;
+    transition-duration: 120ms;
+  }
+  button:not(:disabled):active,
+  summary:active,
+  [role="button"]:active {
+    transform: scale(0.96);
+    opacity: 0.85;
+    transition-duration: 0ms;
+  }
+  a:active {
+    opacity: 0.7;
+    transition-duration: 0ms;
+  }
+}
+
+/* The room list drawer (phones): slides with the iOS curve and follows your finger (useSwipeDismiss). */
+.cr-drawer {
+  transition: transform 380ms var(--cr-spring);
+  will-change: transform;
+  touch-action: pan-y;
+}
+.cr-drawer[data-dragging] {
+  transition: none;
+}
+/* touch-action only reaches as far as the nearest scroll container, so the lists inside say it too: vertical
+   scrolling stays native, a sideways drag goes to the gesture. */
+.cr-drawer .overflow-y-auto,
+.cr-drawer .overflow-auto,
+.cr-panel .overflow-y-auto,
+.cr-panel .overflow-auto {
+  touch-action: pan-y;
+}
+.cr-scrim {
+  transition: opacity 380ms var(--cr-spring);
+}
+.cr-scrim[data-dragging] {
+  transition: none;
+}
+
+/* Side panels (thread, board, search, people) are full screen on phones: they slide in from the right. */
+@media (max-width: 767px) {
+  .cr-panel {
+    animation: cr-slide-in 380ms var(--cr-spring);
+    touch-action: pan-y;
+  }
+  .cr-panel[data-dragging] {
+    animation: none;
+  }
+}
+
+/* Switching rooms: a short fade and lift; with the View Transitions API the browser crossfades instead. */
+.cr-room-in {
+  animation: cr-room-in 220ms var(--cr-spring);
+}
+html.cr-vt .cr-room-in {
+  animation: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: var(--cr-spring);
+}
+
+/* A message that just arrived. */
+.cr-msg-in {
+  animation: cr-msg-in 240ms var(--cr-spring);
+}
+
+/* Small notices at the bottom (new version, notifications prompt). */
+.cr-toast {
+  @apply fixed inset-x-3 z-50 mx-auto flex max-w-md items-center gap-2 rounded-xl border border-line bg-panel px-3 py-2.5 text-sm shadow-2xl;
+  bottom: calc(0.75rem + var(--cr-safe-bottom));
+  animation: cr-toast-in 380ms var(--cr-spring);
+}
+
+@keyframes cr-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes cr-room-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes cr-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes cr-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -189,4 +398,67 @@ body {
 }
 .docs th {
   @apply bg-raised font-semibold;
+}
+
+/* Where the drawer, panels and composer meet the screen edges (notch, status bar, home indicator). The shell pads
+   the top for everything inside it; things that cover the screen on phones (drawer, panels) pad themselves. */
+.cr-drawer {
+  padding-bottom: var(--cr-safe-bottom);
+}
+@media (max-width: 767px) {
+  .cr-drawer {
+    padding-top: var(--cr-safe-top);
+    padding-left: var(--cr-safe-left);
+  }
+  .cr-panel {
+    padding-top: var(--cr-safe-top);
+    padding-bottom: var(--cr-safe-bottom);
+    padding-left: var(--cr-safe-left);
+    padding-right: var(--cr-safe-right);
+  }
+}
+.cr-composer {
+  padding-bottom: max(1rem, calc(var(--cr-safe-bottom) + 0.5rem));
+}
+html.cr-kb .cr-composer {
+  padding-bottom: 0.5rem;
+}
+/* A full-screen panel already clears the home indicator. */
+@media (max-width: 767px) {
+  .cr-panel .cr-composer {
+    padding-bottom: 0.75rem;
+  }
+}
+/* Pages outside the app shell (communities list, sign in, docs) scroll normally; keep them out from under the
+   status bar and the notch. All zero in a normal browser tab. */
+html:not(:has(.cr-shell)) body {
+  padding: var(--cr-safe-top) var(--cr-safe-right) var(--cr-safe-bottom) var(--cr-safe-left);
+}
+/* Bottom sheets ride on top of the keyboard. */
+html.cr-kb .cr-sheet {
+  bottom: var(--cr-kb-h, 0px);
+}
+/* black-translucent keeps the status bar text white; in the light theme give it a dark strip to sit on. */
+@media (prefers-color-scheme: light) {
+  html[data-standalone] body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--cr-safe-top);
+    background: #060607;
+    z-index: 60;
+    pointer-events: none;
+  }
+}
+.cr-toast-top {
+  bottom: auto;
+  top: calc(var(--cr-safe-top) + 4rem);
+  align-items: flex-start;
+  animation-name: cr-toast-down;
+}
+@keyframes cr-toast-down {
+  from {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
 }

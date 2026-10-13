@@ -25,7 +25,7 @@ export function SoundSettings() {
   return (
     <section id="sounds" className="card p-5">
       <h2 className="font-medium">Sounds</h2>
-      <p className="mb-4 text-sm text-muted">Saved on this device. Do not disturb and muted rooms stay silent.</p>
+      <p className="mb-4 text-sm text-muted">Saved on this device. Do not disturb and muted rooms stay silent. On iPhone, the Ring/Silent switch also mutes these.</p>
 
       <label className="flex items-center justify-between gap-3">
         <span className="text-sm font-medium">Play sounds</span>

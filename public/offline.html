@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#060607" />
+    <title>Offline · Ctrl Room</title>
+    <link rel="icon" href="/brand/ctrlroom-icon-192.png" />
+    <style>
+      :root {
+        --bg: #f7f7f6;
+        --fg: #0c0c0d;
+        --muted: #64646a;
+        --line: #dededc;
+        --signal: #121214;
+        --signal-fg: #fff;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #060607;
+          --fg: #eeeef0;
+          --muted: #8c8c94;
+          --line: #28282c;
+          --signal: #ececee;
+          --signal-fg: #060607;
+          color-scheme: dark;
+        }
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+          max(16px, env(safe-area-inset-left));
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      main {
+        max-width: 22rem;
+        text-align: center;
+      }
+      img {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 1rem 0 0.25rem;
+      }
+      p {
+        color: var(--muted);
+        margin: 0 0 1.5rem;
+      }
+      a {
+        display: inline-block;
+        background: var(--signal);
+        color: var(--signal-fg);
+        text-decoration: none;
+        font-weight: 500;
+        border-radius: 8px;
+        padding: 0.6rem 1.1rem;
+        touch-action: manipulation;
+      }
+      a:active {
+        opacity: 0.8;
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/brand/ctrlroom-icon-192.png" alt="" />
+      <h1>You're offline</h1>
+      <p>Ctrl Room needs a connection to load. Your messages are safe; they'll be here when you're back.</p>
+      <a href="" onclick="location.reload(); return false;">Try again</a>
+    </main>
+  </body>
+</html>

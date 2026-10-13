@@ -17,9 +17,16 @@ Use the bell menu in a room's header:
 - **Everything**: a desktop alert for every new message in the room while the tab is in the background.
 - **Muted**: no alerts; the room is dimmed in the sidebar.
 
-## Desktop alerts
+## Notifications on your phone and computer
 
-Choose **Turn on desktop alerts** at the bottom of the sidebar and allow notifications in your browser. Mention and reply alerts show when you're in another tab or another room. Click one to jump to the room.
+Turn them on in **Settings → Notifications** (or with the button at the bottom of the sidebar) and allow them when your device asks. You get one for an @mention, a reply to you, a direct message and a call starting in a room you use, even when Ctrl Room is closed. Tap one to open that message.
+
+- **iPhone and iPad**: Apple only allows notifications for web apps installed from Safari (iOS 16.4 or later). In Safari choose **Add to Home Screen** (in the menu under the arrow-out-of-a-box icon), open Ctrl Room from its new icon and turn notifications on.
+- In **Settings → Notifications** choose what you're notified about (mentions, replies, direct messages, calls) and set **quiet hours**. These follow your account to every device.
+- Muted rooms and muted conversations never notify, and nothing from someone you blocked does.
+- Notifications use your device's own sound. **Do not disturb** in Ctrl Room quiets the app's sounds only; on your phone, use quiet hours or Focus.
+
+If the server hasn't set notifications up, the sidebar button turns on your browser's alerts instead, which show while the tab is open.
 
 ## Sounds
 
@@ -31,7 +38,7 @@ Ctrl Room plays short sounds once you've clicked or typed on the page:
 - **Mic**: when you mute or unmute in a call.
 - **Sent**: a tick when your message goes out. Off unless you turn it on.
 
-Turn them off, set the volume, or switch each type on and off in **Settings → Sounds**, with a **Play** button to hear each one. Sound settings are saved on the device you set them on. **Do not disturb** turns every sound off.
+Turn them off, set the volume, or switch each type on and off in **Settings → Sounds**, with a **Play** button to hear each one. Sound settings are saved on the device you set them on. **Do not disturb** turns every sound off. On iPhone the Ring/Silent switch also mutes them, and sounds start after your first tap.
 
 ## Your status
 

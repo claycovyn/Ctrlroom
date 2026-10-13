@@ -1,28 +1,36 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { usePrompt } from "@/components/Dialogs";
 import { LogoMark } from "@/components/Logo";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { useBroadcast } from "@/lib/realtime";
-import { applyChange, nextPosition, readCollapsed, sidebarLayout, writeCollapsed } from "@/lib/rooms";
+import { applyChange, nextPosition, readCollapsed, renameSectionDialog, sidebarLayout, writeCollapsed } from "@/lib/rooms";
+import { disablePush, isPushActive } from "@/lib/pushClient";
 import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
-import { AddRoomDialog, type NewRoom } from "./AddRoomDialog";
+import { useEdgeSwipeOpen, useSwipeDismiss } from "@/components/useSwipeDismiss";
+import type { NewRoom } from "./AddRoomDialog";
+import { NotificationsButton } from "./NotificationsButton";
+import { navigateWithTransition, prefetchRoute } from "./roomNav";
+
 import { useOptionalDm } from "@/components/dm/DmContext";
 import { badgeLabel } from "@/lib/dms";
 import { useCommunity } from "./CommunityContext";
-import { BellIcon, ChatsIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
+import { ChatsIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
 import { HeadsetIcon } from "./icons";
 import { Avatar } from "./Avatar";
 import { usePresence } from "./PresenceContext";
 import { RoomIcon } from "./RoomIcon";
 import { StatusMenu } from "./StatusMenu";
-import { renameSectionDialog } from "./RoomsSettings";
+
+// Admins only, on a tap: not part of every page load.
+const AddRoomDialog = dynamic(() => import("./AddRoomDialog").then((m) => m.AddRoomDialog), { ssr: false });
 
 export function Sidebar() {
   const ctx = useCommunity();
@@ -32,7 +40,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = atLeast(role, "admin");
-  const [alerts, setAlerts] = useState<NotificationPermission | "unsupported">("default");
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const promptDialog = usePrompt();
@@ -67,7 +74,6 @@ export function Sidebar() {
   };
 
   useEffect(() => {
-    setAlerts(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
     installSoundUnlock();
   }, []);
 
@@ -86,13 +92,24 @@ export function Sidebar() {
 
   useEffect(() => setNavOpen(false), [pathname, setNavOpen]);
 
+  // Phones: drag the drawer back to close it, or swipe in from the left edge to open it.
+  const drawerRef = useRef<HTMLElement>(null);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  useSwipeDismiss({ target: drawerRef, scrim: scrimRef, direction: "left", enabled: navOpen, onDismiss: () => setNavOpen(false) });
+  useEdgeSwipeOpen(!navOpen, () => setNavOpen(true));
+
   const notify = (title: string, body: string, url: string) => {
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    const n = new Notification(title, { body, tag: url });
-    n.onclick = () => {
-      window.focus();
-      window.location.href = url;
-    };
+    // With push on for this device the system notification comes from the service worker instead.
+    if (isPushActive() || typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    try {
+      const n = new Notification(title, { body, tag: url });
+      n.onclick = () => {
+        window.focus();
+        window.location.href = url;
+      };
+    } catch {
+      // Android Chrome only shows notifications from a service worker
+    }
   };
 
   useBroadcast(`community:${community.id}`, {
@@ -191,10 +208,16 @@ export function Sidebar() {
 
   return (
     <>
-      {navOpen && <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setNavOpen(false)} />}
+      <div
+        ref={scrimRef}
+        aria-hidden="true"
+        className={`cr-scrim fixed inset-0 z-30 bg-black/50 md:hidden ${navOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        onClick={() => setNavOpen(false)}
+      />
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[19rem] shrink-0 border-r border-line bg-panel transition-transform md:static md:translate-x-0 ${
-          navOpen ? "translate-x-0" : "-translate-x-full"
+        ref={drawerRef}
+        className={`cr-drawer cr-chrome fixed inset-y-0 left-0 z-40 flex w-[min(19rem,88vw)] shrink-0 border-r border-line bg-panel md:static md:w-[19rem] md:translate-x-0 ${
+          navOpen ? "translate-x-0 shadow-2xl md:shadow-none" : "-translate-x-full"
         }`}
       >
         {/* community rail */}
@@ -323,15 +346,7 @@ export function Sidebar() {
             )}
           </div>
 
-          {alerts === "default" && (
-            <button
-              className="mx-3 mb-2 flex items-center gap-2 rounded-md border border-line px-3 py-2 text-left text-xs text-muted hover:text-fg"
-              onClick={async () => setAlerts(await Notification.requestPermission())}
-            >
-              <BellIcon className="h-4 w-4 shrink-0" />
-              Turn on desktop alerts for mentions, replies and direct messages
-            </button>
-          )}
+          <NotificationsButton settingsHref={`/c/${community.slug}/settings`} />
 
           <div className="flex items-center gap-2 border-t border-line px-3 py-3">
             <StatusMenu me={me} settingsHref={`/c/${community.slug}/settings#profile`} />
@@ -342,7 +357,17 @@ export function Sidebar() {
             <Link href="/docs" className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg" title="Help and docs">
               Help
             </Link>
-            <form action="/auth/signout" method="post">
+            <form
+              action="/auth/signout"
+              method="post"
+              onSubmit={(e) => {
+                // A signed-out phone shouldn't keep getting this account's notifications.
+                if (!isPushActive()) return;
+                e.preventDefault();
+                const form = e.currentTarget;
+                Promise.race([disablePush(), new Promise((r) => setTimeout(r, 1500))]).finally(() => form.submit());
+              }}
+            >
               <button className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg">Sign out</button>
             </form>
           </div>
@@ -376,7 +401,10 @@ export function Sidebar() {
             <li key={r.id} className="group relative flex flex-wrap items-center">
               <Link
                 href={`/c/${community.slug}/${r.slug}`}
-                className={`flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 pl-2 pr-8 text-sm ${
+                onPointerEnter={() => prefetchRoute(router, `/c/${community.slug}/${r.slug}`)}
+                onTouchStart={() => prefetchRoute(router, `/c/${community.slug}/${r.slug}`)}
+                onClick={(e) => navigateWithTransition(e, router, `/c/${community.slug}/${r.slug}`)}
+                className={`flex min-w-0 flex-1 items-center gap-2 rounded-md py-2 pl-2 pr-8 text-sm md:py-1.5 ${
                   active ? "bg-raised font-medium text-fg" : bold ? "font-semibold text-fg hover:bg-raised" : "text-muted hover:bg-raised hover:text-fg"
                 } ${u?.notify === "none" && !active ? "opacity-60" : ""}`}
               >

@@ -55,3 +55,6 @@ export const ImageIcon = svg(<><rect x="3" y="3" width="18" height="18" rx="2" /
 export const ChevronLeftIcon = svg(<path d="m15 18-6-6 6-6" />);
 export const ChevronRightIcon = svg(<path d="m9 18 6-6-6-6" />);
 export const RetryIcon = svg(<><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></>);
+// iOS Share (square with an arrow up) and Add to Home Screen (square with a plus): for the install steps.
+export const ShareIcon = svg(<><path d="M12 3v12M8 7l4-4 4 4" /><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1" /></>);
+export const AddSquareIcon = svg(<><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M12 8v8M8 12h8" /></>);

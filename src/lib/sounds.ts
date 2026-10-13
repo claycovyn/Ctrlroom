@@ -183,18 +183,39 @@ function buffer(name: SoundName): Promise<AudioBuffer | null> {
   return b;
 }
 
-/** Call once on the client. Waits for the first click / key press, then wakes the audio context. */
+/**
+ * Call once on the client. Waits for the first tap, click or key press, then wakes the audio context.
+ * iOS only lets audio start inside a touchend or click (not pointerdown), so those unlock too, and a silent buffer is
+ * played then, which is what actually opens Web Audio on iPhone. The Ring/Silent switch still mutes web audio on
+ * iPhone; that's the OS, not something a web app can override.
+ */
 export function installSoundUnlock(): void {
   if (typeof window === "undefined" || unlocked) return;
+  const events = ["pointerdown", "touchend", "click", "keydown"] as const;
   const unlock = () => {
     unlocked = true;
     const ac = audioContext();
-    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
-    window.removeEventListener("pointerdown", unlock, true);
-    window.removeEventListener("keydown", unlock, true);
+    if (ac) {
+      if (ac.state === "suspended") ac.resume().catch(() => {});
+      try {
+        const src = ac.createBufferSource();
+        src.buffer = ac.createBuffer(1, 1, 22050);
+        src.connect(ac.destination);
+        src.start(0);
+      } catch {
+        // nothing to unlock
+      }
+    }
+    // pointerdown alone isn't enough on iOS: keep listening until a touchend/click has run too.
+    if (ac && ac.state !== "running") return;
+    events.forEach((e) => window.removeEventListener(e, unlock, true));
   };
-  window.addEventListener("pointerdown", unlock, true);
-  window.addEventListener("keydown", unlock, true);
+  events.forEach((e) => window.addEventListener(e, unlock, true));
+  // iOS suspends (or "interrupts") the context when the app goes to the background; wake it when it's back.
+  document.addEventListener("visibilitychange", () => {
+    const ac = ctx;
+    if (document.visibilityState === "visible" && unlocked && ac && ac.state !== "running") ac.resume().catch(() => {});
+  });
   window.addEventListener("storage", (e) => {
     if (e.key === PREFS_KEY) refreshSoundPrefs();
   });

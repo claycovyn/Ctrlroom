@@ -6,11 +6,11 @@ import { WITH_ATTACHMENTS } from "@/lib/attachments";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
+import { markPushMoment, nudgePush } from "@/lib/pushClient";
 import { POST_ROLE_LABEL } from "@/lib/rooms";
 import { play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type BoardItem, type CatchUp, type Message, type Profile, type Reaction, type Room, type Unread, type AgentJob } from "@/lib/types";
-import { BoardPanel } from "./BoardPanel";
 import { CatchUpBanner } from "./CatchUpBanner";
 import { useCommunity } from "./CommunityContext";
 import { purgeAttachments } from "./attachments/signedUrls";
@@ -21,14 +21,31 @@ import { PresenceAvatar } from "./PresenceAvatar";
 import { usePresence } from "./PresenceContext";
 import { RoomIcon } from "./RoomIcon";
 import { LinkedText } from "./LinkedText";
-import { MembersPanel } from "./MembersPanel";
 import { Panel } from "./Panel";
-import { RoomEditDialog } from "./RoomEditDialog";
 import { MessageItem, type MessageActions } from "./MessageItem";
-import { SearchPanel } from "./SearchPanel";
-import { ThreadPanel } from "./ThreadPanel";
+import { ROOM_SHOWN } from "./roomNav";
 
 const CallPanel = dynamic(() => import("./CallPanel"), { ssr: false });
+// Panels open on a tap; they load in the background once the room is on screen (preloadPanels), not with the page.
+const loadThread = () => import("./ThreadPanel");
+const loadBoard = () => import("./BoardPanel");
+const loadSearch = () => import("./SearchPanel");
+const loadMembers = () => import("./MembersPanel");
+const loadRoomEdit = () => import("./RoomEditDialog");
+const ThreadPanel = dynamic(() => loadThread().then((m) => m.ThreadPanel), { ssr: false });
+const BoardPanel = dynamic(() => loadBoard().then((m) => m.BoardPanel), { ssr: false });
+const SearchPanel = dynamic(() => loadSearch().then((m) => m.SearchPanel), { ssr: false });
+const MembersPanel = dynamic(() => loadMembers().then((m) => m.MembersPanel), { ssr: false });
+const RoomEditDialog = dynamic(() => loadRoomEdit().then((m) => m.RoomEditDialog), { ssr: false });
+let panelsPreloaded = false;
+function preloadPanels() {
+  if (panelsPreloaded) return;
+  panelsPreloaded = true;
+  const go = () => Promise.all([loadThread(), loadBoard(), loadSearch(), loadMembers(), loadRoomEdit()]).catch(() => (panelsPreloaded = false));
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+  if (idle) idle(go, { timeout: 3000 });
+  else setTimeout(go, 1500);
+}
 
 const PAGE = 50;
 const BOT_MENTION = /(?:^|[^a-zA-Z0-9_])@(ctrl|openctrl)(?![a-zA-Z0-9_])/i;
@@ -40,6 +57,16 @@ function agentLine(jobs: AgentJob[]): string | null {
   return `${BOT_NAME[j.bot]} ${j.status === "queued" ? "is on it…" : j.step ? `· ${j.step}` : "is thinking…"}`;
 }
 type PanelKind = "thread" | "board" | "search" | "members" | "info" | null;
+
+/** A message id made in the browser (randomUUID needs https; this also works over plain http on a LAN). */
+function newMessageId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
 
 function mergeReactions(list: Reaction[], add: Reaction[]): Reaction[] {
   const key = (r: Reaction) => `${r.message_id}|${r.user_id}|${r.emoji}`;
@@ -102,6 +129,9 @@ export function RoomView({
 
   const listRef = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
+  // Messages that arrived while you're here (they animate in); and your own that are still on their way.
+  const fresh = useRef(new Set<string>());
+  const [outgoing, setOutgoing] = useState<Record<string, "sending" | "failed">>({});
   const scrollRestore = useRef<number | null>(null);
   const threadRootId = useRef<string | null>(null);
   threadRootId.current = threadRoot?.id ?? null;
@@ -178,6 +208,7 @@ export function RoomView({
         return next;
       });
       if (!m.parent_id) {
+        fresh.current.add(m.id);
         setMessages((list) => upsertMessage(list, m));
         if (m.author_id !== me.id) touchRead();
       } else if (m.parent_id === threadRootId.current) {
@@ -231,6 +262,23 @@ export function RoomView({
   const sendTyping = () => {
     channel.current?.send({ type: "broadcast", event: "typing", payload: { user_id: me.id, name: me.display_name } });
   };
+
+  // The end of a room switch (roomNav's view transition waits for this).
+  useLayoutEffect(() => {
+    window.dispatchEvent(new CustomEvent(ROOM_SHOWN));
+  }, []);
+  useEffect(preloadPanels, []);
+
+  // When the list gets shorter (the keyboard opens, the composer grows) keep the newest message in view.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (nearBottom.current) el.scrollTop = el.scrollHeight;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // ── scrolling
   useLayoutEffect(() => {
@@ -291,6 +339,75 @@ export function RoomView({
   };
 
   // ── actions
+  const failText = (message: string) =>
+    cloudErrorText(message) ??
+    (message.includes("only") ? `${POST_ROLE_LABEL[room.post_min_role]} can start posts in this room.` : "Message didn't send. Try again.");
+
+  /**
+   * A new message in the room shows at once (with its final id, so the realtime echo merges into it) and is saved in
+   * the background. If saving fails it stays, marked, with Retry and Discard.
+   */
+  const deliver = async (m: Message): Promise<void> => {
+    setOutgoing((o) => ({ ...o, [m.id]: "sending" }));
+    const { data, error: err } = await supabase
+      .from("messages")
+      .insert({ id: m.id, room_id: room.id, author_id: me.id, body: m.body, parent_id: null })
+      .select()
+      .single();
+    if (err) {
+      setOutgoing((o) => ({ ...o, [m.id]: "failed" }));
+      flash(failText(err.message));
+      return;
+    }
+    setOutgoing((o) => {
+      const next = { ...o };
+      delete next[m.id];
+      return next;
+    });
+    const saved = data as Message;
+    // The server's clock decides the order.
+    setMessages((list) => upsertMessage(list.filter((x) => x.id !== saved.id), saved));
+    play("sent");
+    nudgePush(saved.body, false);
+    markPushMoment();
+    if (BOT_MENTION.test(saved.body)) {
+      fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: saved.id }) }).catch(() => {});
+    }
+  };
+
+  const sendNow = async (body: string): Promise<boolean> => {
+    const m: Message = {
+      id: newMessageId(),
+      room_id: room.id,
+      community_id: community.id,
+      author_id: me.id,
+      parent_id: null,
+      body,
+      reply_count: 0,
+      last_reply_at: null,
+      resolved_at: null,
+      resolved_by: null,
+      outcome: null,
+      edited_at: null,
+      deleted_at: null,
+      created_at: new Date().toISOString(),
+    };
+    fresh.current.add(m.id);
+    nearBottom.current = true;
+    setMessages((list) => upsertMessage(list, m));
+    void deliver(m);
+    return true;
+  };
+
+  const discard = (id: string) => {
+    setOutgoing((o) => {
+      const next = { ...o };
+      delete next[id];
+      return next;
+    });
+    setMessages((list) => list.filter((x) => x.id !== id));
+  };
+
   const send = async (body: string, parentId: string | null = null, files: OutgoingAttachment[] = []): Promise<boolean> => {
     // With files: post_message links them in the same insert (0013). Without: a plain insert, as before.
     const { data, error: err } = files.length
@@ -307,6 +424,8 @@ export function RoomView({
     }
     const m = data as Message;
     play("sent");
+    nudgePush(m.body, Boolean(parentId));
+    markPushMoment();
     nearBottom.current = true;
     if (BOT_MENTION.test(body)) {
       fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: m.id }) }).catch(() => {});
@@ -424,9 +543,9 @@ export function RoomView({
   const threadAgentStatus = threadRoot ? agentLine(Object.values(agents).filter((j) => j.thread_id === threadRoot.id)) : null;
 
   return (
-    <div className="flex min-w-0 flex-1">
+    <div className="cr-room-in flex min-w-0 flex-1">
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-3 sm:px-4">
+        <header className="cr-chrome flex h-14 shrink-0 items-center gap-2 border-b border-line px-3 sm:px-4">
           <button className="rounded p-1.5 text-muted hover:bg-raised md:hidden" onClick={() => setNavOpen(true)} aria-label="Open menu">
             <MenuIcon className="h-5 w-5" />
           </button>
@@ -562,7 +681,10 @@ ${room.description}` : room.topic}
             </div>
           )}
           {rows.map(({ message, compact, day }) => (
-            <div key={message.id}>
+            <div
+              key={message.id}
+              className={`${fresh.current.has(message.id) ? "cr-msg-in" : ""} ${outgoing[message.id] === "sending" ? "opacity-60" : ""}`}
+            >
               {day && (
                 <div className="my-3 flex items-center gap-3 px-4 text-xs font-medium text-muted">
                   <span className="h-px flex-1 bg-line" />
@@ -580,6 +702,17 @@ ${room.description}` : room.topic}
                 highlight={highlight === message.id}
                 actions={actions}
               />
+              {outgoing[message.id] === "failed" && (
+                <div className="flex items-center gap-2 pb-1 pl-16 pr-4 text-xs" role="alert">
+                  <span className="text-alert">Didn&apos;t send.</span>
+                  <button className="rounded-full border border-line px-2.5 py-1 font-medium hover:bg-raised" onClick={() => deliver(message)}>
+                    Retry
+                  </button>
+                  <button className="rounded-full px-2 py-1 text-muted hover:text-fg" onClick={() => discard(message.id)}>
+                    Discard
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -603,7 +736,8 @@ ${room.description}` : room.topic}
           communityId={community.id}
           disabled={!canPost}
           disabledReason={`${POST_ROLE_LABEL[room.post_min_role]} can start posts here. You can still reply in threads.`}
-          onSend={(body, files) => send(body, null, files)}
+          // Text goes out optimistically (sendNow); with files it waits for the upload path (post_message, 0013).
+          onSend={(body, files) => (files.length ? send(body, null, files) : sendNow(body))}
           attach={{ kind: "room", roomId: room.id }}
           onTyping={sendTyping}
         />

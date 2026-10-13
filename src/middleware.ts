@@ -33,5 +33,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|api/health|api/livekit/webhook|api/cron|openctrl.json|sounds/).*)"],
+  // Static files skip it: each run is a round trip to Supabase Auth, and icons, sounds and the service worker never
+  // need a session.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|icon.png|apple-icon.png|brand/|manifest.webmanifest|sw.js|offline.html|api/health|api/livekit/webhook|api/cron|openctrl.json|sounds/).*)",
+  ],
 };

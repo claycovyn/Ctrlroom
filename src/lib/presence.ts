@@ -5,7 +5,6 @@
  * Each open community tracks one payload per tab on the private Realtime topic presence:<community_id>
  * (0010_presence.sql: members only). "Appear offline" never tracks, so you're simply not there.
  */
-import { z } from "zod";
 
 /** What you picked in the status menu. "auto" = Online, going Away by itself. */
 export type ManualStatus = "auto" | "dnd" | "invisible";
@@ -124,22 +123,28 @@ export function writeManual(m: ManualStatus): void {
 
 // ───────────────────────── everyone else ─────────────────────────
 
-const uuid = z.string().uuid();
-const payloadSchema = z
-  .object({
-    user_id: uuid,
-    status: z.enum(["online", "away", "dnd"]),
-    call: z.object({ room_id: uuid, video: z.boolean() }).strict().nullable(),
-    since: z.string().datetime({ offset: true }).max(40),
-  })
-  .passthrough();
+// Checked by hand rather than with zod: this runs in every app page, and zod alone was about 12 KB of its JavaScript.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// ISO 8601 with seconds and a Z or ±hh:mm offset (what toISOString() writes).
+const DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}(:?\d{2})?)$/;
+const STATUSES: readonly string[] = ["online", "away", "dnd"];
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** A tracked payload from the channel (other browsers wrote it, so check everything). Null when it's not valid. */
 export function validatePresence(raw: unknown): PresencePayload | null {
-  const r = payloadSchema.safeParse(raw);
-  if (!r.success) return null;
-  const { user_id, status, call, since } = r.data;
-  return { user_id, status, call: call ? { room_id: call.room_id, video: call.video } : null, since };
+  if (!isRecord(raw)) return null;
+  const { user_id, status, call, since } = raw;
+  if (typeof user_id !== "string" || !UUID.test(user_id)) return null;
+  if (typeof status !== "string" || !STATUSES.includes(status)) return null;
+  if (typeof since !== "string" || since.length > 40 || !DATETIME.test(since) || !Number.isFinite(Date.parse(since))) return null;
+  let callOut: PresencePayload["call"] = null;
+  if (call !== null) {
+    // Exactly { room_id, video }: nothing extra rides along.
+    if (!isRecord(call) || Object.keys(call).length !== 2) return null;
+    if (typeof call.room_id !== "string" || !UUID.test(call.room_id) || typeof call.video !== "boolean") return null;
+    callOut = { room_id: call.room_id, video: call.video };
+  }
+  return { user_id, status: status as PresencePayload["status"], call: callOut, since };
 }
 
 /**

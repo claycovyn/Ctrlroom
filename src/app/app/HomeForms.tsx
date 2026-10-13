@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { slugify } from "@/lib/format";
+import { noteJoinedCommunity } from "@/lib/pushClient";
 import { createCommunity, joinCommunity, type FormState } from "./actions";
 
 export function CreateCommunityForm() {
@@ -74,7 +75,7 @@ export function CreateCommunityForm() {
 export function JoinCommunityForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(joinCommunity, {});
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} onSubmit={noteJoinedCommunity} className="space-y-3">
       <div>
         <label className="label" htmlFor="code">
           Invite link or code

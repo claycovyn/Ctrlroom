@@ -2,9 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { ImageCropper } from "@/components/ImageCropper";
+import dynamic from "next/dynamic";
 import { pickProblem, type CropKind } from "@/lib/imageResize";
 import { supabaseBrowser } from "@/lib/supabase/client";
+
+// The cropper is only needed once you've picked a file.
+const ImageCropper = dynamic(() => import("@/components/ImageCropper").then((m) => m.ImageCropper), { ssr: false });
 
 type Supabase = ReturnType<typeof supabaseBrowser>;
 

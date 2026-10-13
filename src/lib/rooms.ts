@@ -105,3 +105,14 @@ export function applyChange<T extends { id: string; position: number; name: stri
 export function syncFromServer<T>(current: T[], previousServer: T[], nextServer: T[]): T[] {
   return nextServer === previousServer ? current : nextServer;
 }
+
+/** The rename-a-section prompt (sidebar … menu and Settings → Rooms). */
+export function renameSectionDialog(current: string) {
+  return {
+    title: `Rename ${current}`,
+    label: "Section name",
+    defaultValue: current,
+    maxLength: 48,
+    confirmLabel: "Rename",
+  };
+}

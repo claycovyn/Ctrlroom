@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { noteJoinedCommunity } from "@/lib/pushClient";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export function JoinPublic({ slug }: { slug: string }) {
@@ -21,6 +22,7 @@ export function JoinPublic({ slug }: { slug: string }) {
             setBusy(false);
             return;
           }
+          noteJoinedCommunity();
           router.refresh();
         }}
       >

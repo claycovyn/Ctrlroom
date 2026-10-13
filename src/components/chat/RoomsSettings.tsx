@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useConfirm, usePrompt } from "@/components/Dialogs";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { slugify } from "@/lib/format";
-import { applyChange, applyPositions, byPosition, moveInList, nextPosition, POST_ROLE_LABEL } from "@/lib/rooms";
+import { applyChange, applyPositions, byPosition, moveInList, nextPosition, POST_ROLE_LABEL, renameSectionDialog } from "@/lib/rooms";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Room, RoomSection } from "@/lib/types";
 import { useCommunity } from "./CommunityContext";
@@ -291,15 +291,8 @@ export function RoomsSettings({ say }: { say: (msg: string, bad?: boolean) => vo
 }
 
 /** Settings → Rooms and the sidebar's section menu rename a section with the same dialog. */
-export function renameSectionDialog(current: string) {
-  return {
-    title: `Rename ${current}`,
-    label: "Section name",
-    defaultValue: current,
-    maxLength: 48,
-    confirmLabel: "Rename",
-  };
-}
+// Lives in src/lib/rooms.ts so the sidebar can use it without loading this whole settings screen.
+export { renameSectionDialog } from "@/lib/rooms";
 
 function IconButton({ label, onClick, disabled, danger, children }: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean; children: React.ReactNode }) {
   return (

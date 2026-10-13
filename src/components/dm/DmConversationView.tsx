@@ -15,6 +15,7 @@ import { WITH_ATTACHMENTS } from "@/lib/attachments";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { asRoomMessage, conversationName, MAX_GROUP, otherMembers, requestState, upsertDm, type DmMember, type DmMessage, type DmReaction } from "@/lib/dms";
 import { buildRows, summarizeReactions } from "@/lib/format";
+import { markPushMoment, nudgePush } from "@/lib/pushClient";
 import { play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Message, Profile } from "@/lib/types";
@@ -47,6 +48,16 @@ export function DmConversationView({ id }: { id: string }) {
   const [refetched, setRefetched] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
+  // When the list gets shorter (the keyboard opens, the composer grows) keep the newest message in view.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (nearBottom.current) el.scrollTop = el.scrollHeight;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const scrollRestore = useRef<number | null>(null);
 
   const flash = (msg: string) => {
@@ -192,6 +203,8 @@ export function DmConversationView({ id }: { id: string }) {
       return false;
     }
     play("sent");
+    nudgePush("", true);
+    markPushMoment();
     nearBottom.current = true;
     setMessages((list) => upsertDm(list, data as DmMessage));
     return true;

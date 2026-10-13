@@ -14,6 +14,7 @@ import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
 import { MenuIcon, TrashIcon } from "./icons";
 import { RoomsSettings } from "./RoomsSettings";
+import { NotificationSettings } from "@/components/push/NotificationSettings";
 import { SoundSettings } from "./SoundSettings";
 import { DmPrivacySettings } from "@/components/dm/DmPrivacySettings";
 
@@ -164,6 +165,7 @@ export function SettingsView({
             <ProfilePhoto profile={me} onChange={(url) => addProfiles([{ ...me, avatar_url: url }])} />
           </section>
 
+          <NotificationSettings userId={me.id} />
           <SoundSettings />
 
           <DmPrivacySettings />
