@@ -628,10 +628,11 @@ ${room.description}` : room.topic}
             <HeaderButton label="People" active={panel === "members"} onClick={() => setPanel(panel === "members" ? null : "members")}>
               <UsersIcon />
             </HeaderButton>
-            <label className="ml-1 flex items-center gap-1 rounded px-1.5 py-1 text-muted hover:bg-raised" title="Notifications for this room">
+            {/* Phones: just the bell (the picker opens on a tap), so the room's name has room in the header. */}
+            <label className="relative ml-1 flex items-center gap-1 rounded p-1.5 text-muted hover:bg-raised sm:px-1.5 sm:py-1" title="Notifications for this room">
               {notify === "none" ? <BellOffIcon /> : <BellIcon />}
               <select
-                className="cursor-pointer bg-transparent text-xs focus:outline-none"
+                className="absolute inset-0 cursor-pointer bg-transparent text-xs opacity-0 focus:outline-none sm:static sm:opacity-100"
                 value={notify}
                 onChange={(e) => setNotify(e.target.value as Unread["notify"])}
                 aria-label="Notifications for this room"

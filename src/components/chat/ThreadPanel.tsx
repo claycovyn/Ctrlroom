@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { buildRows, summarizeReactions } from "@/lib/format";
+import { useMemo, useRef, useState } from "react";
+import { buildRows, keepSameSummaries, summarizeReactions, type ReactionSummary } from "@/lib/format";
 import { atLeast, type Message, type Reaction } from "@/lib/types";
 import { useCommunity } from "./CommunityContext";
 import type { OutgoingAttachment } from "./attachments/useAttachmentDrafts";
@@ -36,7 +36,10 @@ export function ThreadPanel({
   const [closing, setClosing] = useState(false);
   const [outcome, setOutcome] = useState("");
   const [pin, setPin] = useState(true);
-  const summary = summarizeReactions(reactions, me.id);
+  // Stable per message (the rows are memoized), like the room's list.
+  const lastSummary = useRef<Map<string, ReactionSummary[]> | null>(null);
+  const summary = useMemo(() => (lastSummary.current = keepSameSummaries(lastSummary.current, summarizeReactions(reactions, me.id))), [reactions, me.id]);
+  const rowActions = useMemo(() => ({ ...actions, openThread: undefined }), [actions]);
   const canResolve = root.author_id === me.id || atLeast(role, "mod");
   const canModerate = atLeast(role, "mod");
 
@@ -74,7 +77,7 @@ export function ThreadPanel({
           reactions={summary.get(root.id)}
           me={me}
           canModerate={canModerate}
-          actions={{ ...actions, openThread: undefined }}
+          actions={rowActions}
         />
         {canResolve && !root.deleted_at && (
           <div className="px-4 pt-2">
@@ -130,7 +133,7 @@ export function ThreadPanel({
               reactions={summary.get(message.id)}
               me={me}
               canModerate={canModerate}
-              actions={{ ...actions, openThread: undefined }}
+              actions={rowActions}
             />
           ))
         )}
