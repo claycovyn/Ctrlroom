@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { swipeOutcome } from "@/lib/swipe";
+import { navSwipeTarget, swipeOutcome } from "@/lib/swipe";
 
 describe("swipeOutcome", () => {
   const size = 300;
@@ -20,5 +20,23 @@ describe("swipeOutcome", () => {
   });
   it("nothing dragged, nothing happens", () => {
     expect(swipeOutcome({ offset: 0, size, velocity: 3 })).toBe("stay");
+  });
+});
+
+describe("navSwipeTarget (phone rooms under the chat)", () => {
+  const span = 338;
+  it("closed: a third of the way or a flick opens the rooms", () => {
+    expect(navSwipeTarget({ open: false, x: 120, span, velocity: 0 })).toBe(true);
+    expect(navSwipeTarget({ open: false, x: 60, span, velocity: 0 })).toBe(false);
+    expect(navSwipeTarget({ open: false, x: 40, span, velocity: 0.9 })).toBe(true);
+  });
+  it("open: dragging the chat back a third, or flicking it left, closes them", () => {
+    expect(navSwipeTarget({ open: true, x: span - 120, span, velocity: 0 })).toBe(false);
+    expect(navSwipeTarget({ open: true, x: span - 60, span, velocity: 0 })).toBe(true);
+    expect(navSwipeTarget({ open: true, x: span - 40, span, velocity: -0.9 })).toBe(false);
+  });
+  it("turning back before letting go keeps where it started", () => {
+    expect(navSwipeTarget({ open: false, x: 250, span, velocity: -0.5 })).toBe(false);
+    expect(navSwipeTarget({ open: true, x: 60, span, velocity: 0.5 })).toBe(true);
   });
 });

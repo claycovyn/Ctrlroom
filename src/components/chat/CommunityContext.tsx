@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { syncFromServer } from "@/lib/rooms";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -26,11 +26,30 @@ export interface CommunityCtx {
   ensureProfiles: (ids: string[]) => void;
   addProfiles: (list: Profile[]) => void;
   livekit: boolean;
-  navOpen: boolean;
+  /** Phones: show the rooms (slide the chat away) or the chat. Stable. Read the state with useNavOpen(). */
   setNavOpen: (open: boolean) => void;
 }
 
 const Ctx = createContext<CommunityCtx | null>(null);
+// Its own context: opening the rooms on a phone must re-render the stage, not every message on screen.
+const NavCtx = createContext(false);
+
+/** Whether the phone navigation (rooms) is showing. Only ChatStage needs this. */
+export function useNavOpen(): boolean {
+  return useContext(NavCtx);
+}
+
+// Switching communities from the rail on a phone keeps the rooms showing in the new community (its provider is a new
+// one, so the choice rides over in this flag).
+let carryNavOpen = false;
+export function keepNavOpenForNextCommunity(): void {
+  carryNavOpen = true;
+}
+function takeNavOpen(): boolean {
+  // Cleared after this turn, not at once: Strict Mode calls state initialisers twice.
+  if (carryNavOpen) setTimeout(() => (carryNavOpen = false), 0);
+  return carryNavOpen;
+}
 
 export function useCommunity(): CommunityCtx {
   const v = useContext(Ctx);
@@ -105,7 +124,7 @@ export function CommunityProvider({
   }, [community.id]);
   const [unreads, setUnreads] = useState<Record<string, Unread>>({});
   const [profiles, setProfiles] = useState<Record<string, Profile>>({ [me.id]: me });
-  const [navOpen, setNavOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(takeNavOpen);
   const currentRoomId = useRef<string | null>(null);
   const known = useRef(new Set<string>([me.id]));
   const pending = useRef(new Set<string>());
@@ -165,31 +184,34 @@ export function CommunityProvider({
     [me.id],
   );
 
+  // One value object per real change, so context consumers don't all re-render whenever this provider does.
+  const value = useMemo(
+    () => ({
+      me,
+      role,
+      community,
+      communities,
+      rooms,
+      setRooms,
+      sections,
+      setSections,
+      pins,
+      togglePin,
+      unreads,
+      setUnreads,
+      currentRoomId,
+      profiles,
+      ensureProfiles,
+      addProfiles,
+      livekit,
+      setNavOpen,
+    }),
+    [me, role, community, communities, rooms, sections, pins, togglePin, unreads, profiles, ensureProfiles, addProfiles, livekit],
+  );
+
   return (
-    <Ctx.Provider
-      value={{
-        me,
-        role,
-        community,
-        communities,
-        rooms,
-        setRooms,
-        sections,
-        setSections,
-        pins,
-        togglePin,
-        unreads,
-        setUnreads,
-        currentRoomId,
-        profiles,
-        ensureProfiles,
-        addProfiles,
-        livekit,
-        navOpen,
-        setNavOpen,
-      }}
-    >
-      {children}
+    <Ctx.Provider value={value}>
+      <NavCtx.Provider value={navOpen}>{children}</NavCtx.Provider>
     </Ctx.Provider>
   );
 }

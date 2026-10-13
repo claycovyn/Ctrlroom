@@ -24,3 +24,12 @@ export function swipeOutcome({ offset, size, velocity }: SwipeSample): "dismiss"
   const projected = offset + Math.max(0, velocity) * 120;
   return projected >= size * DISMISS_FRACTION ? "dismiss" : "stay";
 }
+
+/**
+ * The phone navigation (src/components/chat/ChatStage.tsx): where the chat settles after a drag. `x` is how far it's
+ * slid right (0 = covering the rooms, `span` = open), `velocity` px/ms to the right. True = the rooms show.
+ */
+export function navSwipeTarget({ open, x, span, velocity }: { open: boolean; x: number; span: number; velocity: number }): boolean {
+  if (!open) return swipeOutcome({ offset: x, size: span, velocity }) === "dismiss";
+  return swipeOutcome({ offset: span - x, size: span, velocity: -velocity }) !== "dismiss";
+}

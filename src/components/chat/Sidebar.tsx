@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { usePrompt } from "@/components/Dialogs";
 import { LogoMark } from "@/components/Logo";
@@ -16,11 +16,11 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
 import type { NewRoom } from "./AddRoomDialog";
 import { NotificationsButton } from "./NotificationsButton";
-import { navigateWithTransition, prefetchRoute } from "./roomNav";
+import { lastRoom, navigateWithTransition, prefetchRoute } from "./roomNav";
 
 import { useOptionalDm } from "@/components/dm/DmContext";
 import { badgeLabel } from "@/lib/dms";
-import { useCommunity } from "./CommunityContext";
+import { keepNavOpenForNextCommunity, useCommunity } from "./CommunityContext";
 import { BellIcon, ChatsIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SearchIcon, SettingsIcon, UserPlusIcon } from "./icons";
 import { OPEN_PANEL } from "./roomNav";
 import { HeadsetIcon } from "./icons";
@@ -36,7 +36,7 @@ export function Sidebar() {
   const ctx = useCommunity();
   const presence = usePresence();
   const myStatus = presence ? (presence.manual === "invisible" ? "Appear offline" : presence.statusOf(ctx.me.id).label) : null;
-  const { me, role, community, communities, rooms, setRooms, sections, setSections, pins, togglePin, unreads, setUnreads, currentRoomId, navOpen, setNavOpen } = ctx;
+  const { me, role, community, communities, rooms, setRooms, sections, setSections, pins, togglePin, unreads, setUnreads, currentRoomId, setNavOpen } = ctx;
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = atLeast(role, "admin");
@@ -90,7 +90,27 @@ export function Sidebar() {
       });
   }, [community.id, currentRoomId, setUnreads]);
 
-  useEffect(() => setNavOpen(false), [pathname, setNavOpen]);
+  // Going somewhere else shows it (the chat slides back over the rooms on a phone). Not on mount: a community opened
+  // from the rail on a phone keeps the rooms showing.
+  const shownPath = useRef(pathname);
+  useEffect(() => {
+    if (shownPath.current === pathname) return;
+    shownPath.current = pathname;
+    setNavOpen(false);
+  }, [pathname, setNavOpen]);
+
+  /** Phones: another community from the rail opens its rooms (over its last room, when there is one), like a native app. */
+  const communityHref = (slug: string) => {
+    const last = lastRoom(slug);
+    return last ? `/c/${slug}/${last}` : `/c/${slug}`;
+  };
+  const openCommunity = (e: React.MouseEvent<HTMLAnchorElement>, slug: string) => {
+    if (slug === community.slug || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+    e.preventDefault();
+    keepNavOpenForNextCommunity();
+    router.push(communityHref(slug));
+  };
 
   const notify = (title: string, body: string, url: string) => {
     // With push on for this device the system notification comes from the service worker instead.
@@ -204,9 +224,7 @@ export function Sidebar() {
     <>
       {/* Tablets in portrait without the md layout never get here; on phones ChatStage puts this under the chat. */}
       <aside
-        className={`cr-drawer cr-chrome fixed inset-y-0 left-0 z-40 flex w-[min(19rem,88vw)] shrink-0 border-r border-line bg-panel md:static md:w-[19rem] md:translate-x-0 ${
-          navOpen ? "translate-x-0 shadow-2xl md:shadow-none" : "-translate-x-full"
-        }`}
+        className="cr-drawer cr-chrome fixed inset-y-0 left-0 z-40 flex w-[min(19rem,88vw)] shrink-0 border-r border-line bg-panel md:static md:w-[19rem]"
       >
         {/* community rail */}
         <nav className="scroll-thin flex w-16 shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-line bg-bg py-3" aria-label="Communities">
@@ -234,6 +252,8 @@ export function Sidebar() {
             <Link
               key={c.id}
               href={`/c/${c.slug}`}
+              onClick={(e) => openCommunity(e, c.slug)}
+              onTouchStart={() => c.id !== community.id && prefetchRoute(router, communityHref(c.slug))}
               title={c.name}
               aria-current={c.id === community.id && !inDm ? "page" : undefined}
               className={`rounded-xl transition-colors ${
@@ -429,7 +449,15 @@ export function Sidebar() {
                 href={`/c/${community.slug}/${r.slug}`}
                 onPointerEnter={() => prefetchRoute(router, `/c/${community.slug}/${r.slug}`)}
                 onTouchStart={() => prefetchRoute(router, `/c/${community.slug}/${r.slug}`)}
-                onClick={(e) => navigateWithTransition(e, router, `/c/${community.slug}/${r.slug}`)}
+                onClick={(e) => {
+                  // The room you're in: just show it again (a phone with the rooms showing).
+                  if (active && !e.metaKey && !e.ctrlKey && !e.shiftKey) {
+                    e.preventDefault();
+                    setNavOpen(false);
+                    return;
+                  }
+                  navigateWithTransition(e, router, `/c/${community.slug}/${r.slug}`);
+                }}
                 className={`flex min-w-0 flex-1 items-center gap-2 rounded-md py-2 pl-2 pr-8 text-sm md:py-1.5 ${
                   active ? "bg-raised font-medium text-fg" : bold ? "font-semibold text-fg hover:bg-raised" : "text-muted hover:bg-raised hover:text-fg"
                 } ${u?.notify === "none" && !active ? "opacity-60" : ""}`}

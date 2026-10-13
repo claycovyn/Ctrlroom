@@ -29,6 +29,9 @@ export function navigateWithTransition(e: React.MouseEvent<HTMLAnchorElement>, r
   const doc = document as Document & { startViewTransition?: (cb: () => Promise<void>) => { finished: Promise<void> } };
   if (!doc.startViewTransition || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  // Phones: the chat slides back over the rooms instead. A view transition would freeze the screen (a snapshot) while
+  // the room loads and then crossfade before that slide could start.
+  if (window.matchMedia("(max-width: 767px)").matches) return;
   if (location.pathname === href) return;
   e.preventDefault();
   const root = document.documentElement;

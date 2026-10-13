@@ -496,8 +496,25 @@ html.cr-kb .cr-sheet {
     inset: 0;
     z-index: 10;
     background: rgb(var(--bg));
-    transition: transform 380ms var(--cr-spring), box-shadow 380ms var(--cr-spring);
+    transition: transform 380ms var(--cr-spring);
     touch-action: pan-y;
+    /* Always its own layer on phones: promoting it when a drag starts (and dropping it after) repaints the whole
+       room each time. */
+    will-change: transform;
+    /* The edge and shadow are always there (off screen while it covers the rooms): changing or animating a shadow
+       repaints the whole room on every frame. */
+    box-shadow: -1px 0 0 rgb(var(--line)), -16px 0 40px rgb(0 0 0 / 0.35);
+  }
+  /* Covered rooms aren't rendered, focusable or read out. content-visibility (not inert or visibility) because it's
+     cheap to flip: those restyle every element under them, and it keeps the rooms' layout for when they show again.
+     ChatStage sets [data-moving] while the chat moves or settles. */
+  .cr-stage-row[data-nav="closed"]:not([data-moving]) > .cr-nav {
+    content-visibility: hidden;
+  }
+  @supports not (content-visibility: hidden) {
+    .cr-stage-row[data-nav="closed"]:not([data-moving]) > .cr-nav {
+      visibility: hidden;
+    }
   }
   .cr-stage .overflow-y-auto,
   .cr-stage .overflow-auto {
@@ -505,19 +522,20 @@ html.cr-kb .cr-sheet {
   }
   .cr-stage-row[data-nav="open"] .cr-stage {
     transform: translateX(calc(100% - var(--cr-peek)));
-    box-shadow: -1px 0 0 rgb(var(--line)), -16px 0 40px rgb(0 0 0 / 0.35);
-    border-radius: 12px 0 0 12px;
-    overflow: hidden;
+    /* No rounded corner (border-radius + overflow: hidden) here: clipping the moving layer makes the browser
+       re-render all of it as the slide starts, and the first two thirds of the slide never reach the screen. */
   }
   .cr-stage[data-dragging] {
     transition: none;
-    box-shadow: -1px 0 0 rgb(var(--line)), -16px 0 40px rgb(0 0 0 / 0.35);
   }
+  /* Its own layer, so the dim over the chat doesn't repaint the chat. */
   .cr-peek {
     position: absolute;
     inset: 0;
     z-index: 40;
     background: rgb(var(--bg) / 0.15);
+    will-change: opacity;
+    animation: cr-fade 380ms var(--cr-spring);
   }
   /* The old overlay drawer's backdrop isn't used on phones any more. */
   .cr-scrim {

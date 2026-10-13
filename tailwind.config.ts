@@ -22,4 +22,8 @@ export default {
     },
   },
   plugins: [],
+  // Tailwind's --tw-* defaults go only on elements that use transforms, rings, shadows, filters and the like, not on
+  // every element and its ::before/::after. On phones that made each restyle (opening the rooms, a room switch) about
+  // a third slower.
+  experimental: { optimizeUniversalDefaults: true },
 } satisfies Config;
