@@ -88,8 +88,10 @@ admin email before giving anyone else access, so nobody else can claim it.
 
 ## Setup checklist for the hosted deployment
 
-`scripts/setup-cloud.sh` does steps 1, 2 and 4 (plus Supabase Auth's site URL, redirects and Resend SMTP) from your
-machine; run it with `DRY_RUN=1` first.
+`scripts/setup-cloud.sh` does steps 1, 2 and 4 (plus Supabase Auth's site URL, redirects, Resend SMTP and the auth
+email templates) from your machine; run it with `DRY_RUN=1` first. The auth emails (confirm sign-up, sign-in link,
+reset password, change email, invite) are `supabase/templates/*.html`; `supabase/config.toml` uses the same files
+locally. After editing one, run the script again to update the hosted project.
 
 1. Apply the migrations: `npx supabase db push` (`0003_cloud.sql` adds everything above).
 2. In Vercel set `SUPABASE_SERVICE_ROLE_KEY`, `CTRLROOM_ADMIN_EMAILS`, `RESEND_API_KEY`, `CTRLROOM_EMAIL_FROM`,

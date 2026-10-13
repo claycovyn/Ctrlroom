@@ -69,23 +69,44 @@ step "Supabase: link and apply migrations (0001 init, 0002 AI helpers, 0003 Clou
 run npx --yes supabase link --project-ref "$REF"
 run npx --yes supabase db push
 
-step "Supabase Auth: site URL, redirects, confirm email, send through Resend"
+step "Supabase Auth: site URL, redirects, confirm email, send through Resend, branded emails"
 # Supabase's built-in mailer only sends a few emails an hour, so production auth mail goes through Resend's SMTP.
+# The email templates are supabase/templates/*.html, the same files and subjects supabase/config.toml uses locally.
 FROM_ADDR="$(sed -E 's/.*<([^>]+)>.*/\1/' <<<"$EMAIL_FROM")"
 FROM_NAME="$(sed -E 's/^"?([^"<]*[^ "<])"? *<.*/\1/' <<<"$EMAIL_FROM")"
+T=supabase/templates
+for t in confirmation magic_link recovery email_change invite; do
+  [ -s "$T/$t.html" ] || { echo "Missing $T/$t.html." >&2; exit 1; }
+done
 AUTH_JSON="$(jq -n \
   --arg site "$SITE_URL" --arg redirects "$SITE_URL/auth/callback,$SITE_URL/**" \
-  --arg pass "$RESEND_API_KEY" --arg from "$FROM_ADDR" --arg name "$FROM_NAME" '{
+  --arg pass "$RESEND_API_KEY" --arg from "$FROM_ADDR" --arg name "$FROM_NAME" \
+  --rawfile confirmation "$T/confirmation.html" --rawfile magic_link "$T/magic_link.html" \
+  --rawfile recovery "$T/recovery.html" --rawfile email_change "$T/email_change.html" \
+  --rawfile invite "$T/invite.html" --arg invite_subject "You're invited to Ctrl Room" '{
     site_url: $site,
     uri_allow_list: $redirects,
     mailer_autoconfirm: false,
     external_email_enabled: true,
     smtp_host: "smtp.resend.com", smtp_port: "465", smtp_user: "resend", smtp_pass: $pass,
     smtp_admin_email: $from, smtp_sender_name: $name,
-    rate_limit_email_sent: 100
+    rate_limit_email_sent: 100,
+    mailer_subjects_confirmation: "Confirm your Ctrl Room email",
+    mailer_templates_confirmation_content: $confirmation,
+    mailer_subjects_magic_link: "Your Ctrl Room sign-in link",
+    mailer_templates_magic_link_content: $magic_link,
+    mailer_subjects_recovery: "Reset your Ctrl Room password",
+    mailer_templates_recovery_content: $recovery,
+    mailer_subjects_email_change: "Confirm your new Ctrl Room email",
+    mailer_templates_email_change_content: $email_change,
+    mailer_subjects_invite: $invite_subject,
+    mailer_templates_invite_content: $invite
   }')"
+if [ -n "$DRY" ]; then
+  jq -r 'to_entries[] | select(.key | startswith("mailer_")) | "DRY: auth \(.key) (\(.value | tostring | length) chars)"' <<<"$AUTH_JSON" >&2
+fi
 supa PATCH /config/auth "$AUTH_JSON" >/dev/null
-echo "Auth configured: confirm email on, mail from $FROM_ADDR"
+echo "Auth configured: confirm email on, mail from $FROM_ADDR, branded emails from $T"
 
 step "Vercel: link project $PROJECT"
 run vercel link --yes --project "$PROJECT" "${SCOPE[@]}"

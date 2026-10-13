@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Confirm your email</title>
+<style>
+  body { margin: 0; padding: 0; }
+  a { color: #121214; }
+  @media (max-width: 620px) {
+    .cr-pad { padding-left: 24px !important; padding-right: 24px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    .cr-bg { background-color: #060607 !important; }
+    .cr-card { background-color: #0e0e10 !important; border-color: #28282c !important; }
+    .cr-fg { color: #eeeef0 !important; }
+    .cr-muted { color: #8c8c94 !important; }
+    .cr-rule, .cr-head { border-color: #28282c !important; }
+    .cr-btn { background-color: #ececee !important; }
+    .cr-btn a { color: #060607 !important; }
+    .cr-link { color: #eeeef0 !important; }
+  }
+</style>
+</head>
+<body class="cr-bg" style="margin:0; padding:0; background-color:#f7f7f6;">
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#f7f7f6;">One click to finish signing up.</div>
+<table role="presentation" class="cr-bg" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f7f7f6" style="background-color:#f7f7f6;">
+  <tr>
+    <td align="center" style="padding:32px 12px;">
+      <table role="presentation" class="cr-card" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px; background-color:#ffffff; border:1px solid #dededc; border-radius:12px; border-collapse:separate; overflow:hidden;">
+        <tr>
+          <td bgcolor="#060607" class="cr-pad cr-head" style="background-color:#060607; padding:24px 40px; border-radius:11px 11px 0 0; border-bottom:1px solid #060607;">
+            <a href="{{ .SiteURL }}" style="text-decoration:none;"><img src="{{ .SiteURL }}/brand/ctrlroom-lockup-on-dark.png" width="206" height="40" alt="Ctrl Room" style="display:block; border:0; outline:none; width:206px; height:40px; color:#eeeef0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size:18px; font-weight:600;"></a>
+          </td>
+        </tr>
+        <tr>
+          <td class="cr-pad" style="padding:36px 40px 8px 40px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;">
+            <h1 class="cr-fg" style="margin:0 0 12px 0; font-size:22px; line-height:30px; font-weight:600; color:#0c0c0d;">Confirm your email</h1>
+            <p class="cr-fg" style="margin:0 0 28px 0; font-size:16px; line-height:24px; color:#0c0c0d;">Confirm {{ .Email }} to finish signing up for Ctrl Room.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td class="cr-btn" align="center" bgcolor="#121214" style="background-color:#121214; border-radius:8px;">
+                  <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block; padding:13px 26px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size:16px; line-height:20px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:8px;">Confirm email</a>
+                </td>
+              </tr>
+            </table>
+            <p class="cr-muted" style="margin:28px 0 0 0; font-size:14px; line-height:21px; color:#64646a;">If you didn't sign up, you can ignore this.</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="cr-pad" style="padding:24px 40px 32px 40px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td class="cr-rule" style="border-top:1px solid #dededc; padding-top:20px;">
+                  <p class="cr-muted" style="margin:0 0 6px 0; font-size:13px; line-height:19px; color:#64646a;">Button not working? Paste this link into your browser:</p>
+                  <p style="margin:0; font-size:13px; line-height:19px; word-break:break-all;"><a class="cr-link" href="{{ .ConfirmationURL }}" style="color:#121214; text-decoration:underline;">{{ .ConfirmationURL }}</a></p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+        <tr>
+          <td align="center" class="cr-muted" style="padding:20px 12px 0 12px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif; font-size:12px; line-height:18px; color:#64646a;">
+            Ctrl Room, an OPENCTRL Original
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
