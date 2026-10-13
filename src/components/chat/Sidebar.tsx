@@ -9,6 +9,7 @@ import { LogoMark } from "@/components/Logo";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { useBroadcast } from "@/lib/realtime";
 import { applyChange, nextPosition, readCollapsed, sidebarLayout, writeCollapsed } from "@/lib/rooms";
+import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
 import { AddRoomDialog, type NewRoom } from "./AddRoomDialog";
@@ -57,6 +58,7 @@ export function Sidebar() {
 
   useEffect(() => {
     setAlerts(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+    installSoundUnlock();
   }, []);
 
   useEffect(() => {
@@ -85,7 +87,11 @@ export function Sidebar() {
 
   useBroadcast(`community:${community.id}`, {
     activity: (p: { room_id: string; author_id: string; thread: boolean }) => {
-      if (p.author_id === me.id || p.room_id === currentRoomId.current || p.thread) return;
+      if (p.author_id === me.id || p.thread) return;
+      // A short wait lets a mention chime for the same message (user topic) land first; soundAllowed skips the tap.
+      const roomNotify = unreads[p.room_id]?.notify ?? "mentions";
+      setTimeout(() => play("message", { roomNotify, roomId: p.room_id, viewingRoomId: currentRoomId.current }), 300);
+      if (p.room_id === currentRoomId.current) return;
       setUnreads((u) => {
         const cur = u[p.room_id] ?? { room_id: p.room_id, unread: 0, mentions: 0, notify: "mentions" as const };
         if (cur.notify === "all" && document.hidden) {
@@ -107,6 +113,8 @@ export function Sidebar() {
       window.dispatchEvent(new CustomEvent("ctrlroom:join-requests"));
     },
     mention: (p: { kind: string; room_id: string; community_id: string; author: string; preview: string }) => {
+      // The user topic carries mentions from every community; the room's mute setting is only known for this one.
+      play("mention", { roomNotify: p.community_id === community.id ? (unreads[p.room_id]?.notify ?? "mentions") : undefined });
       if (p.community_id === community.id && p.room_id !== currentRoomId.current) {
         setUnreads((u) => {
           const cur = u[p.room_id] ?? { room_id: p.room_id, unread: 0, mentions: 0, notify: "mentions" as const };

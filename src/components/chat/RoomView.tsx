@@ -6,6 +6,7 @@ import { cloudErrorText } from "@/lib/cloudErrors";
 import { buildRows, summarizeReactions, upsertMessage } from "@/lib/format";
 import { useBroadcast } from "@/lib/realtime";
 import { POST_ROLE_LABEL } from "@/lib/rooms";
+import { play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type BoardItem, type CatchUp, type Message, type Profile, type Reaction, type Room, type Unread, type AgentJob } from "@/lib/types";
 import { BoardPanel } from "./BoardPanel";
@@ -290,6 +291,7 @@ export function RoomView({
       return false;
     }
     const m = data as Message;
+    play("sent");
     nearBottom.current = true;
     if (BOT_MENTION.test(body)) {
       fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId: m.id }) }).catch(() => {});

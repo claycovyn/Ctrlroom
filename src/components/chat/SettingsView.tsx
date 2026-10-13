@@ -14,6 +14,7 @@ import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
 import { MenuIcon, TrashIcon } from "./icons";
 import { RoomsSettings } from "./RoomsSettings";
+import { SoundSettings } from "./SoundSettings";
 
 interface Invite {
   code: string;
@@ -161,6 +162,8 @@ export function SettingsView({
             <p className="mb-4 text-sm text-muted">Shows next to your name in every community.</p>
             <ProfilePhoto profile={me} onChange={(url) => addProfiles([{ ...me, avatar_url: url }])} />
           </section>
+
+          <SoundSettings />
 
           {isMod && (
             <section id="invites" className="card p-5">

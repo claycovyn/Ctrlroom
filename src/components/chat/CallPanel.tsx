@@ -1,8 +1,10 @@
 "use client";
 
 import "@livekit/components-styles";
-import { LiveKitRoom, VideoConference } from "@livekit/components-react";
-import { useState } from "react";
+import { LiveKitRoom, VideoConference, useRoomContext } from "@livekit/components-react";
+import { RoomEvent, Track, type Participant, type TrackPublication } from "livekit-client";
+import { useEffect, useState } from "react";
+import { play } from "@/lib/sounds";
 import { PhoneIcon } from "./icons";
 
 export default function CallPanel({ roomId, roomName, enabled }: { roomId: string; roomName: string; enabled: boolean }) {
@@ -57,12 +59,42 @@ export default function CallPanel({ roomId, roomName, enabled }: { roomId: strin
         connect
         audio
         video={startVideo}
-        onDisconnected={() => setConn(null)}
+        onConnected={() => play("call-join")}
+        onDisconnected={() => {
+          play("call-leave");
+          setConn(null);
+        }}
         onError={(e) => setError(e.message)}
         style={{ height: "100%" }}
       >
+        <CallSounds />
         <VideoConference />
       </LiveKitRoom>
     </div>
   );
+}
+
+/** Join / leave chimes for other people, and the mic mute / unmute clicks for you. */
+function CallSounds() {
+  const room = useRoomContext();
+  useEffect(() => {
+    const joined = () => play("call-join");
+    const left = () => play("call-leave");
+    const mic = (sound: "mute" | "unmute") => (pub: TrackPublication, who: Participant) => {
+      if (who === room.localParticipant && pub.source === Track.Source.Microphone) play(sound);
+    };
+    const muted = mic("mute");
+    const unmuted = mic("unmute");
+    room.on(RoomEvent.ParticipantConnected, joined);
+    room.on(RoomEvent.ParticipantDisconnected, left);
+    room.on(RoomEvent.TrackMuted, muted);
+    room.on(RoomEvent.TrackUnmuted, unmuted);
+    return () => {
+      room.off(RoomEvent.ParticipantConnected, joined);
+      room.off(RoomEvent.ParticipantDisconnected, left);
+      room.off(RoomEvent.TrackMuted, muted);
+      room.off(RoomEvent.TrackUnmuted, unmuted);
+    };
+  }, [room]);
+  return null;
 }

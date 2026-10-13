@@ -21,6 +21,18 @@ Use the bell menu in a room's header:
 
 Choose **Turn on desktop alerts** at the bottom of the sidebar and allow notifications in your browser. Mention and reply alerts show when you're in another tab or another room. Click one to jump to the room.
 
+## Sounds
+
+Ctrl Room plays short sounds once you've clicked or typed on the page:
+
+- **Messages**: a soft tap for a new message in a room set to **Everything**, when you're in another room or tab.
+- **Mentions & replies**: a chime when someone @mentions you or replies to you, unless the room is muted.
+- **Calls**: when you or someone else joins or leaves your call.
+- **Mic**: when you mute or unmute in a call.
+- **Sent**: a tick when your message goes out. Off unless you turn it on.
+
+Turn them off, set the volume, or switch each type on and off in **Settings → Sounds**, with a **Play** button to hear each one. Sound settings are saved on the device you set them on.
+
 ## While you were gone
 
 When you open a room with messages you haven't read, a recap appears at the top:
