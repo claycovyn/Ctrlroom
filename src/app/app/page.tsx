@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { CommunityIcon } from "@/components/CommunityMedia";
@@ -12,6 +13,7 @@ import { UsageCard } from "@/components/cloud/UsageCard";
 import { cloudEnabled } from "@/lib/cloud";
 import { loadMyCloud } from "@/lib/cloudStatus";
 import { isConfigured } from "@/lib/env";
+import { LAST_PLACE_COOKIE, launchTarget } from "@/lib/lastPlace";
 import { currentUser } from "@/lib/supabase/server";
 import type { Community, Profile, Role } from "@/lib/types";
 import { CreateCommunityForm, JoinCommunityForm } from "./HomeForms";
@@ -19,9 +21,14 @@ import { LaunchRedirect } from "./LaunchRedirect";
 
 export const metadata: Metadata = { title: "Your communities" };
 
-export default async function AppHome({ searchParams }: { searchParams: Promise<{ done?: string }> }) {
+export default async function AppHome({ searchParams }: { searchParams: Promise<{ done?: string; launch?: string }> }) {
   if (!isConfigured()) return <NotConfigured />;
-  const { done } = await searchParams;
+  const { done, launch } = await searchParams;
+  // Opening the Home Screen app on a phone: straight back to the last room, before rendering this list (the room
+  // checks you're signed in and a member). LaunchRedirect still covers a browser without the cookie.
+  const [jar, head] = await Promise.all([cookies(), headers()]);
+  const target = launchTarget({ launch, userAgent: head.get("user-agent"), cookie: jar.get(LAST_PLACE_COOKIE)?.value });
+  if (target) redirect(target);
   const { supabase, user } = await currentUser();
   if (!user) redirect("/login");
 

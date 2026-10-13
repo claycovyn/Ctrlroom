@@ -1,6 +1,7 @@
 "use client";
 
 import type { useRouter } from "next/navigation";
+import { lastPlaceCookie, validPlace } from "@/lib/lastPlace";
 
 type Router = ReturnType<typeof useRouter>;
 
@@ -65,6 +66,13 @@ export function rememberRoom(communitySlug: string, roomSlug: string): void {
   } catch {
     // storage blocked
   }
+  // The server reads this on a Home Screen launch (src/app/app/page.tsx) and goes straight to the room.
+  try {
+    const place = validPlace(`/c/${communitySlug}/${roomSlug}`);
+    if (place) document.cookie = lastPlaceCookie(place, location.protocol === "https:");
+  } catch {
+    // cookies blocked
+  }
 }
 
 export function lastRoom(communitySlug: string): string | null {
@@ -77,8 +85,7 @@ export function lastRoom(communitySlug: string): string | null {
 
 export function lastPlace(): string | null {
   try {
-    const v = localStorage.getItem("ctrlroom:last-place");
-    return v && /^\/c\/[a-z0-9-]+(\/[a-z0-9-]+)?$/.test(v) ? v : null;
+    return validPlace(localStorage.getItem("ctrlroom:last-place"));
   } catch {
     return null;
   }
