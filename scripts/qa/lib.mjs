@@ -94,6 +94,8 @@ export async function syntheticDrag(page, points, { frame = 16, target = null } 
         }
       };
       touch("touchstart", x0, y0);
+      // A finger going down also enters what it lands on (React's onPointerEnter comes from pointerover).
+      el.dispatchEvent(new PointerEvent("pointerover", opts(x0, y0)));
       el.dispatchEvent(new PointerEvent("pointerdown", opts(x0, y0)));
       for (const [x, y] of points.slice(1)) {
         await sleep(frame);

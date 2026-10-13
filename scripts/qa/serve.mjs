@@ -30,7 +30,9 @@ export function startServer(port = 3299) {
       file = path.join(DIST, "index.html");
       body = await readFile(file);
     }
-    res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] ?? "application/octet-stream", "Cache-Control": "no-store" });
+    // Scripts and styles cache like Next's hashed /_next/static files (each Playwright run is a fresh profile).
+    const cache = /\.(js|css|png|wav)$/.test(file) ? "public, max-age=31536000, immutable" : "no-store";
+    res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] ?? "application/octet-stream", "Cache-Control": cache });
     res.end(body);
   });
   return new Promise((ok) => server.listen(port, "127.0.0.1", () => ok(server)));
