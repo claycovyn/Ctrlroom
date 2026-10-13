@@ -1,9 +1,12 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { PASSWORD_MIN } from "@/lib/authLinks";
 import { siteUrl } from "@/lib/env";
+import { link } from "@/lib/openctrlBridge";
+import { LINK_COOKIE, openCookie, openctrlConfig } from "@/lib/openctrlLogin";
 import { safeNext } from "@/lib/safeNext";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -32,9 +35,29 @@ export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
   const parsed = signInSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const supabase = await supabaseServer();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: "That email and password don't match." };
+  await finishOpenctrlLink(data.user?.id, data.user?.email);
   redirect(safeNext(form.get("next")));
+}
+
+/**
+ * Came from "Continue with OpenCtrl" with an email that already had an account here: the password proves it's theirs,
+ * so connect the two now. Never blocks signing in.
+ */
+async function finishOpenctrlLink(userId: string | undefined, email: string | undefined) {
+  const config = openctrlConfig();
+  const jar = await cookies();
+  const raw = jar.get(LINK_COOKIE)?.value;
+  if (!config || !raw || !userId || !email) return;
+  jar.delete(LINK_COOKIE);
+  const pending = openCookie<{ sub: string; email: string }>(config.clientSecret, "oc-link", raw);
+  if (!pending || pending.email !== email.toLowerCase()) return;
+  try {
+    await link(userId, pending.sub);
+  } catch (e) {
+    console.error("[openctrl] link after password sign-in:", e instanceof Error ? e.message : e);
+  }
 }
 
 export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {

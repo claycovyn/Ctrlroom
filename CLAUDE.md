@@ -16,7 +16,26 @@ TypeScript, Tailwind, Supabase (Postgres + Auth + Realtime), LiveKit.
   `0003_cloud.sql`).
 - New schema goes in a new numbered migration; never edit an applied one. Add SQL tests for every rule.
 - The service-role client (`src/lib/supabase/admin.ts`) is only for operator work (Cloud sync, webhook metering,
-  notices, `/admin`) and the AI helpers' bot work, never to read or write on behalf of a signed-in person.
+  notices, `/admin`), the AI helpers' bot work and the OpenCtrl sign-in bridge (below), never to read or write a
+  person's data on their behalf.
+
+## Continue with OpenCtrl (OIDC)
+- Off unless `OPENCTRL_CLIENT_ID` + `OPENCTRL_CLIENT_SECRET` are set (`OPENCTRL_ISSUER` defaults to https://openctrl.app).
+  Redirect URI to register on OpenCtrl: `<site>/auth/openctrl/callback`.
+- Supabase Auth can't use OpenCtrl as a provider, so `src/lib/openctrlBridge.ts` bridges it: after the ID token checks
+  out (`src/lib/openctrlLogin.ts`), the server gets a one-time magic-link token from `auth.admin.generateLink` (no
+  email is sent) and redeems it with `verifyOtp` into the normal session cookies. This is the one auth use of the
+  service-role client; it touches only `openctrl_links`, `openctrl_account_by_email` (0017) and the Auth admin API.
+- Links by email only when both OpenCtrl and Supabase confirmed it; otherwise the person signs in with their password
+  once (`login/actions.ts` finishes the link). New accounts need an email OpenCtrl confirmed.
+
+## Continue with Google
+- Supabase Auth's own Google provider: `/auth/google/start` calls `signInWithOAuth` with
+  `redirectTo: <site>/auth/callback?via=google&next=…`; the callback exchanges the PKCE code. No service role.
+- Button shows only when `CTRLROOM_GOOGLE_SIGNIN=1` (the app can't see Supabase's provider config). Redirect URI to
+  register on the Google OAuth client: `https://<project-ref>.supabase.co/auth/v1/callback`.
+- Sign-in and sign-up share `src/app/login/ProviderButtons.tsx`; order and visibility live in
+  `src/lib/signinProviders.ts`: OpenCtrl, then Google, then one "or with email" divider. Neither set up = email only.
 
 ## OpenCtrl Cloud (build plan 7.1–7.2) — guide: `docs/CLOUD.md`
 - Limits come from `openctrl.json` → `cloud` via the vendored kit (`src/lib/mcp-kit/`, MIT, don't edit it here;

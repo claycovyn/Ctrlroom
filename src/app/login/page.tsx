@@ -7,9 +7,12 @@ import { Logo } from "@/components/Logo";
 import { NotConfigured } from "@/components/NotConfigured";
 import { LINK_ERRORS } from "@/lib/authLinks";
 import { isConfigured } from "@/lib/env";
+import { openctrlEnabled } from "@/lib/openctrlLogin";
 import { safeNext } from "@/lib/safeNext";
+import { googleSigninEnabled, providerView } from "@/lib/signinProviders";
 import { currentUser } from "@/lib/supabase/server";
 import { AuthForm } from "./AuthForm";
+import { ProviderButtons } from "./ProviderButtons";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -38,6 +41,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               {problem}
             </p>
           )}
+          <ProviderButtons
+            view={providerView({ openctrl: openctrlEnabled(), google: googleSigninEnabled() }, { openctrl: sp.openctrl, google: sp.google })}
+            next={next}
+          />
           <AuthForm mode={mode} next={next} />
         </div>
       </div>

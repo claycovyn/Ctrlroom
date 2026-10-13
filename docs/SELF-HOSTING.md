@@ -24,6 +24,12 @@ limits in `openctrl.json` only apply when `CTRLROOM_CLOUD=1`, which only the hos
 
 - `/admin` (reports, takedowns): set `SUPABASE_SERVICE_ROLE_KEY` (server only) and `CTRLROOM_ADMIN_EMAILS`.
 - Export: owners and admins can download a community from Settings → Export on any install.
+- Continue with Google: in Google Cloud, create an OAuth client (Web application) whose authorized redirect URI is
+  `https://<project-ref>.supabase.co/auth/v1/callback`; put its client ID and secret in Supabase → Authentication →
+  Sign In / Providers → Google; then set `CTRLROOM_GOOGLE_SIGNIN=1`. Google returns through `/auth/callback`, which the
+  `https://<domain>/**` redirect URL above already covers.
+- Continue with OpenCtrl: set `OPENCTRL_CLIENT_ID`, `OPENCTRL_CLIENT_SECRET` and `SUPABASE_SERVICE_ROLE_KEY`; the
+  redirect URI to register on OpenCtrl is `https://<domain>/auth/openctrl/callback`.
 
 ## License
 
