@@ -15,6 +15,7 @@ import { useCommunity } from "./CommunityContext";
 import { MenuIcon, TrashIcon } from "./icons";
 import { RoomsSettings } from "./RoomsSettings";
 import { SoundSettings } from "./SoundSettings";
+import { DmPrivacySettings } from "@/components/dm/DmPrivacySettings";
 
 interface Invite {
   code: string;
@@ -164,6 +165,8 @@ export function SettingsView({
           </section>
 
           <SoundSettings />
+
+          <DmPrivacySettings />
 
           {isMod && (
             <section id="invites" className="card p-5">

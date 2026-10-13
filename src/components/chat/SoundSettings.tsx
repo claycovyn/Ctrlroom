@@ -5,7 +5,7 @@ import { DEFAULT_SOUND_PREFS, play, readSoundPrefs, writeSoundPrefs, type SoundK
 
 const ROWS: { kind: SoundKind; label: string; hint: string; sample: SoundName }[] = [
   { kind: "messages", label: "Messages", hint: "New messages in rooms set to Everything, when you're not looking at that room.", sample: "message" },
-  { kind: "mentions", label: "Mentions & replies", hint: "Someone @mentions you or replies to you.", sample: "mention" },
+  { kind: "mentions", label: "Mentions, replies & DMs", hint: "Someone @mentions you, replies to you, or sends you a direct message.", sample: "mention" },
   { kind: "calls", label: "Calls", hint: "People join or leave your call, and a call starts in the room you're in.", sample: "call-join" },
   { kind: "mic", label: "Mic", hint: "You mute or unmute in a call.", sample: "unmute" },
   { kind: "sent", label: "Sent", hint: "A tick when your message goes out.", sample: "sent" },

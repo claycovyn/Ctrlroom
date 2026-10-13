@@ -25,7 +25,8 @@ export function Composer({
   autoFocus,
 }: {
   placeholder: string;
-  communityId: string;
+  /** For @mention suggestions; null turns them off (direct messages). */
+  communityId: string | null;
   disabled?: boolean;
   disabledReason?: string;
   onSend: (body: string) => Promise<boolean>;
@@ -55,7 +56,7 @@ export function Composer({
   })();
 
   useEffect(() => {
-    if (!mentionQuery) {
+    if (!mentionQuery || !communityId) {
       setSuggestions([]);
       return;
     }

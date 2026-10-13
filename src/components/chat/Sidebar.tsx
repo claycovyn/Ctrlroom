@@ -13,8 +13,10 @@ import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
 import { AddRoomDialog, type NewRoom } from "./AddRoomDialog";
+import { useOptionalDm } from "@/components/dm/DmContext";
+import { badgeLabel } from "@/lib/dms";
 import { useCommunity } from "./CommunityContext";
-import { BellIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
+import { BellIcon, ChatsIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
 import { HeadsetIcon } from "./icons";
 import { Avatar } from "./Avatar";
 import { usePresence } from "./PresenceContext";
@@ -34,6 +36,9 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const promptDialog = usePrompt();
+  const dm = useOptionalDm();
+  const dmHref = `/c/${community.slug}/dm`;
+  const inDm = pathname === dmHref || pathname.startsWith(`${dmHref}/`);
   const [addingIn, setAddingIn] = useState<RoomSection | null>(null);
   // Pending join requests (0008), owners and admins only. Refreshed on the join_request event below.
   const [requests, setRequests] = useState(0);
@@ -111,6 +116,11 @@ export function Sidebar() {
   });
 
   useBroadcast(`user:${me.id}`, {
+    // Direct messages (0011) share this channel (one per topic); DmProvider handles them.
+    dm: (p: unknown) => dm?.handlers.dm(p),
+    dm_update: (p: unknown) => dm?.handlers.dm_update(p),
+    dm_reaction: (p: unknown) => dm?.handlers.dm_reaction(p),
+    dm_conversation: (p: unknown) => dm?.handlers.dm_conversation(p),
     // Sent to owners and admins when a request in one of their communities is made, answered or withdrawn.
     join_request: (p: { community_id: string }) => {
       if (p.community_id !== community.id) return;
@@ -192,20 +202,37 @@ export function Sidebar() {
           <Link href="/app" title="All communities" className="mb-1">
             <LogoMark className="h-10 w-10" />
           </Link>
+          {dm && (
+            <Link
+              href={dmHref}
+              title="Direct messages"
+              aria-label={dm.badge > 0 ? `Direct messages, ${badgeLabel(dm.badge)} new` : "Direct messages"}
+              aria-current={inDm ? "page" : undefined}
+              className={`relative mb-1 flex h-10 w-10 items-center justify-center rounded-xl ${inDm ? "bg-signal text-signal-fg" : "bg-raised text-muted hover:bg-line hover:text-fg"}`}
+            >
+              <ChatsIcon className="h-5 w-5" />
+              {dm.badge > 0 && (
+                <span aria-hidden="true" className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg">
+                  {badgeLabel(dm.badge)}
+                </span>
+              )}
+            </Link>
+          )}
+          <span aria-hidden="true" className="mb-1 h-px w-8 bg-line" />
           {communities.map((c) => (
             <Link
               key={c.id}
               href={`/c/${c.slug}`}
               title={c.name}
-              aria-current={c.id === community.id ? "page" : undefined}
+              aria-current={c.id === community.id && !inDm ? "page" : undefined}
               className={`rounded-xl transition-colors ${
-                c.id === community.id && community.icon_url ? "ring-2 ring-signal ring-offset-2 ring-offset-bg" : ""
+                c.id === community.id && !inDm && community.icon_url ? "ring-2 ring-signal ring-offset-2 ring-offset-bg" : ""
               }`}
             >
               <CommunityIcon
                 community={c}
                 className={`h-10 w-10 rounded-xl text-lg ${
-                  c.id === community.id ? "bg-signal text-signal-fg" : "bg-raised hover:bg-line"
+                  c.id === community.id && !inDm ? "bg-signal text-signal-fg" : "bg-raised hover:bg-line"
                 }`}
               />
             </Link>
@@ -302,7 +329,7 @@ export function Sidebar() {
               onClick={async () => setAlerts(await Notification.requestPermission())}
             >
               <BellIcon className="h-4 w-4 shrink-0" />
-              Turn on desktop alerts for mentions and replies
+              Turn on desktop alerts for mentions, replies and direct messages
             </button>
           )}
 

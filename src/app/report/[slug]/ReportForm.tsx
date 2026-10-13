@@ -3,19 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { cloudErrorText } from "@/lib/cloudErrors";
+import { REPORT_REASONS as REASONS } from "@/lib/reportReasons";
 import { supabaseBrowser } from "@/lib/supabase/client";
-
-// Same list as the reports.reason check in supabase/migrations/0003_cloud.sql.
-const REASONS: [string, string][] = [
-  ["spam", "Spam or scams"],
-  ["harassment", "Harassment or bullying"],
-  ["hate", "Hate speech"],
-  ["violence", "Threats or violence"],
-  ["sexual", "Sexual content involving minors, or shared without consent"],
-  ["illegal", "Something else illegal"],
-  ["impersonation", "Pretending to be someone else"],
-  ["other", "Something else"],
-];
 
 export function ReportForm({ communityId, messageId, back }: { communityId: string; messageId: string | null; back: string }) {
   const [reason, setReason] = useState("spam");

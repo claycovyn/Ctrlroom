@@ -13,6 +13,7 @@ Ctrl Room is community chat with rooms, threads, voice and video. It is built ar
 | Pins as a junk drawer | Each room has a **board** of decisions, links, docs and notes |
 | Confusing permissions | Four roles: owner, admin, mod, member |
 | Upsells and ID checks | No feature paywalls and no ID checks. Self-hosted: no paid tier and no limits. On OpenCtrl Cloud: a Free tier, and one $12/month plan for every OpenCtrl original |
+| Spam from strangers in your DMs | **Direct messages** and group DMs (up to 10 people). By default only people you share a community with can message you, first messages from new people land in **Requests**, and block and report are built in |
 | Per-seat pricing | One account for any number of communities, each with its own invite links |
 
 ## Brand
@@ -108,9 +109,13 @@ communities ─┬─ community_members (role)   bans   invites
                   │    └─ mentions (mention | reply)  → user:<id> topic
                   ├─ board_items (decision | link | doc | note)
                   └─ room_state (last_read_at, notify)  per user
+
+dm_conversations (1:1 per pair, or group ≤ 10) ─┬─ dm_members (active | request | left, muted, last_read_at)
+                                               └─ dm_messages ── dm_reactions   → each member's user:<id> topic
+dm_settings (who can message you)   blocks
 ```
 
-Realtime topics: `room:<id>` (messages, reactions, board, typing), `community:<id>` (room list and activity pings), `user:<id>` (mentions and replies).
+Realtime topics: `room:<id>` (messages, reactions, board, typing), `community:<id>` (room list and activity pings), `user:<id>` (mentions, replies and direct messages).
 
 ## Scaling notes
 
@@ -122,7 +127,6 @@ Realtime topics: `room:<id>` (messages, reactions, board, typing), `community:<i
 ## Roadmap
 
 - File and image uploads (Supabase Storage)
-- Direct messages and group DMs
 - Mobile apps (the web app is responsive and installable today)
 - An optional AI-written catch-up summary layered on the deterministic one
 - Custom emoji, member profiles and a public community directory

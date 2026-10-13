@@ -6,7 +6,7 @@ import { timeLabel } from "@/lib/format";
 import type { ReactionSummary } from "@/lib/format";
 import type { Message, Profile } from "@/lib/types";
 import { PresenceAvatar } from "./PresenceAvatar";
-import { CheckIcon, EditIcon, FlagIcon, PinIcon, SmileIcon, ThreadIcon, TrashIcon } from "./icons";
+import { BlockIcon, CheckIcon, EditIcon, FlagIcon, PinIcon, SmileIcon, ThreadIcon, TrashIcon } from "./icons";
 import { RichText } from "./RichText";
 
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🔥", "👀", "✅"];
@@ -14,11 +14,14 @@ export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🔥", "👀", "✅"]
 export interface MessageActions {
   react: (m: Message, emoji: string) => void;
   openThread?: (m: Message) => void;
-  pin: (m: Message) => void;
+  /** Pin to the room board (rooms only). */
+  pin?: (m: Message) => void;
   edit: (m: Message, body: string) => Promise<boolean>;
   remove: (m: Message) => void;
   /** Report someone else's message to the operator. */
   report?: (m: Message) => void;
+  /** Block the author (direct messages). */
+  block?: (m: Message) => void;
 }
 
 export function MessageItem({
@@ -176,9 +179,11 @@ export function MessageItem({
                   <ThreadIcon />
                 </ToolButton>
               )}
-              <ToolButton label="Pin to board" onClick={() => actions.pin(m)}>
-                <PinIcon />
-              </ToolButton>
+              {actions.pin && (
+                <ToolButton label="Pin to board" onClick={() => actions.pin!(m)}>
+                  <PinIcon />
+                </ToolButton>
+              )}
               {mine && (
                 <ToolButton
                   label="Edit"
@@ -211,6 +216,11 @@ export function MessageItem({
               {!mine && actions.report && (
                 <ToolButton label="Report" onClick={() => actions.report!(m)}>
                   <FlagIcon />
+                </ToolButton>
+              )}
+              {!mine && actions.block && (
+                <ToolButton label={`Block ${author?.display_name ?? "this person"}`} onClick={() => actions.block!(m)}>
+                  <BlockIcon />
                 </ToolButton>
               )}
             </>

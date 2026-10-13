@@ -26,7 +26,7 @@ Choose **Turn on desktop alerts** at the bottom of the sidebar and allow notific
 Ctrl Room plays short sounds once you've clicked or typed on the page:
 
 - **Messages**: a soft tap for a new message in a room set to **Everything**, when you're in another room or tab.
-- **Mentions & replies**: a chime when someone @mentions you or replies to you, unless the room is muted.
+- **Mentions, replies & DMs**: a chime when someone @mentions you or replies to you, unless the room is muted, and the dm sound for a new direct message, unless the conversation is muted.
 - **Calls**: when you or someone else joins or leaves your call, and a ring when someone starts a call in the room you're looking at (until you join or dismiss it, 20 seconds at most).
 - **Mic**: when you mute or unmute in a call.
 - **Sent**: a tick when your message goes out. Off unless you turn it on.

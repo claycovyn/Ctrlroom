@@ -22,6 +22,10 @@ interface ReportRow {
   message_id: string | null;
   communities: { slug: string; name: string; taken_down_at: string | null } | null;
   messages: { body: string } | null;
+  /** Direct message reports (0011 report_dm): no community; the text as it was when reported. */
+  dm_message_id: string | null;
+  dm_snapshot: string | null;
+  dm_author: { username: string; display_name: string } | null;
 }
 
 const money = (n: number) => `$${n.toFixed(2)}`;
@@ -49,7 +53,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     db.rpc("cloud_admin_overview"),
     db
       .from("reports")
-      .select("id, reason, details, created_at, message_id, communities(slug, name, taken_down_at), messages(body)")
+      .select("id, reason, details, created_at, message_id, communities(slug, name, taken_down_at), messages(body), dm_message_id, dm_snapshot, dm_author:profiles!reports_dm_author_id_fkey(username, display_name)")
       .is("resolved_at", null)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -218,10 +222,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             {((reports ?? []) as unknown as ReportRow[]).map((r) => (
               <li key={r.id} className="border-t border-line pt-3 text-sm first:border-0 first:pt-0">
                 <p>
-                  <strong className="capitalize">{r.reason}</strong> · {r.communities ? <Link href={`/c/${r.communities.slug}`} className="underline">/c/{r.communities.slug}</Link> : "deleted community"}
+                  <strong className="capitalize">{r.reason}</strong> ·{" "}
+                  {r.dm_message_id || r.dm_snapshot !== null
+                    ? `Direct message from ${r.dm_author ? `@${r.dm_author.username}` : "a deleted account"}`
+                    : r.communities
+                      ? <Link href={`/c/${r.communities.slug}`} className="underline">/c/{r.communities.slug}</Link>
+                      : "deleted community"}
                   <span className="text-xs text-muted"> · {new Date(r.created_at).toLocaleString("en-US", { timeZone: "UTC" })} UTC</span>
                 </p>
                 {r.messages && <blockquote className="mt-1 rounded bg-raised px-2 py-1">{r.messages.body || <em>deleted</em>}</blockquote>}
+                {r.dm_snapshot !== null && <blockquote className="mt-1 rounded bg-raised px-2 py-1">{r.dm_snapshot || <em>deleted</em>}</blockquote>}
                 {r.details && <p className="mt-1 text-muted">“{r.details}”</p>}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {r.communities && !r.communities.taken_down_at && (

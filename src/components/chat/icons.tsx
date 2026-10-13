@@ -39,3 +39,6 @@ export const MoreIcon = svg(<><circle cx="5" cy="12" r="1" /><circle cx="12" cy=
 export const HeadsetIcon = svg(<><path d="M3 15v-3a9 9 0 0 1 18 0v3" /><path d="M21 16a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2v2ZM3 16a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2v2Z" /></>);
 export const VideoIcon = svg(<><path d="m22 8-6 4 6 4V8Z" /><rect x="2" y="6" width="14" height="12" rx="2" /></>);
 export const MinusCircleIcon = svg(<><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>);
+export const ChatsIcon = svg(<><path d="M14 9a2 2 0 0 1-2 2H6l-3 3V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2Z" /><path d="M18 9h1a2 2 0 0 1 2 2v10l-3-3h-6a2 2 0 0 1-2-2v-1" /></>);
+export const BlockIcon = svg(<><circle cx="12" cy="12" r="9" /><path d="m5.6 5.6 12.8 12.8" /></>);
+export const ArrowLeftIcon = svg(<path d="M19 12H5M12 19l-7-7 7-7" />);

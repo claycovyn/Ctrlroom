@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CommunityProvider } from "@/components/chat/CommunityContext";
+import { DmProvider } from "@/components/dm/DmContext";
 import { PresenceProvider } from "@/components/chat/PresenceContext";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
@@ -64,6 +65,8 @@ export default async function CommunityLayout({ children, params }: { children: 
       livekit={Boolean(process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET && process.env.NEXT_PUBLIC_LIVEKIT_URL)}
     >
       <PresenceProvider>
+        {/* Direct messages (0011) aren't part of the community; they're mounted here for the rail badge and alerts. */}
+        <DmProvider me={me} base={`/c/${community.slug}/dm`}>
         <div className="flex h-[100dvh] flex-col overflow-hidden">
           {community.taken_down_at && (
             <p role="alert" className="shrink-0 border-b border-line bg-alert/15 px-4 py-2 text-center text-sm">
@@ -76,6 +79,7 @@ export default async function CommunityLayout({ children, params }: { children: 
             <main className="flex min-w-0 flex-1">{children}</main>
           </div>
         </div>
+        </DmProvider>
       </PresenceProvider>
     </CommunityProvider>
   );

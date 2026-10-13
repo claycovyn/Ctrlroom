@@ -38,6 +38,11 @@ export function useCommunity(): CommunityCtx {
   return v;
 }
 
+/** The community context, or null outside a community (the standalone DM pages). */
+export function useOptionalCommunity(): CommunityCtx | null {
+  return useContext(Ctx);
+}
+
 export function CommunityProvider({
   me,
   role,
