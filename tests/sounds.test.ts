@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SOUND_PREFS, parseSoundPrefs, soundAllowed, THROTTLE_MS, type SoundContext, type SoundPrefs } from "@/lib/sounds";
+import { DEFAULT_SOUND_PREFS, parseSoundPrefs, soundAllowed, THROTTLE_MS, UNLOCK_EVENTS, type SoundContext, type SoundPrefs } from "@/lib/sounds";
+
+describe("UNLOCK_EVENTS", () => {
+  it("never wakes the audio on a finger down or up (that's the start and end of a swipe)", () => {
+    expect(UNLOCK_EVENTS).not.toContain("pointerdown");
+    expect(UNLOCK_EVENTS).not.toContain("touchstart");
+    expect(UNLOCK_EVENTS).not.toContain("touchend");
+    expect(UNLOCK_EVENTS).toContain("click");
+  });
+});
 
 const prefs = (over: Partial<SoundPrefs> = {}): SoundPrefs => ({ ...DEFAULT_SOUND_PREFS, kinds: { ...DEFAULT_SOUND_PREFS.kinds }, ...over });
 const base = (over: Partial<SoundContext> = {}): SoundContext => ({

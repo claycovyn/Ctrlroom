@@ -184,14 +184,20 @@ function buffer(name: SoundName): Promise<AudioBuffer | null> {
 }
 
 /**
- * Call once on the client. Waits for the first tap, click or key press, then wakes the audio context.
- * iOS only lets audio start inside a touchend or click (not pointerdown), so those unlock too, and a silent buffer is
- * played then, which is what actually opens Web Audio on iPhone. The Ring/Silent switch still mutes web audio on
- * iPhone; that's the OS, not something a web app can override.
+ * What wakes the audio: a tap (click) or a key press. Not pointerdown or touchend: creating the AudioContext takes
+ * tens of milliseconds on a phone (far more on a slow one), and doing it as a finger goes down or lifts lands on the
+ * first frames of a swipe or its settle. A swipe never clicks; a tap does, and iOS accepts a click to start audio.
+ */
+export const UNLOCK_EVENTS = ["click", "keydown"] as const;
+
+/**
+ * Call once on the client. Waits for the first tap or key press (UNLOCK_EVENTS), then wakes the audio context and
+ * plays a silent buffer, which is what actually opens Web Audio on iPhone. The Ring/Silent switch still mutes web
+ * audio on iPhone; that's the OS, not something a web app can override.
  */
 export function installSoundUnlock(): void {
   if (typeof window === "undefined" || unlocked) return;
-  const events = ["pointerdown", "touchend", "click", "keydown"] as const;
+  const events = UNLOCK_EVENTS;
   const unlock = () => {
     unlocked = true;
     const ac = audioContext();
@@ -206,11 +212,16 @@ export function installSoundUnlock(): void {
         // nothing to unlock
       }
     }
-    // pointerdown alone isn't enough on iOS: keep listening until a touchend/click has run too.
+    // Some browsers only resume on a later gesture: keep listening until it runs.
     if (ac && ac.state !== "running") return;
     events.forEach((e) => window.removeEventListener(e, unlock, true));
   };
   events.forEach((e) => window.addEventListener(e, unlock, true));
+  // Make the (suspended) context while nothing else is happening, so the first tap only has to resume it: creating
+  // one takes long enough to delay whatever that tap opens.
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+  if (idle) idle(() => audioContext(), { timeout: 4000 });
+  else setTimeout(() => audioContext(), 2000);
   // iOS suspends (or "interrupts") the context when the app goes to the background; wake it when it's back.
   document.addEventListener("visibilitychange", () => {
     const ac = ctx;
