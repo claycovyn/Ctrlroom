@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { slugify } from "@/lib/format";
+import { CommunityImages } from "@/components/CommunityImages";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, ROLE_RANK, type Profile, type Role, type Room } from "@/lib/types";
@@ -415,6 +416,13 @@ export function SettingsView({
                 </label>
                 <button className="btn-primary">Save</button>
               </form>
+            </section>
+          )}
+
+          {isAdmin && (
+            <section id="images" className="card p-5">
+              <h2 className="mb-4 font-medium">Images</h2>
+              <CommunityImages community={community} />
             </section>
           )}
 

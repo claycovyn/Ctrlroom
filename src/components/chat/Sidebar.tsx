@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { LogoMark } from "@/components/Logo";
 import { useBroadcast } from "@/lib/realtime";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -108,11 +109,17 @@ export function Sidebar() {
               key={c.id}
               href={`/c/${c.slug}`}
               title={c.name}
-              className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-colors ${
-                c.id === community.id ? "bg-signal text-signal-fg" : "bg-raised hover:bg-line"
+              aria-current={c.id === community.id ? "page" : undefined}
+              className={`rounded-xl transition-colors ${
+                c.id === community.id && community.icon_url ? "ring-2 ring-signal ring-offset-2 ring-offset-bg" : ""
               }`}
             >
-              {c.icon || c.name.slice(0, 1).toUpperCase()}
+              <CommunityIcon
+                community={c}
+                className={`h-10 w-10 rounded-xl text-lg ${
+                  c.id === community.id ? "bg-signal text-signal-fg" : "bg-raised hover:bg-line"
+                }`}
+              />
             </Link>
           ))}
           <Link href="/app" title="Create or join" className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-line text-muted hover:text-fg">
@@ -121,6 +128,7 @@ export function Sidebar() {
         </nav>
 
         <div className="flex min-w-0 flex-1 flex-col">
+          <CommunityCover url={community.cover_url} className="border-b border-line" />
           <div className="flex h-14 items-center justify-between border-b border-line px-4">
             <span className="truncate font-semibold">{community.name}</span>
             <div className="flex items-center">

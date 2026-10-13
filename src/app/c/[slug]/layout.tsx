@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CommunityProvider } from "@/components/chat/CommunityContext";
 import { Sidebar } from "@/components/chat/Sidebar";
+import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { Logo } from "@/components/Logo";
 import { loadCommunity } from "@/lib/community";
 import { atLeast } from "@/lib/types";
@@ -24,14 +25,15 @@ export default async function CommunityLayout({ children, params }: { children: 
           <Link href="/app">
             <Logo />
           </Link>
-          <div className="card mt-6 p-6">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-raised text-xl">
-              {community.icon || community.name.slice(0, 1).toUpperCase()}
-            </div>
-            <h1 className="text-lg font-semibold">{community.name}</h1>
-            {community.description && <p className="mt-1 text-sm text-muted">{community.description}</p>}
-            <div className="mt-5">
-              <JoinPublic slug={community.slug} />
+          <div className="card mt-6 overflow-hidden">
+            <CommunityCover url={community.cover_url} className="border-b border-line" />
+            <div className="p-6">
+              <CommunityIcon community={community} className="mb-3 h-12 w-12 rounded-xl bg-raised text-xl" />
+              <h1 className="text-lg font-semibold">{community.name}</h1>
+              {community.description && <p className="mt-1 text-sm text-muted">{community.description}</p>}
+              <div className="mt-5">
+                <JoinPublic slug={community.slug} />
+              </div>
             </div>
           </div>
           <p className="mt-3 text-center text-xs text-muted">

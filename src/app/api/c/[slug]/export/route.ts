@@ -46,7 +46,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
       format: "ctrlroom-export",
       version: 1,
       exported_at: new Date().toISOString(),
-      community: { id: community.id, slug: community.slug, name: community.name, description: community.description, icon: community.icon, is_public: community.is_public, created_at: community.created_at },
+      community: { id: community.id, slug: community.slug, name: community.name, description: community.description, icon: community.icon, icon_url: community.icon_url ?? null, cover_url: community.cover_url ?? null, is_public: community.is_public, created_at: community.created_at },
       rooms,
       members: members ?? [],
       messages,

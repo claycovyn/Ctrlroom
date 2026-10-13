@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { CommunityIcon } from "@/components/CommunityMedia";
 import { Logo } from "@/components/Logo";
 import { NotConfigured } from "@/components/NotConfigured";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
@@ -73,9 +74,7 @@ export default async function AppHome() {
                   href={`/c/${c.slug}`}
                   className="card flex items-center gap-4 p-4 transition-colors hover:border-signal"
                 >
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-raised text-xl">
-                    {c.icon || c.name.slice(0, 1).toUpperCase()}
-                  </span>
+                  <CommunityIcon community={c} className="h-12 w-12 rounded-xl bg-raised text-xl" />
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{c.name}</span>
                     <span className="block truncate text-sm text-muted">{c.description || `/c/${c.slug}`}</span>

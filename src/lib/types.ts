@@ -14,6 +14,10 @@ export interface Community {
   name: string;
   description: string;
   icon: string;
+  /** Uploaded community image (0006); shown instead of `icon` when set. */
+  icon_url?: string | null;
+  /** Uploaded cover photo (0006), a 4:1 banner. */
+  cover_url?: string | null;
   is_public: boolean;
   owner_id: string;
   taken_down_at?: string | null;

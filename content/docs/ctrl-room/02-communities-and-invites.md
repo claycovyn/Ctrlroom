@@ -22,6 +22,10 @@ Admins can make a community **public** in **Settings → Community**. Anyone sig
 
 Admins and the owner can change the name, icon and description in **Settings → Community**.
 
+## Community image and cover photo
+
+Admins and the owner can upload a **community image** (square) and a **cover photo** (a 4:1 banner; 1600 × 400 works best) in **Settings → Images**. Both are PNG, JPEG or WebP, up to 2 MB. The image replaces the icon in the community list; the cover shows at the top of the room list and on the public join page. Replace or remove either at any time. Images are public files: anyone with the link can open them, including people who aren't members.
+
 ## Leave a community
 
 Open **Settings** and choose **Leave community**. You'll need a new invite to come back. The owner can't leave their own community.
