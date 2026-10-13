@@ -9,3 +9,5 @@ next-env.d.ts
 supabase/.temp/
 .DS_Store
 e2e-shots/
+scripts/qa/harness/dist/
+scripts/qa/out/
