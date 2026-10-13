@@ -13,7 +13,9 @@ import { BoardPanel } from "./BoardPanel";
 import { CatchUpBanner } from "./CatchUpBanner";
 import { useCommunity } from "./CommunityContext";
 import { Composer } from "./Composer";
-import { BellIcon, BellOffIcon, BoardIcon, InfoIcon, MenuIcon, PhoneIcon, PinIcon, SearchIcon, SettingsIcon, UsersIcon } from "./icons";
+import { BellIcon, BellOffIcon, BoardIcon, HeadsetIcon, InfoIcon, MenuIcon, PhoneIcon, PinIcon, SearchIcon, SettingsIcon, UsersIcon } from "./icons";
+import { PresenceAvatar } from "./PresenceAvatar";
+import { usePresence } from "./PresenceContext";
 import { RoomIcon } from "./RoomIcon";
 import { LinkedText } from "./LinkedText";
 import { MembersPanel } from "./MembersPanel";
@@ -81,6 +83,17 @@ export function RoomView({
   const [typing, setTyping] = useState<Record<string, { name: string; at: number }>>({});
   const [agents, setAgents] = useState<Record<string, AgentJob>>({});
   const [callOpen, setCallOpen] = useState(room.kind === "voice");
+  const [joinNow, setJoinNow] = useState(0);
+  const presence = usePresence();
+  const ringing = presence?.incoming?.room_id === room.id ? presence.incoming : null;
+  const inCall = presence?.calls[room.id] ?? [];
+  const dismissIncoming = presence?.dismissIncoming;
+  // Leaving the room stops a ring for it.
+  useEffect(() => () => dismissIncoming?.(), [room.id, dismissIncoming]);
+  const inCallKey = inCall.join(",");
+  useEffect(() => {
+    if (inCallKey) ensureProfiles(inCallKey.split(","));
+  }, [inCallKey, ensureProfiles]);
   const [error, setError] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<string | null>(focusMessageId);
 
@@ -479,7 +492,33 @@ ${room.description}` : room.topic}
           </div>
         </header>
 
-        {callOpen && <CallPanel roomId={room.id} roomName={room.name} enabled={livekit} />}
+        {ringing && (
+          <div role="status" className="flex flex-wrap items-center gap-3 border-b border-line bg-signal/10 px-4 py-2.5 text-sm">
+            <HeadsetIcon className="h-4 w-4 shrink-0" />
+            <p className="min-w-0 flex-1">
+              <span className="font-medium">{profiles[ringing.by]?.display_name ?? "Someone"}</span> started a call in #{room.name}
+            </p>
+            <div className="flex gap-2">
+              {livekit && (
+                <button
+                  className="btn-primary py-1 text-xs"
+                  onClick={() => {
+                    presence?.dismissIncoming();
+                    setCallOpen(true);
+                    setJoinNow((n) => n + 1);
+                  }}
+                >
+                  Join voice
+                </button>
+              )}
+              <button className="btn-outline py-1 text-xs" onClick={() => presence?.dismissIncoming()}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
+        {callOpen && <CallPanel roomId={room.id} roomName={room.name} enabled={livekit} joinNow={joinNow} />}
 
         {catchUp && (
           <CatchUpBanner
@@ -648,6 +687,22 @@ ${room.description}` : room.topic}
               </p>
             ) : (
               <p className="text-muted">{canEdit ? "No description yet. Add one with Edit room." : "No description yet."}</p>
+            )}
+            {inCall.length > 0 && (
+              <div>
+                <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                  <HeadsetIcon className="h-3.5 w-3.5" /> In the call · {inCall.length}
+                </h3>
+                <ul className="space-y-2">
+                  {inCall.map((id) => (
+                    <li key={id} className="flex items-center gap-2">
+                      <PresenceAvatar profile={profiles[id]} size={28} />
+                      <span className="min-w-0 truncate">{profiles[id]?.display_name ?? "…"}</span>
+                      {presence?.peers[id]?.call?.video && <span className="text-xs text-muted">Video</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
               <dt className="text-muted">Type</dt>

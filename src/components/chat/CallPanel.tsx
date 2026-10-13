@@ -1,17 +1,34 @@
 "use client";
 
 import "@livekit/components-styles";
-import { LiveKitRoom, VideoConference, useRoomContext } from "@livekit/components-react";
+import { LiveKitRoom, VideoConference, useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { RoomEvent, Track, type Participant, type TrackPublication } from "livekit-client";
 import { useEffect, useState } from "react";
 import { play } from "@/lib/sounds";
 import { PhoneIcon } from "./icons";
+import { usePresence } from "./PresenceContext";
 
-export default function CallPanel({ roomId, roomName, enabled }: { roomId: string; roomName: string; enabled: boolean }) {
+export default function CallPanel({
+  roomId,
+  roomName,
+  enabled,
+  joinNow = 0,
+}: {
+  roomId: string;
+  roomName: string;
+  enabled: boolean;
+  /** Bump to join with voice right away (the "a call started" banner). */
+  joinNow?: number;
+}) {
   const [conn, setConn] = useState<{ token: string; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [startVideo, setStartVideo] = useState(false);
+
+  useEffect(() => {
+    if (joinNow && enabled && !conn && !joining) join(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joinNow]);
 
   const join = async (video: boolean) => {
     setJoining(true);
@@ -68,6 +85,7 @@ export default function CallPanel({ roomId, roomName, enabled }: { roomId: strin
         style={{ height: "100%" }}
       >
         <CallSounds />
+        <CallPresence roomId={roomId} />
         <VideoConference />
       </LiveKitRoom>
     </div>
@@ -96,5 +114,16 @@ function CallSounds() {
       room.off(RoomEvent.TrackUnmuted, unmuted);
     };
   }, [room]);
+  return null;
+}
+
+/** Tells presence you're in this call, and whether your camera is on ("In a video call"). */
+function CallPresence({ roomId }: { roomId: string }) {
+  const setMyCall = usePresence()?.setMyCall;
+  const { isCameraEnabled } = useLocalParticipant();
+  useEffect(() => {
+    setMyCall?.({ room_id: roomId, video: isCameraEnabled });
+  }, [setMyCall, roomId, isCameraEnabled]);
+  useEffect(() => () => setMyCall?.(null), [setMyCall]);
   return null;
 }

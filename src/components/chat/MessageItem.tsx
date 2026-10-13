@@ -5,7 +5,7 @@ import { useConfirm } from "@/components/Dialogs";
 import { timeLabel } from "@/lib/format";
 import type { ReactionSummary } from "@/lib/format";
 import type { Message, Profile } from "@/lib/types";
-import { Avatar } from "./Avatar";
+import { PresenceAvatar } from "./PresenceAvatar";
 import { CheckIcon, EditIcon, FlagIcon, PinIcon, SmileIcon, ThreadIcon, TrashIcon } from "./icons";
 import { RichText } from "./RichText";
 
@@ -78,7 +78,7 @@ export function MessageItem({
             {timeLabel(m.created_at)}
           </span>
         ) : (
-          <Avatar profile={author} />
+          <PresenceAvatar profile={author} />
         )}
       </div>
       <div className="min-w-0 flex-1">

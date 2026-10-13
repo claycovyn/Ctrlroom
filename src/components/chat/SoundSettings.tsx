@@ -6,7 +6,7 @@ import { DEFAULT_SOUND_PREFS, play, readSoundPrefs, writeSoundPrefs, type SoundK
 const ROWS: { kind: SoundKind; label: string; hint: string; sample: SoundName }[] = [
   { kind: "messages", label: "Messages", hint: "New messages in rooms set to Everything, when you're not looking at that room.", sample: "message" },
   { kind: "mentions", label: "Mentions & replies", hint: "Someone @mentions you or replies to you.", sample: "mention" },
-  { kind: "calls", label: "Calls", hint: "People join or leave your call.", sample: "call-join" },
+  { kind: "calls", label: "Calls", hint: "People join or leave your call, and a call starts in the room you're in.", sample: "call-join" },
   { kind: "mic", label: "Mic", hint: "You mute or unmute in a call.", sample: "unmute" },
   { kind: "sent", label: "Sent", hint: "A tick when your message goes out.", sample: "sent" },
 ];
@@ -25,7 +25,7 @@ export function SoundSettings() {
   return (
     <section id="sounds" className="card p-5">
       <h2 className="font-medium">Sounds</h2>
-      <p className="mb-4 text-sm text-muted">Saved on this device. Muted rooms stay silent.</p>
+      <p className="mb-4 text-sm text-muted">Saved on this device. Do not disturb and muted rooms stay silent.</p>
 
       <label className="flex items-center justify-between gap-3">
         <span className="text-sm font-medium">Play sounds</span>

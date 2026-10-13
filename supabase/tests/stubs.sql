@@ -12,7 +12,7 @@ grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 
 create schema realtime;
-create table realtime.messages (id bigserial primary key, topic text, event text, payload jsonb, private boolean);
+create table realtime.messages (id bigserial primary key, topic text, extension text not null default 'broadcast', event text, payload jsonb, private boolean);
 alter table realtime.messages enable row level security;
 create function realtime.topic() returns text language sql stable as $$
   select nullif(current_setting('realtime.topic', true), '')
@@ -21,6 +21,9 @@ create function realtime.send(payload jsonb, event text, topic text, private boo
 language sql as $$ insert into realtime.messages (topic, event, payload, private) values (topic, event, payload, private) $$;
 grant usage on schema realtime to anon, authenticated;
 grant execute on function realtime.topic() to anon, authenticated;
+-- As on Supabase: the API roles may try; the RLS policies on realtime.messages decide (0001, 0010).
+grant select, insert on realtime.messages to anon, authenticated;
+grant usage on sequence realtime.messages_id_seq to anon, authenticated;
 
 grant usage on schema public to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;

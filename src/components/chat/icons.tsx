@@ -36,3 +36,6 @@ export const ChevronDownIcon = svg(<path d="m6 9 6 6 6-6" />);
 export const ArrowUpIcon = svg(<path d="M12 19V5M5 12l7-7 7 7" />);
 export const ArrowDownIcon = svg(<path d="M12 5v14M19 12l-7 7-7-7" />);
 export const MoreIcon = svg(<><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>);
+export const HeadsetIcon = svg(<><path d="M3 15v-3a9 9 0 0 1 18 0v3" /><path d="M21 16a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2v2ZM3 16a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2v2Z" /></>);
+export const VideoIcon = svg(<><path d="m22 8-6 4 6 4V8Z" /><rect x="2" y="6" width="14" height="12" rx="2" /></>);
+export const MinusCircleIcon = svg(<><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>);

@@ -13,14 +13,19 @@ import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
 import { AddRoomDialog, type NewRoom } from "./AddRoomDialog";
-import { Avatar } from "./Avatar";
 import { useCommunity } from "./CommunityContext";
 import { BellIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SettingsIcon } from "./icons";
+import { HeadsetIcon } from "./icons";
+import { Avatar } from "./Avatar";
+import { usePresence } from "./PresenceContext";
 import { RoomIcon } from "./RoomIcon";
+import { StatusMenu } from "./StatusMenu";
 import { renameSectionDialog } from "./RoomsSettings";
 
 export function Sidebar() {
   const ctx = useCommunity();
+  const presence = usePresence();
+  const myStatus = presence ? (presence.manual === "invisible" ? "Appear offline" : presence.statusOf(ctx.me.id).label) : null;
   const { me, role, community, communities, rooms, setRooms, sections, setSections, pins, togglePin, unreads, setUnreads, currentRoomId, navOpen, setNavOpen } = ctx;
   const pathname = usePathname();
   const router = useRouter();
@@ -302,12 +307,10 @@ export function Sidebar() {
           )}
 
           <div className="flex items-center gap-2 border-t border-line px-3 py-3">
-            <Link href={`/c/${community.slug}/settings#profile`} className="shrink-0 rounded-lg" title="Change your photo" aria-label="Change your photo">
-              <Avatar profile={me} size={32} />
-            </Link>
+            <StatusMenu me={me} settingsHref={`/c/${community.slug}/settings#profile`} />
             <div className="min-w-0 flex-1 leading-tight">
               <div className="truncate text-sm font-medium">{me.display_name}</div>
-              <div className="truncate text-xs text-muted">@{me.username}</div>
+              <div className="truncate text-xs text-muted">{myStatus ?? `@${me.username}`}</div>
             </div>
             <Link href="/docs" className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg" title="Help and docs">
               Help
@@ -343,7 +346,7 @@ export function Sidebar() {
           const bold = !active && u && u.unread > 0 && u.notify !== "none";
           const isPinned = pins.some((p) => p.room_id === r.id);
           return (
-            <li key={r.id} className="group relative flex items-center">
+            <li key={r.id} className="group relative flex flex-wrap items-center">
               <Link
                 href={`/c/${community.slug}/${r.slug}`}
                 className={`flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 pl-2 pr-8 text-sm ${
@@ -357,7 +360,7 @@ export function Sidebar() {
                 )}
               </Link>
               <button
-                className={`absolute right-1 rounded p-1 text-muted hover:bg-line hover:text-fg focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60 ${
+                className={`absolute right-1 top-[5px] rounded p-1 text-muted hover:bg-line hover:text-fg focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60 ${
                   isPinned ? "opacity-60" : "opacity-0"
                 }`}
                 onClick={() => onPin(r.id)}
@@ -367,6 +370,7 @@ export function Sidebar() {
               >
                 <PinIcon className="h-3.5 w-3.5" />
               </button>
+              <CallPeople ids={presence?.calls[r.id] ?? []} roomName={r.name} />
             </li>
           );
         })}
@@ -388,3 +392,32 @@ function SectionMenuButton({ onClick, children }: { onClick: () => void; childre
     </button>
   );
 }
+
+/** Who's in the call in a room: up to 4 faces, then a count. */
+function CallPeople({ ids, roomName }: { ids: string[]; roomName: string }) {
+  const { profiles, ensureProfiles } = useCommunity();
+  const key = ids.join(",");
+  useEffect(() => {
+    if (key) ensureProfiles(key.split(","));
+  }, [key, ensureProfiles]);
+  if (!ids.length) return null;
+  const names = ids.map((id) => profiles[id]?.display_name ?? "someone");
+  const shown = ids.slice(0, 4);
+  return (
+    <div className="flex basis-full items-center gap-1.5 pb-1 pl-8 pr-2 text-xs text-muted" title={names.join(", ")}>
+      <HeadsetIcon className="h-3 w-3 shrink-0" />
+      <span className="sr-only">
+        In the call in #{roomName}: {names.join(", ")}
+      </span>
+      <span aria-hidden="true" className="flex -space-x-0.5">
+        {shown.map((id) => (
+          <span key={id} className="rounded-md ring-2 ring-panel">
+            <Avatar profile={profiles[id] ?? { id, username: "", display_name: "?", avatar_url: null }} size={18} />
+          </span>
+        ))}
+      </span>
+      <span aria-hidden="true">{ids.length}</span>
+    </div>
+  );
+}
+

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CommunityProvider } from "@/components/chat/CommunityContext";
+import { PresenceProvider } from "@/components/chat/PresenceContext";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { Logo } from "@/components/Logo";
@@ -62,18 +63,20 @@ export default async function CommunityLayout({ children, params }: { children: 
       initialPins={pins}
       livekit={Boolean(process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET && process.env.NEXT_PUBLIC_LIVEKIT_URL)}
     >
-      <div className="flex h-[100dvh] flex-col overflow-hidden">
-        {community.taken_down_at && (
-          <p role="alert" className="shrink-0 border-b border-line bg-alert/15 px-4 py-2 text-center text-sm">
-            This community was taken down{community.taken_down_reason ? `: ${community.taken_down_reason}` : ""}. New messages,
-            calls and joins are off. History stays readable{atLeast(role, "admin") ? ", and you can export it from Settings" : ""}.
-          </p>
-        )}
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <Sidebar />
-          <main className="flex min-w-0 flex-1">{children}</main>
+      <PresenceProvider>
+        <div className="flex h-[100dvh] flex-col overflow-hidden">
+          {community.taken_down_at && (
+            <p role="alert" className="shrink-0 border-b border-line bg-alert/15 px-4 py-2 text-center text-sm">
+              This community was taken down{community.taken_down_reason ? `: ${community.taken_down_reason}` : ""}. New messages,
+              calls and joins are off. History stays readable{atLeast(role, "admin") ? ", and you can export it from Settings" : ""}.
+            </p>
+          )}
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            <Sidebar />
+            <main className="flex min-w-0 flex-1">{children}</main>
+          </div>
         </div>
-      </div>
+      </PresenceProvider>
     </CommunityProvider>
   );
 }
