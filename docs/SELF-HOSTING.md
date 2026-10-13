@@ -15,7 +15,9 @@ limits in `openctrl.json` only apply when `CTRLROOM_CLOUD=1`, which only the hos
 2. Set the env vars from `.env.example`: the Supabase URL and anon key, `NEXT_PUBLIC_SITE_URL`, and the three
    `LIVEKIT_*` values if you want calls. Leave the OPENCTRL Cloud block unset.
 3. In Supabase → Authentication → URL configuration, set the Site URL to your domain and add
-   `https://<domain>/auth/callback` as a redirect URL.
+   `https://<domain>/**` as a redirect URL (covers `/auth/callback` and `/auth/confirm`). For email links that work
+   on any device, paste `supabase/templates/*.html` into Authentication → Email Templates (see "Email links and
+   passwords" in `docs/CLOUD.md`). With Supabase's default templates, links only work in the browser that asked.
 4. `npm run build && npm start` (or deploy to Vercel).
 
 ## Optional extras

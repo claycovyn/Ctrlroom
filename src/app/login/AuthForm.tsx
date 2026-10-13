@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { PASSWORD_MIN } from "@/lib/authLinks";
 import { signIn, signUp, type AuthState } from "./actions";
 
 export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: string }) {
@@ -42,16 +43,23 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
         <input id="email" name="email" type="email" className="input" autoComplete="email" required />
       </div>
       <div>
-        <label className="label" htmlFor="password">
-          Password
-        </label>
+        <div className="flex items-baseline justify-between">
+          <label className="label" htmlFor="password">
+            Password
+          </label>
+          {mode === "signin" && (
+            <Link className="mb-1 text-xs text-muted underline hover:text-fg" href="/forgot">
+              Forgot password?
+            </Link>
+          )}
+        </div>
         <input
           id="password"
           name="password"
           type="password"
           className="input"
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          minLength={mode === "signup" ? 8 : undefined}
+          minLength={mode === "signup" ? PASSWORD_MIN : undefined}
           required
         />
       </div>

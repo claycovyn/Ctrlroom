@@ -14,6 +14,13 @@ Go to the Ctrl Room home page and choose **Get started**. You need:
 - An **email** and a **password** of at least 8 characters.
 
 If email confirmation is turned on, Ctrl Room sends you a link to confirm your account before you can sign in.
+The link works in any browser or on any device. Open it and press the button to finish.
+
+## Forgot your password
+
+On the sign-in page choose **Forgot password?** and enter your email. If there's an account for it, you get a link.
+Open it, press **Continue**, and choose a new password (at least 8 characters). Each link works once; if it's expired
+or used, ask for a new one.
 
 One account works for every community you join.
 

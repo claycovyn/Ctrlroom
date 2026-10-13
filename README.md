@@ -93,7 +93,7 @@ Nothing is ever deleted for going over, and export always works. Operator guide:
 ## Deploy
 
 1. **Supabase**: create a project, then `npx supabase link --project-ref <ref>` and `npx supabase db push`.
-   Under Auth → URL configuration, set the Site URL to your domain and add `https://<domain>/auth/callback` as a redirect URL.
+   Under Auth → URL configuration, set the Site URL to your domain and add `https://<domain>/**` as a redirect URL. Use the email templates in `supabase/templates/` so sign-up and reset links work on any device ([docs/CLOUD.md](docs/CLOUD.md#email-links-and-passwords)).
 2. **LiveKit**: create a project at cloud.livekit.io (or self-host) and copy the URL, API key and secret.
 3. **Vercel**: import the repo and set the env vars from `.env.example`.
 4. **OPENCTRL Cloud only**: the extra env vars, the LiveKit webhook and the cron are in [docs/CLOUD.md](docs/CLOUD.md). Self-hosters skip this.

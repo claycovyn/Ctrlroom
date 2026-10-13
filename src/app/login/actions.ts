@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { PASSWORD_MIN } from "@/lib/authLinks";
 import { siteUrl } from "@/lib/env";
 import { safeNext } from "@/lib/safeNext";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -18,7 +19,7 @@ const signInSchema = z.object({
 
 const signUpSchema = z.object({
   email: z.string().trim().email("Enter a valid email."),
-  password: z.string().min(8, "Use at least 8 characters."),
+  password: z.string().min(PASSWORD_MIN, `Use at least ${PASSWORD_MIN} characters.`),
   username: z
     .string()
     .trim()
@@ -47,6 +48,7 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
     password,
     options: {
       data: { username, display_name },
+      // The confirmation email links to /auth/confirm and passes this along as its next (templates/confirmation.html).
       emailRedirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });

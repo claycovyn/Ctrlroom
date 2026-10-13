@@ -60,6 +60,31 @@ shows them as they are.
 While Cloud is on, a community can only be made public by someone whose email is confirmed. Turn on **Confirm email**
 in Supabase → Authentication → Providers → Email for the hosted project; the dashboard offers a "Resend link" button.
 
+## Email links and passwords
+
+Every auth email links to `/auth/confirm?token_hash=…&type=…&next=…` (`{{ .TokenHash }}` in
+`supabase/templates/*.html`, not `{{ .ConfirmationURL }}`), so a link works in any browser or device, not only the
+one that asked for it.
+
+| Email | `type` | Lands on |
+| --- | --- | --- |
+| Confirm sign-up | `email` | `next` (from sign-up, else `/app`) |
+| Sign-in link | `email` | `next`, else `/app` |
+| Reset password | `recovery` | `/auth/reset` (set a new password), then `/app` |
+| Invite | `invite` | `/auth/reset` (choose a password), then `next` or `/app` |
+| Change email | `email_change` | `next`, else `/app` |
+
+- Opening a link only shows a one-button page. Nothing is verified until the button is pressed (a form POST), so mail
+  scanners that open every link (Outlook Safe Links and the like) can't use it up.
+- `next` is only ever a path on this site. A bad or used link goes to `/login?error=link` ("That link expired or was
+  already used. Send a new one.").
+- **Forgot password:** "Forgot password?" on the sign-in form → `/forgot` → `resetPasswordForEmail`. The answer is
+  the same whether or not the account exists. Rate limits are Supabase Auth's (one email per address per
+  `max_frequency`, plus the project's emails-per-hour cap, 100 via `setup-cloud.sh`); Ctrl Room adds none.
+- `/auth/reset` needs the session the reset link creates; without one it sends people back to `/forgot`.
+- `/auth/callback` still handles OAuth and `?code=` (PKCE) links, for projects on Supabase's default templates. Those
+  only work in the browser that asked for them.
+
 ## Abuse
 
 - **Reports:** a flag on every message (others' messages) and "Report this community" on public join pages, both
@@ -91,7 +116,8 @@ admin email before giving anyone else access, so nobody else can claim it.
 `scripts/setup-cloud.sh` does steps 1, 2 and 4 (plus Supabase Auth's site URL, redirects, Resend SMTP and the auth
 email templates) from your machine; run it with `DRY_RUN=1` first. The auth emails (confirm sign-up, sign-in link,
 reset password, change email, invite) are `supabase/templates/*.html`; `supabase/config.toml` uses the same files
-locally. After editing one, run the script again to update the hosted project.
+locally. After editing one, run the script again to update the hosted project. The redirect allow-list it sets
+(`SITE_URL/**`) already covers `/auth/confirm`.
 
 1. Apply the migrations: `npx supabase db push` (`0003_cloud.sql` adds everything above).
 2. In Vercel set `SUPABASE_SERVICE_ROLE_KEY`, `CTRLROOM_ADMIN_EMAILS`, `RESEND_API_KEY`, `CTRLROOM_EMAIL_FROM`,

@@ -18,8 +18,9 @@ import { CreateCommunityForm, JoinCommunityForm } from "./HomeForms";
 
 export const metadata: Metadata = { title: "Your communities" };
 
-export default async function AppHome() {
+export default async function AppHome({ searchParams }: { searchParams: Promise<{ done?: string }> }) {
   if (!isConfigured()) return <NotConfigured />;
+  const { done } = await searchParams;
   const { supabase, user } = await currentUser();
   if (!user) redirect("/login");
 
@@ -55,6 +56,11 @@ export default async function AppHome() {
           {communities.length ? `Hey ${profile?.display_name ?? ""}` : "Find your people"}
         </h1>
 
+        {done === "password" && (
+          <p role="status" className="card mb-6 px-4 py-3 text-sm">
+            Password saved. You&apos;re signed in.
+          </p>
+        )}
         {cloud?.enabled && !cloud.emailConfirmed && user.email && (
           <div className="mb-6">
             <ConfirmEmailNotice email={user.email} />
