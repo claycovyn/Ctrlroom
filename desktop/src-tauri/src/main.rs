@@ -7,12 +7,14 @@
 use tauri::webview::{NewWindowResponse, PermissionKind, PermissionResponse};
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 
-// The live web app. Change this (and `build.frontendDist` in tauri.conf.json) when a custom domain is attached.
-const HOME: &str = "https://ctrlroom-iota.vercel.app";
+// The live web app. Change this (and `build.frontendDist` in tauri.conf.json) if the domain changes.
+const HOME: &str = "https://www.openctrlroom.app";
+// The bare domain redirects to HOME, so it stays in the window too.
+const APEX: &str = "openctrlroom.app";
 
 fn is_home(url: &url::Url) -> bool {
     let home: url::Url = HOME.parse().expect("valid home URL");
-    url.scheme() == "https" && url.host_str() == home.host_str()
+    url.scheme() == "https" && (url.host_str() == home.host_str() || url.host_str() == Some(APEX))
 }
 
 fn open_outside(url: &url::Url) {

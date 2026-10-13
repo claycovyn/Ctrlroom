@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "app.openctrl.ctrlroom",
   "build": {
-    "frontendDist": "https://ctrlroom-iota.vercel.app"
+    "frontendDist": "https://www.openctrlroom.app"
   },
   "app": {
     "windows": [],

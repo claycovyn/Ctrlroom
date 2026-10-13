@@ -1,6 +1,6 @@
 # Ctrl Room desktop
 
-A native window around the Ctrl Room web app ([ctrlroom-iota.vercel.app](https://ctrlroom-iota.vercel.app)) for
+A native window around the Ctrl Room web app ([openctrlroom.app](https://www.openctrlroom.app)) for
 Windows, macOS and Linux, built with [Tauri 2](https://tauri.app). The site is the app: there is no separate frontend
 here, and the page gets no access to native APIs (no Tauri capabilities are granted to the remote page).
 
