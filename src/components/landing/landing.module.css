@@ -1,0 +1,325 @@
+/* Landing page only. Brand: black, white and silver; the hex bracket from the mark is the recurring shape. */
+
+.page {
+  --edge: linear-gradient(150deg, rgb(0 0 0 / 0.24), rgb(0 0 0 / 0.08) 38%, rgb(0 0 0 / 0.06) 64%, rgb(0 0 0 / 0.2));
+  --edge-hi: linear-gradient(150deg, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.14) 40%, rgb(0 0 0 / 0.12) 64%, rgb(0 0 0 / 0.38));
+  --card: linear-gradient(180deg, rgb(255 255 255), rgb(251 251 250));
+  --card-quiet: linear-gradient(180deg, rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.5));
+  --glow: rgb(0 0 0 / 0.06);
+  --grid: rgb(0 0 0 / 0.045);
+  --chrome-text: linear-gradient(180deg, #0c0c0d 0%, #2b2b30 55%, #5f5f67 100%);
+  --btn: linear-gradient(180deg, #2c2c31, #0c0c0d);
+  --btn-fg: #fff;
+  position: relative;
+  overflow-x: clip;
+  background: rgb(var(--bg));
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    --edge: linear-gradient(150deg, rgb(255 255 255 / 0.42), rgb(255 255 255 / 0.09) 36%, rgb(255 255 255 / 0.05) 64%, rgb(255 255 255 / 0.24));
+    --edge-hi: linear-gradient(150deg, rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.18) 40%, rgb(255 255 255 / 0.12) 64%, rgb(255 255 255 / 0.5));
+    --card: linear-gradient(180deg, rgb(19 19 22), rgb(11 11 13));
+    --card-quiet: linear-gradient(180deg, rgb(19 19 22 / 0.7), rgb(11 11 13 / 0.6));
+    --glow: rgb(255 255 255 / 0.09);
+    --grid: rgb(255 255 255 / 0.04);
+    --chrome-text: linear-gradient(180deg, #ffffff 0%, #e4e4e8 45%, #9a9aa3 100%);
+    --btn: linear-gradient(180deg, #ffffff, #c9c9cf);
+    --btn-fg: #060607;
+  }
+}
+
+/* Background: a fine grid that fades out, and a silver glow at the top. */
+.backdrop {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1100px;
+  pointer-events: none;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 0%, #000 25%, transparent 75%);
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 0%, #000 25%, transparent 75%);
+}
+.glow {
+  position: absolute;
+  left: 50%;
+  top: -260px;
+  width: min(1100px, 140vw);
+  height: 900px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(closest-side, var(--glow), transparent);
+}
+
+.chrome {
+  background: var(--chrome-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Cut-corner frame: the outer layer is the chrome edge, the inner layer the surface. */
+.cut {
+  --c: 20px;
+  position: relative;
+  padding: 1px;
+  background: var(--edge);
+  clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
+}
+.cut::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--edge-hi);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.cutHover:hover::before,
+.cutHover:focus-within::before {
+  opacity: 1;
+}
+.cutIn {
+  position: relative;
+  height: 100%;
+  background: var(--card);
+  clip-path: polygon(
+    calc(var(--c) - 0.4px) 0,
+    100% 0,
+    100% calc(100% - var(--c) + 0.4px),
+    calc(100% - var(--c) + 0.4px) 100%,
+    0 100%,
+    0 calc(var(--c) - 0.4px)
+  );
+}
+.quiet {
+  background: var(--card-quiet);
+}
+
+/* Buttons: chamfered; on keyboard focus they fall back to a rounded box so the focus ring isn't clipped. */
+.btn {
+  --c: 9px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 46px;
+  padding: 0 1.4rem;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
+  transition: filter 200ms ease, transform 200ms ease;
+}
+.btn:focus-visible {
+  clip-path: none;
+  border-radius: 6px;
+}
+.btn > span {
+  position: relative;
+}
+.btnPrimary {
+  background: var(--btn);
+  color: var(--btn-fg);
+}
+.btnPrimary:hover {
+  filter: brightness(1.08);
+}
+.btnGlass {
+  background: var(--edge);
+  color: rgb(var(--fg));
+}
+.btnGlass::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  background: rgb(var(--bg));
+  clip-path: polygon(
+    calc(var(--c) - 0.4px) 0,
+    100% 0,
+    100% calc(100% - var(--c) + 0.4px),
+    calc(100% - var(--c) + 0.4px) 100%,
+    0 100%,
+    0 calc(var(--c) - 0.4px)
+  );
+  transition: background 200ms ease;
+}
+.btnGlass:hover::before {
+  background: rgb(var(--raised));
+}
+.btnSm {
+  min-height: 36px;
+  padding: 0 0.9rem;
+  font-size: 14px;
+  --c: 7px;
+}
+
+/* Hero mark: bracket planes behind the real mark, moved by the pointer and the scroll (HeroMark.tsx). */
+.markStage {
+  position: relative;
+  height: 210px;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .markStage {
+    height: 230px;
+  }
+}
+.layer {
+  --depth: 0;
+  --sdepth: 0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  transform: translate3d(calc(var(--mx, 0) * var(--depth) * 1px), calc((var(--my, 0) * var(--depth) + var(--sy, 0) * var(--sdepth)) * 1px), 0);
+  transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+.markImg {
+  position: relative;
+  width: 150px;
+  height: auto;
+}
+@media (min-width: 640px) {
+  .markImg {
+    width: 184px;
+  }
+}
+.sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.9) 50%, transparent 62%);
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  -webkit-mask: var(--mask) center / contain no-repeat;
+  mask: var(--mask) center / contain no-repeat;
+  mix-blend-mode: soft-light;
+  opacity: 0;
+}
+
+/* Section eyebrow glyph. */
+.bracket {
+  width: 9px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Product mock: never wider than its frame. */
+.mock {
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+.mockAvatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--fg));
+  background: linear-gradient(160deg, rgb(var(--fg) / 0.22), rgb(var(--fg) / 0.07));
+  box-shadow: inset 0 0 0 1px rgb(var(--fg) / 0.12);
+}
+.cover {
+  background:
+    linear-gradient(115deg, transparent 0 30%, rgb(var(--fg) / 0.1) 30% 31%, transparent 31%),
+    linear-gradient(115deg, transparent 0 46%, rgb(var(--fg) / 0.14) 46% 52%, transparent 52%),
+    linear-gradient(115deg, transparent 0 58%, rgb(var(--fg) / 0.07) 58% 70%, transparent 70%),
+    linear-gradient(180deg, rgb(var(--fg) / 0.1), rgb(var(--fg) / 0.02));
+}
+.tile {
+  background: linear-gradient(160deg, rgb(var(--fg) / 0.12), rgb(var(--fg) / 0.03));
+  box-shadow: inset 0 0 0 1px rgb(var(--fg) / 0.1);
+}
+.underGlow {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -40px;
+  height: 120px;
+  background: radial-gradient(closest-side, var(--glow), transparent);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+/* Reveals (Reveal.tsx only arms elements that start below the fold, so nothing hides without JavaScript). */
+.reveal[data-reveal="armed"] {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.reveal[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 700ms ease var(--d, 0ms),
+    transform 800ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0ms);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: var(--d, 0ms);
+  }
+  .sheen {
+    animation: sheen 9s ease-in-out 900ms infinite;
+  }
+  .pulse {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    transform: none;
+    transition: none;
+  }
+  .reveal[data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes sheen {
+  0% {
+    opacity: 1;
+    background-position: 150% 0;
+  }
+  18% {
+    opacity: 1;
+    background-position: -50% 0;
+  }
+  19%,
+  100% {
+    opacity: 0;
+    background-position: -50% 0;
+  }
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* The drawing area at the top of each feature card. */
+.stage {
+  position: relative;
+  border-bottom: 1px solid rgb(var(--line));
+  background-image:
+    radial-gradient(ellipse 70% 90% at 50% 50%, transparent 30%, rgb(var(--panel)) 85%),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: auto, 16px 16px, 16px 16px;
+  background-position: center;
+}
