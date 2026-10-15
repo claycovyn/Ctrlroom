@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Ctrl Room",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "identifier": "app.openctrl.ctrlroom",
   "build": {
     "frontendDist": "https://www.openctrlroom.app"
@@ -12,8 +12,16 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMwNzNGMjMwQjMzMjlBMTcKUldRWG1qS3pNUEp6TUFOZmI2MHVnSVFDdzNzYldWSjVqVEg5b3BEQjRyQkJZaDhpRzJxam0rc2IK",
+      "endpoints": ["https://github.com/claycovyn/ctrlroom-downloads/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "category": "SocialNetworking",
     "shortDescription": "Community chat with rooms, threads, boards and voice and video calls.",

@@ -32,8 +32,31 @@ app is code-signed with the hardened runtime; the current unsigned build relies 
 
 People download it from [openctrlroom.app/download](https://www.openctrlroom.app/download), which lists the latest release of
 the public [claycovyn/ctrlroom-downloads](https://github.com/claycovyn/ctrlroom-downloads) repo (set `CTRLROOM_DESKTOP_REPO`
-to use another). To ship a new version: bump it, push a tag `desktop-vX.Y.Z`, then copy the installers from that tag's draft
-release here to a release on the downloads repo (`gh release download` then `gh release create`; the code repo is private).
+to use another).
+
+To ship a new version:
+1. Bump it in `package.json` (and `package-lock.json`), `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`.
+2. Push a tag `desktop-vX.Y.Z`. The Desktop workflow builds, signs the update files and makes a draft release on the code repo.
+3. Write release notes to a file and run `desktop/scripts/publish.sh desktop-vX.Y.Z notes.md`. It copies the
+   installers, update files and `latest.json` to a Latest release on the downloads repo, pointing `latest.json` there.
+
+## Updates
+
+From 0.1.2 on, the app updates itself. At launch and every 6 hours it reads `latest.json` from the downloads repo's
+latest release (`plugins.updater.endpoints` in `src-tauri/tauri.conf.json`). When there's a newer version it downloads
+it, checks its signature against `plugins.updater.pubkey`, and asks "Restart now" or "Later":
+
+- Windows: installing closes the app and the installer (passive, with a progress bar) opens it again, so it installs on
+  Restart now. Later asks again at the next check or launch.
+- macOS and Linux (AppImage, .deb, .rpm): the new version replaces the app on disk at once and takes effect at the next
+  launch; Restart now just does that sooner. A .deb or .rpm install asks for your password to update.
+
+0.1.0 and 0.1.1 can't update themselves: people on those download 0.1.2 once by hand.
+
+The signing key: the private key and its password are the repository secrets `TAURI_SIGNING_PRIVATE_KEY` and
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; the operator keeps a copy offline. **If the key is lost, installed apps can never
+update again** (they only accept updates signed with it); everyone would have to reinstall a build with a new key.
+Builds without the key (forks, pull requests from outside) fail at signing.
 
 GitHub → Actions → **Desktop**: every change to `desktop/` builds installers (`.msi` / `.exe`, `.dmg`,
 `.deb` / `.AppImage` / `.rpm`) as workflow artifacts. Push a tag `desktop-vX.Y.Z` to attach them to a draft release.
