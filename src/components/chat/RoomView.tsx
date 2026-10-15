@@ -213,7 +213,7 @@ export function RoomView({
     return () => {
       cancelled = true;
       if (currentRoomId.current === room.id) currentRoomId.current = null;
-      supabase.rpc("mark_read", { p_room: room.id });
+      void supabase.rpc("mark_read", { p_room: room.id }).then(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.id]);
@@ -224,7 +224,7 @@ export function RoomView({
     if (readTimer.current || document.hidden) return;
     readTimer.current = setTimeout(() => {
       readTimer.current = null;
-      supabase.rpc("mark_read", { p_room: room.id });
+      void supabase.rpc("mark_read", { p_room: room.id }).then(() => {});
     }, 5000);
   }, [supabase, room.id]);
 

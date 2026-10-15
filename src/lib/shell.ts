@@ -33,6 +33,7 @@ export interface CommunityActivity {
 /** Window events between the shell and the pages. */
 export const POST_EVENT = "ctrlroom:post"; // a new post for you (the Feed listens)
 export const SEEN_EVENT = "ctrlroom:activity-seen"; // the Activity page read everything
+export const DM_READ_EVENT = "ctrlroom:dm-read"; // a conversation was marked read on the server
 export const POSTED_EVENT = "ctrlroom:posted"; // you posted from the Post sheet (the Feed adds it)
 
 /** Rooms with something new (muted rooms don't count) and your mentions, for one community. */

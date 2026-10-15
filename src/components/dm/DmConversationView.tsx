@@ -19,7 +19,7 @@ import { markPushMoment, nudgePush } from "@/lib/pushClient";
 import { play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Message, Profile } from "@/lib/types";
-import { useDm } from "./DmContext";
+import { markDmRead, useDm } from "./DmContext";
 import { ConversationAvatar } from "./DmInbox";
 import { NewMessageDialog } from "./NewMessageDialog";
 import { ReportDmDialog } from "./ReportDmDialog";
@@ -93,7 +93,7 @@ export function DmConversationView({ id }: { id: string }) {
     return () => {
       cancelled = true;
       if (viewing.current === id) viewing.current = null;
-      supabase.rpc("mark_dm_read", { p_conv: id });
+      void markDmRead(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);

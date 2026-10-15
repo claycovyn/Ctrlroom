@@ -9,6 +9,14 @@ import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 import { usePresence } from "@/components/chat/PresenceContext";
+import { DM_READ_EVENT } from "@/lib/shell";
+
+/** Marks a conversation read. A query only runs once awaited or then'd, so this always thens it, then tells the shell. */
+export function markDmRead(id: string): Promise<void> {
+  return Promise.resolve(supabaseBrowser().rpc("mark_dm_read", { p_conv: id })).then(({ error }) => {
+    if (!error && typeof window !== "undefined") window.dispatchEvent(new Event(DM_READ_EVENT));
+  });
+}
 
 /** What an open conversation hears about (the inbox handles the rest). */
 export type DmLiveEvent =
@@ -107,7 +115,7 @@ export function DmProvider({ me, base, listen = false, children }: { me: Profile
 
   const markConversationRead = useCallback((id: string) => {
     setConversations((list) => markRead(list, id, new Date().toISOString()));
-    supabaseBrowser().rpc("mark_dm_read", { p_conv: id });
+    void markDmRead(id);
   }, []);
 
   const alertFor = (e: DmEvent) => {
@@ -141,7 +149,7 @@ export function DmProvider({ me, base, listen = false, children }: { me: Profile
       if (!convRef.current.some((c) => c.id === e.conversation_id)) refresh();
       else setConversations((list) => applyIncoming(list, e, me.id, viewing.current) ?? list);
       emit({ type: "message", message: e.message });
-      if (viewing.current === e.conversation_id && !document.hidden) supabaseBrowser().rpc("mark_dm_read", { p_conv: e.conversation_id });
+      if (viewing.current === e.conversation_id && !document.hidden) void markDmRead(e.conversation_id);
     },
     dm_update: (p: { message: DmMessage }) => {
       setConversations((list) =>

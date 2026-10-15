@@ -9,7 +9,7 @@ import { BellIcon, ChatsIcon, CompassIcon, FeatherIcon, HexIcon, HomeIcon, MoreI
 import { LogoMark } from "@/components/Logo";
 import { badgeCount, badgeLabel, type DmConversation } from "@/lib/dms";
 import { useBroadcast } from "@/lib/realtime";
-import { activityOf, navKeyFor, POST_EVENT, SEEN_EVENT, type CommunityActivity, type NavKey, type ShellCommunity, type ShellMe } from "@/lib/shell";
+import { activityOf, DM_READ_EVENT, navKeyFor, POST_EVENT, SEEN_EVENT, type CommunityActivity, type NavKey, type ShellCommunity, type ShellMe } from "@/lib/shell";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Unread } from "@/lib/types";
 import { CommunitiesAside } from "./CommunitiesPanel";
@@ -94,6 +94,13 @@ export function AppShell({ me, communities, cloud, children }: { me: ShellMe; co
     window.addEventListener(SEEN_EVENT, seen);
     return () => window.removeEventListener(SEEN_EVENT, seen);
   }, []);
+
+  // Reading a conversation clears it from the Messages badge right away.
+  useEffect(() => {
+    const read = () => void loadDms();
+    window.addEventListener(DM_READ_EVENT, read);
+    return () => window.removeEventListener(DM_READ_EVENT, read);
+  }, [loadDms]);
 
   // The one listener on your own topic in the shell: activity counts, DMs, and new posts from private accounts you
   // follow (passed on to the Feed).
