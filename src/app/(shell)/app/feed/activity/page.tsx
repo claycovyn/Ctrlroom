@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { NotConfigured } from "@/components/NotConfigured";
 import { ActivityView, type ActivityItem } from "@/components/social/ActivityView";
-import { SocialHeader } from "@/components/social/SocialHeader";
 import { isConfigured } from "@/lib/env";
 import { currentUser } from "@/lib/supabase/server";
 
@@ -22,7 +21,6 @@ export default async function Activity() {
   if (!me) redirect("/app");
   return (
     <>
-      <SocialHeader me={me} current="activity" />
       <ActivityView me={me} items={(items ?? []) as ActivityItem[]} />
     </>
   );

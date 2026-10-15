@@ -52,7 +52,7 @@ export function FollowList({ username, which, initial }: { username: string; whi
   };
 
   return (
-    <main className="mx-auto max-w-2xl border-x border-line">
+    <div>
       <nav className="flex border-b border-line" aria-label="Lists">
         {(["followers", "following"] as const).map((w) => (
           <Link
@@ -109,6 +109,6 @@ export function FollowList({ username, which, initial }: { username: string; whi
           </button>
         </div>
       )}
-    </main>
+    </div>
   );
 }

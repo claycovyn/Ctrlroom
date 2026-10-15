@@ -11,10 +11,11 @@ export function Avatar({ profile, size = 36 }: { profile: Profile | undefined; s
   return (
     <span
       aria-hidden="true"
-      className="flex shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white"
-      style={{ width: size, height: size, background: `hsl(${hue} 45% 42%)` }}
-    >
-      {initials(name)}
-    </span>
+      data-initials={initials(name)}
+      className="flex shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white after:content-[attr(data-initials)]"
+      // The initials are decoration (the name is always next to it); 32% lightness keeps white text at 4.5:1 or
+      // better on every hue. Big avatars (profiles) get bigger initials.
+      style={{ width: size, height: size, background: `hsl(${hue} 45% 32%)`, ...(size >= 56 ? { fontSize: Math.round(size * 0.34) } : {}) }}
+    />
   );
 }

@@ -20,15 +20,18 @@ Ctrl Room is community chat with rooms, threads, voice and video. It is built ar
 
 ## Posts and follows
 
-Next to the chat there's a public side (`supabase/migrations/0020_social.sql`, `0021_social_live.sql`, `src/app/app/feed`, `src/app/u/[username]`):
+Next to the chat there's a public side (`supabase/migrations/0020_social.sql`, `0021_social_live.sql`, `src/app/(shell)`, `src/components/social`):
+
+- **Home** (`/app`): a rail on the left (Home, Explore, Communities, Messages, Activity, Profile, Settings, Post and your account), the Feed in the middle, and **your communities on the right** with what's new in each (rooms with new messages, your mentions), Start a community, Join with an invite, public communities to explore and followers you don't follow back. Two columns on tablets; a tab bar on phones (Home, Communities, Post, Messages, Profile). It's one layout (`src/app/(shell)/layout.tsx`, `src/components/shell`) around Home, the Feed's pages, profiles, `/app/communities` and `/app/settings`, so the rail and its badges stay put as you move.
+- **Settings** (`/app/settings`): your photo and display name, notifications, sounds, who can message you, the desktop app, usage on OpenCtrl Cloud, and your account. Each community keeps its own settings.
 
 - **Public profiles, on by default.** Anyone signed in can see your name, photo and bio, follow you, and read your posts. Turn it off from your profile: then only people you share a community or a DM with can see you, as before, and you can't post.
 - **Private accounts.** Following needs your approval, and only approved followers see your posts and your follower lists. Going public again approves everyone waiting.
 - **Posts** are up to 500 characters, with up to 4 photos or videos (photos up to 10 MB, videos up to 50 MB; PNG, JPEG, WebP, GIF, MP4, WebM). The first link in a post shows a preview (title, description, image); the server fetches it from public addresses only and proxies the image, so readers' addresses never reach the linked site. Post to your followers or into a public community you're a member of. Replies, likes, edits (your own), deletes (your own, or a mod's in their community) and reports.
-- **Feed**: Following (you, people you follow, public communities you're in or follow) and Everyone (every post you can see), newest first. New posts arrive live behind a "Show new posts" button.
+- **Feed** (on Home; `/app/feed` redirects there): Following (you, people you follow, public communities you're in or follow) and Everyone (every post you can see), newest first. New posts arrive live behind a "Show new posts" button. A post into a community shows the community's name and icon above it.
 - **Community posts** at `/app/feed/c/<slug>` for public communities: members post there, anyone signed in can read and follow it. Linked as "Posts" in the community's sidebar.
 - **Profiles** at `/u/<username>` show someone's posts when you're allowed to see them; follower and following lists at `/u/<username>/followers` and `/following`.
-- **Activity** (`/app/feed/activity`): new followers and requests, approved requests, likes and replies, live, with a count on the Feed icon.
+- **Activity** (`/app/feed/activity`): new followers and requests, approved requests, likes and replies, live, with a count on the Activity item (and the Feed icon inside a community).
 - **Blocks** work here too: no seeing each other's posts, and follows between you end.
 
 ## Brand

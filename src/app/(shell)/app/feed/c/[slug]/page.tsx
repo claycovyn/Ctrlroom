@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { NotConfigured } from "@/components/NotConfigured";
 import { CommunityPostsView } from "@/components/social/CommunityPostsView";
-import { SocialHeader } from "@/components/social/SocialHeader";
 import { isConfigured } from "@/lib/env";
 import { FEED_PAGE, type PostCard } from "@/lib/social";
 import { currentUser } from "@/lib/supabase/server";
@@ -30,7 +29,6 @@ export default async function CommunityPosts({ params }: { params: Promise<{ slu
   if (!me) redirect("/app");
   return (
     <>
-      <SocialHeader me={me} />
       <CommunityPostsView me={me} community={{ ...community, member: !!member, following: !!follow }} initial={(posts ?? []) as PostCard[]} />
     </>
   );

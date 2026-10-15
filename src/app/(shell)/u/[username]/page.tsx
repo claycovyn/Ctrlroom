@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { NotConfigured } from "@/components/NotConfigured";
 import { ProfileView, type FollowRequest } from "@/components/social/ProfileView";
-import { SocialHeader } from "@/components/social/SocialHeader";
 import { isConfigured } from "@/lib/env";
 import { FEED_PAGE, type PostCard, type ProfileView as ProfileRow } from "@/lib/social";
 import { currentUser } from "@/lib/supabase/server";
@@ -34,7 +33,6 @@ export default async function Profile({ params }: { params: Promise<{ username: 
   ]);
   return (
     <>
-      <SocialHeader me={me} current={profile.relation === "self" ? "me" : undefined} />
       <ProfileView me={me} profile={profile} initialPosts={(posts ?? []) as PostCard[]} requests={(requests ?? []) as FollowRequest[]} />
     </>
   );

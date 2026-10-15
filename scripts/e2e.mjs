@@ -99,6 +99,8 @@ try {
   await step("alice signs up and creates a community", async () => {
     await signUp(a, alice, `${base}/login?mode=signup`);
     await a.waitForURL(`${base}/app`);
+    // Home is the Feed; starting a community opens a sheet from the right column.
+    await a.getByRole("button", { name: "Start a community" }).first().click();
     await a.getByLabel("Name").fill("Crew " + run);
     await a.locator("#slug").fill(slug);
     await a.getByRole("button", { name: "Create community" }).click();
@@ -241,7 +243,7 @@ try {
     await a.getByText("#planning added.").waitFor();
     const nav = a.getByRole("navigation", { name: "Communities" });
     // client-side navigation both ways, so the router cache is what's being tested
-    await nav.getByTitle("All communities").click();
+    await nav.getByTitle("Home").click();
     await a.waitForURL(`${base}/app`);
     await a.locator(`a[href="/c/${slug}"]`).first().click();
     await a.waitForURL(new RegExp(`/c/${slug}`));

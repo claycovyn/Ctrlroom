@@ -2,7 +2,7 @@
 // Output: scripts/qa/harness/dist/{app.js,app.css,index.html}. Usage: node scripts/qa/harness/build.mjs
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,7 +12,7 @@ const SRC = path.join(ROOT, "src");
 const OUT = path.join(H, "dist");
 mkdirSync(OUT, { recursive: true });
 
-const stub = { "@/lib/supabase/client": "stubs/supabase.ts", "next/link": "stubs/link.tsx", "next/navigation": "stubs/navigation.ts", "next/dynamic": "stubs/dynamic.tsx" };
+const stub = { "@/app/app/HomeForms": "stubs/homeForms.tsx", "@/lib/supabase/client": "stubs/supabase.ts", "next/link": "stubs/link.tsx", "next/navigation": "stubs/navigation.ts", "next/dynamic": "stubs/dynamic.tsx" };
 const profiling = process.argv.includes("--profile");
 
 await build({
@@ -34,7 +34,8 @@ await build({
     "process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY": '""',
     "process.env.NEXT_PUBLIC_LIVEKIT_URL": '""',
   },
-  loader: { ".css": "empty" },
+  // Plain CSS comes from Tailwind below; CSS modules (the shell's, the landing page's) are bundled as local CSS.
+  loader: { ".css": "empty", ".module.css": "local-css" },
   plugins: [
     {
       name: "app-aliases",
@@ -49,6 +50,10 @@ await build({
   ],
 });
 
+// esbuild wrote the CSS modules next to app.js as app.css; keep them as modules.css (Tailwind writes app.css).
+if (existsSync(path.join(OUT, "app.css"))) renameSync(path.join(OUT, "app.css"), path.join(OUT, "modules.css"));
+else writeFileSync(path.join(OUT, "modules.css"), "");
+
 // The app's CSS (src/app/globals.css) through its own Tailwind config.
 const tw = path.join(OUT, "tw.config.cjs");
 writeFileSync(
@@ -60,6 +65,6 @@ execFileSync(process.execPath, [path.join(ROOT, "node_modules/tailwindcss/lib/cl
 
 writeFileSync(
   path.join(OUT, "index.html"),
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"><title>Ctrl Room QA</title><link rel="stylesheet" href="/app.css"></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>`,
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"><title>Ctrl Room QA</title><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/modules.css"></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>`,
 );
 console.log(`built ${profiling ? "(profiling) " : ""}→ ${path.relative(ROOT, OUT)}`);

@@ -73,7 +73,7 @@ export function AuthForm({ mode, next }: { mode: "signin" | "signup"; next: stri
           {state.notice}
         </p>
       )}
-      <button className="btn-primary w-full" disabled={pending}>
+      <button className="btn-primary h-11 w-full rounded-full text-[15px] font-semibold" disabled={pending}>
         {pending ? "One sec…" : mode === "signup" ? "Create account" : "Sign in"}
       </button>
       <p className="text-center text-sm text-muted">

@@ -7,7 +7,7 @@ export default function NotFound() {
       <h1 className="text-2xl font-semibold">Nothing here</h1>
       <p className="text-sm text-muted">This room or community doesn’t exist, or you’re not a member.</p>
       <Link href="/app" className="btn-outline mt-2">
-        Your communities
+        Home
       </Link>
     </main>
   );

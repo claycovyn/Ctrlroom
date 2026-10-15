@@ -61,3 +61,12 @@ export const RetryIcon = svg(<><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="
 export const ShareIcon = svg(<><path d="M12 3v12M8 7l4-4 4 4" /><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1" /></>);
 export const AddSquareIcon = svg(<><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M12 8v8M8 12h8" /></>);
 export const UserPlusIcon = svg(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></>);
+// The signed-in shell's rail and tab bar.
+export const HomeIcon = svg(<><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9" /></>);
+export const CompassIcon = svg(<><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" /></>);
+export const UserIcon = svg(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a7 7 0 0 1 14 0v1" /></>);
+/** Communities: the hex from the mark. */
+export const HexIcon = svg(<><path d="M12 2.5 20.5 7.3v9.4L12 21.5l-8.5-4.8V7.3Z" /><path d="M9 9.5h6M9 13h6M9 16.5h3.5" /></>);
+export const FeatherIcon = svg(<><path d="M20 4c-7 0-12 5-12 12v4" /><path d="M8 16c5 0 9-3 10-8M4 20l4-4" /></>);
+export const HeartIcon = svg(<path d="M19.5 13.6 12 21l-7.5-7.4A5 5 0 1 1 12 6.6a5 5 0 1 1 7.5 7Z" />);
+export const ReplyIcon = svg(<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12Z" />);

@@ -15,6 +15,11 @@ const IMAGES = ["public/brand/ctrlroom-icon-512.png", "src/app/opengraph-image.p
 export function startServer(port = 3299) {
   const server = http.createServer(async (req, res) => {
     const u = decodeURIComponent(new URL(req.url, "http://x").pathname);
+    // The link preview a post shows (src/app/api/link-preview): a fixed example, no network.
+    if (u === "/api/link-preview") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ preview: { title: "Contributor call: notes and first issues", description: "What we covered, who's picking up what, and a list of good first issues.", site: "example.com", image: null } }));
+    }
     let file = path.join(DIST, u);
     if (u.startsWith("/sounds/") || u.startsWith("/brand/")) file = path.join(ROOT, "public", u);
     const img = /^\/qa-img\/(\d+)\.png$/.exec(u);

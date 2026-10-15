@@ -10,7 +10,7 @@ const pick = <T,>(a: T[]): T => a[Math.floor(rnd() * a.length)];
 const id = (p: string, n: number) => `${p}0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 const NAMES = [
-  "Clay Sinclair", "Maya Ortiz", "Sam Lee", "Priya Shah", "Jonah Kim", "Ana Ruiz", "Leo Park", "Noor Haddad", "Iris Chen", "Tomás Silva",
+  "Alex Rivera", "Maya Ortiz", "Sam Lee", "Priya Shah", "Jonah Kim", "Ana Ruiz", "Leo Park", "Noor Haddad", "Iris Chen", "Tomás Silva",
   "Grace Obi", "Ravi Menon", "Elena Petrova", "Kofi Mensah", "Hana Sato", "Owen Price", "Lucia Romano", "Ben Carter", "Yara Nasser", "Felix Wolf",
 ];
 export const profiles: Profile[] = NAMES.map((n, i) => ({ id: id("a", i + 1), username: n.split(" ")[0].toLowerCase().normalize("NFKD").replace(/[^a-z]/g, ""), display_name: n, avatar_url: null }));
@@ -55,7 +55,7 @@ export const pins = [{ room_id: rooms[5].id, created_at: new Date(Date.now() - 8
 const LINES = [
   "Morning! The new build is up on staging.",
   "Nice. The room switcher feels a lot snappier.",
-  "@clay can you check it on your phone before we ship?",
+  "@alex can you check it on your phone before we ship?",
   "I tried it on mine: no more zoom when you tap the message box.",
   "Notifications came through on Android too 👍",
   "Let's call it for today then.",

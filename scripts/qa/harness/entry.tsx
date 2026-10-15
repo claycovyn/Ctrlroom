@@ -19,7 +19,15 @@ import { NativeFeel } from "@/components/NativeFeel";
 import { CommunityLanding } from "@/app/c/[slug]/CommunityLanding";
 import RoomLoading from "@/app/c/[slug]/[room]/loading";
 import type { Message } from "@/lib/types";
+import { AppShell } from "@/components/shell/AppShell";
+import { CommunitiesPage } from "@/components/shell/CommunitiesPanel";
+import { PageHeader } from "@/components/shell/PageHeader";
+import { SettingsPage } from "@/components/shell/SettingsPage";
+import { ActivityView } from "@/components/social/ActivityView";
+import { FeedView } from "@/components/social/FeedView";
+import { ProfileView } from "@/components/social/ProfileView";
 import * as D from "./data";
+import * as S from "./social";
 
 const W = window as any;
 const qs = new URLSearchParams(location.search);
@@ -30,6 +38,9 @@ try {
   localStorage.setItem("ctrlroom:push-ask", JSON.stringify({ dismissed: Date.now() }));
   if (qs.get("fresh")) localStorage.clear();
 } catch {}
+
+// ?store=1: screenshots for the OpenCtrl Store listing, without the removed-message placeholders the QA data has.
+if (qs.get("store")) for (let i = D.messages.length - 1; i >= 0; i--) if (D.messages[i].deleted_at) D.messages.splice(i, 1);
 
 // ── the backend
 const members = (cid: string) => D.profiles.map((p, i) => ({ community_id: cid, user_id: p.id, role: i === 0 ? "owner" : i < 3 ? "admin" : "member", joined_at: new Date(i * 1000).toISOString(), profiles: p }));
@@ -51,10 +62,21 @@ W.__db = {
     bans: [],
     join_requests: [],
     push_prefs: [],
-    communities: D.communities,
+    communities: [...D.communities, ...S.exploreCommunities],
+    post_cards: S.posts,
+    follows: [],
+    community_follows: [],
   },
   rpc: {
-    my_unreads: () => D.unreads,
+    my_unreads: (a: any) => (a.p_community ? S.unreadsFor(a.p_community, D.unreads) : D.unreads),
+    feed_posts: (a: any) => S.feed(a.p_scope),
+    my_activity_unseen: () => 3,
+    my_activity: () => S.activity,
+    mark_activity_seen: () => null,
+    profile_view: (a: any) => [S.profileView(a.p_username)].filter(Boolean),
+    profile_follows: () => S.followers,
+    my_follow_requests: () => [],
+    follow_user: () => "active",
     catch_up: () => ({ new_messages: 0 }),
     mark_read: () => null,
     my_dm_inbox: () => D.dmConversations,
@@ -170,10 +192,42 @@ function CommunityLayout({ slug, rest }: { slug: string; rest: string[] }) {
   );
 }
 
+/** The signed-in shell (src/app/(shell)/layout.tsx) and its pages, with the data their server pages would load. */
+function ShellPage({ parts }: { parts: string[] }) {
+  useRouteVersion();
+  const tab = new URLSearchParams(location.search).get("tab") === "everyone" ? "everyone" : "following";
+  if (parts[0] === "u") {
+    const profile = S.profileView(parts[1]);
+    if (!profile) return <PageHeader title="Not found" back="/app" />;
+    return <ProfileView key={parts[1]} me={S.shellMe} profile={profile} initialPosts={S.posts.filter((p) => p.author_id === profile.id)} requests={[]} />;
+  }
+  if (parts[1] === "communities")
+    return (
+      <>
+        <PageHeader title="Communities" sub="Rooms, threads and voice" />
+        <CommunitiesPage />
+      </>
+    );
+  if (parts[1] === "settings") return <SettingsPage email="alex@example.com" />;
+  if (parts[1] === "feed" && parts[2] === "activity") return <ActivityView me={S.shellMe} items={S.activity} />;
+  return <FeedView key={tab} me={S.shellMe} scope={tab} initial={S.feed(tab)} following={S.following} followedCommunities={[]} />;
+}
+
 function App() {
   const path = usePathname();
   const router = useRouter();
   const parts = useMemo(() => path.split("/").filter(Boolean), [path]);
+  if ((parts[0] === "app" && parts[1] !== "dm") || (parts[0] === "u" && parts[1])) {
+    return (
+      <AppShell me={S.shellMe} communities={S.shellCommunities} cloud={false}>
+        <ShellPage parts={parts} />
+      </AppShell>
+    );
+  }
+  if (parts[0] === "app" && parts[1] === "dm") {
+    queueMicrotask(() => router.replace("/c/night-shift/dm" + (parts[2] ? "/" + parts[2] : "")));
+    return null;
+  }
   if (parts[0] !== "c" || !parts[1] || !D.communities.some((c) => c.slug === parts[1])) {
     queueMicrotask(() => router.replace("/c/night-shift/general"));
     return null;

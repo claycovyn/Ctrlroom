@@ -1,0 +1,80 @@
+/* Sign in: the brand side. The colour variables come from the landing page's .page (landing.module.css). */
+
+.brand {
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 40%, var(--glow), transparent 70%),
+    rgb(var(--bg));
+}
+
+.markStage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  margin: 1rem 0 1rem;
+}
+@media (min-width: 640px) {
+  .markStage {
+    height: 230px;
+  }
+}
+@media (min-width: 1024px) {
+  .markStage {
+    height: 300px;
+    margin: 0 0 2.5rem;
+  }
+}
+
+.brackets {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(480px, 125%);
+  height: auto;
+  translate: -50% -50%;
+  overflow: visible;
+}
+
+.mark {
+  position: relative;
+  width: 96px;
+  height: auto;
+  filter: drop-shadow(0 18px 40px rgb(0 0 0 / 0.35));
+}
+@media (min-width: 640px) {
+  .mark {
+    width: 150px;
+  }
+}
+@media (min-width: 1024px) {
+  .mark {
+    width: 196px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mark {
+    animation: settle 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .brackets {
+    animation: open 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+@keyframes open {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+
+/* The brand side has a few classes from the landing page that only make sense with its variables. */
+.split {
+  isolation: isolate;
+}

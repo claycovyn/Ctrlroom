@@ -1,0 +1,58 @@
+/* The signed-in shell. Brand: black, white and silver; the chamfer and the bracket come from the mark. */
+
+.root {
+  --halo: rgb(0 0 0 / 0.05);
+}
+@media (prefers-color-scheme: dark) {
+  .root {
+    --halo: rgb(255 255 255 / 0.06);
+  }
+}
+
+/* Profile band: the mark's slanted silver planes (no cover photos for people). */
+.band {
+  background:
+    linear-gradient(115deg, transparent 0 34%, rgb(var(--fg) / 0.08) 34% 35%, transparent 35%),
+    linear-gradient(115deg, transparent 0 48%, rgb(var(--fg) / 0.12) 48% 55%, transparent 55%),
+    linear-gradient(115deg, transparent 0 61%, rgb(var(--fg) / 0.06) 61% 74%, transparent 74%),
+    radial-gradient(ellipse 60% 120% at 80% 0%, var(--halo), transparent),
+    linear-gradient(180deg, rgb(var(--fg) / 0.08), rgb(var(--fg) / 0.02));
+}
+
+/* Something new in a community: a signal dot that breathes (still with reduced motion). */
+.live {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgb(var(--signal));
+  box-shadow: 0 0 0 3px rgb(var(--signal) / 0.15);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .live {
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+}
+@keyframes breathe {
+  50% {
+    box-shadow: 0 0 0 5px rgb(var(--signal) / 0.04);
+  }
+}
+
+/* Phone tab bar: over the content, clear of the home indicator. */
+.tabbar {
+  padding-bottom: var(--cr-safe-bottom);
+  padding-left: var(--cr-safe-left);
+  padding-right: var(--cr-safe-right);
+}
+/* With the keyboard up (NativeFeel sets .cr-kb) the tab bar steps aside. */
+:global(html.cr-kb) .tabbar {
+  display: none;
+}
+.under {
+  padding-bottom: calc(4rem + var(--cr-safe-bottom));
+}
+@media (min-width: 768px) {
+  .under {
+    padding-bottom: 0;
+  }
+}

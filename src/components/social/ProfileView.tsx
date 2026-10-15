@@ -8,6 +8,8 @@ import { useConfirm } from "@/components/Dialogs";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { BIO_MAX, countLabel, FEED_PAGE, type PostCard, type ProfileView as ProfileRow } from "@/lib/social";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/shell/PageHeader";
+import s from "@/components/shell/shell.module.css";
 import { PostList } from "./PostList";
 import { PublicProfileSetup } from "./PublicProfileSetup";
 
@@ -53,76 +55,96 @@ export function ProfileView({ me, profile, initialPosts, requests }: { me: Me; p
   };
 
   return (
-    <main className="mx-auto max-w-2xl border-x border-line">
-      <section className="border-b border-line px-4 py-5" aria-labelledby="profile-name">
-        <div className="flex items-start gap-4">
-          <Avatar profile={profile} size={72} />
-          <div className="min-w-0 flex-1">
-            <h1 id="profile-name" className="text-xl font-semibold leading-tight [overflow-wrap:anywhere]">
-              {profile.display_name}
-            </h1>
-            <p className="text-muted">
-              @{profile.username}
-              {profile.follows_you && !self && <span className="ml-2 rounded bg-raised px-1.5 py-0.5 text-xs">Follows you</span>}
-              {profile.is_private && <span className="ml-2 rounded bg-raised px-1.5 py-0.5 text-xs">Private account</span>}
-            </p>
-            {profile.bio && <p className="mt-2 whitespace-pre-wrap text-[15px] [overflow-wrap:anywhere]">{profile.bio}</p>}
-            <p className="mt-2 text-sm text-muted">
-              {profile.can_see_posts ? (
-                <>
-                  <Link href={`/u/${profile.username}/followers`} className="hover:text-fg hover:underline">
-                    {countLabel(profile.followers, "follower", "followers")}
-                  </Link>{" "}
-                  ·{" "}
-                  <Link href={`/u/${profile.username}/following`} className="hover:text-fg hover:underline">
-                    {profile.following.toLocaleString("en-US")} following
-                  </Link>
-                </>
-              ) : (
-                <>
-                  {countLabel(profile.followers, "follower", "followers")} · {profile.following.toLocaleString("en-US")} following
-                </>
-              )}
-            </p>
+    <div>
+      <PageHeader title={profile.display_name} sub={profile.posts !== null ? countLabel(profile.posts, "post", "posts") : `@${profile.username}`} back={self ? undefined : "/app"} />
+      <section className="border-b border-line pb-4" aria-labelledby="profile-name">
+        <div className={`${s.band} h-28 border-b border-line sm:h-36`} aria-hidden="true" />
+        <div className="flex items-end justify-between gap-3 px-4">
+          <span className="-mt-11 rounded-2xl bg-bg p-1 sm:-mt-14">
+            <Avatar profile={profile} size={88} />
+          </span>
+          <div className="flex flex-wrap justify-end gap-2 pt-3">
+            {self ? (
+              <>
+                {profile.public_profile && (
+                  <button type="button" className="btn-outline h-9 rounded-full px-4 font-semibold" onClick={() => setEditing((v) => !v)} aria-expanded={editing}>
+                    Edit profile
+                  </button>
+                )}
+                <Link href="/app/settings" className="btn-outline h-9 rounded-full px-4 font-semibold">
+                  Settings
+                </Link>
+              </>
+            ) : profile.you_blocked ? (
+              <button type="button" className="btn-outline h-9 rounded-full px-4" disabled={busy} onClick={() => act(() => sb().rpc("unblock_user", { p_user: profile.id }))}>
+                Unblock
+              </button>
+            ) : (
+              <>
+                {!profile.is_bot && (
+                  <button type="button" className="btn-ghost h-9 rounded-full px-3 text-muted" disabled={busy} onClick={block}>
+                    Block
+                  </button>
+                )}
+                {profile.follows_you && (
+                  <button type="button" className="btn-ghost h-9 rounded-full px-3 text-muted" disabled={busy} onClick={() => act(() => sb().rpc("remove_follower", { p_user: profile.id }))}>
+                    Remove follower
+                  </button>
+                )}
+                {profile.public_profile && !profile.is_bot && (
+                  <button
+                    type="button"
+                    className={`${profile.relation === "none" ? "btn-primary" : "btn-outline"} h-9 rounded-full px-5 font-semibold`}
+                    disabled={busy}
+                    onClick={profile.relation === "none" ? follow : unfollow}
+                  >
+                    {profile.relation === "active" ? "Following" : profile.relation === "pending" ? "Requested" : profile.is_private ? "Ask to follow" : "Follow"}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {self ? (
-            profile.public_profile && (
-              <button type="button" className="btn-outline" onClick={() => setEditing((v) => !v)} aria-expanded={editing}>
-                Edit profile
-              </button>
-            )
-          ) : profile.you_blocked ? (
-            <button type="button" className="btn-outline" disabled={busy} onClick={() => act(() => sb().rpc("unblock_user", { p_user: profile.id }))}>
-              Unblock
-            </button>
-          ) : (
-            <>
-              {profile.public_profile && !profile.is_bot && (
-                <button type="button" className={profile.relation === "none" ? "btn-primary" : "btn-outline"} disabled={busy} onClick={profile.relation === "none" ? follow : unfollow}>
-                  {profile.relation === "active" ? "Following" : profile.relation === "pending" ? "Requested" : profile.is_private ? "Ask to follow" : "Follow"}
-                </button>
-              )}
-              {profile.follows_you && (
-                <button type="button" className="btn-ghost" disabled={busy} onClick={() => act(() => sb().rpc("remove_follower", { p_user: profile.id }))}>
-                  Remove follower
-                </button>
-              )}
-              {!profile.is_bot && (
-                <button type="button" className="btn-ghost" disabled={busy} onClick={block}>
-                  Block
-                </button>
-              )}
-            </>
-          )}
-        </div>
-        {error && (
-          <p role="alert" className="mt-2 text-sm text-alert">
-            {error}
+        <div className="mt-3 px-4">
+          <h1 id="profile-name" className="text-[22px] font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">
+            {profile.display_name}
+          </h1>
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-muted">
+            @{profile.username}
+            {profile.follows_you && !self && <span className="rounded bg-raised px-1.5 py-0.5 text-xs">Follows you</span>}
+            {profile.is_private && <span className="rounded bg-raised px-1.5 py-0.5 text-xs">Private account</span>}
+            {profile.is_bot && <span className="rounded bg-signal px-1.5 py-0.5 text-[10px] font-bold uppercase text-signal-fg">AI</span>}
           </p>
-        )}
-        {self && editing && <EditProfile me={me} onSaved={() => (setEditing(false), router.refresh())} />}
+          {profile.bio && <p className="mt-3 whitespace-pre-wrap text-[15px] leading-snug [overflow-wrap:anywhere]">{profile.bio}</p>}
+          <p className="mt-3 text-sm text-muted">Joined {new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+          <p className="mt-2 flex gap-5 text-sm text-muted">
+            {profile.can_see_posts ? (
+              <>
+                <Link href={`/u/${profile.username}/following`} className="hover:underline">
+                  <span className="font-semibold text-fg">{profile.following.toLocaleString("en-US")}</span> following
+                </Link>
+                <Link href={`/u/${profile.username}/followers`} className="hover:underline">
+                  <span className="font-semibold text-fg">{profile.followers.toLocaleString("en-US")}</span> {profile.followers === 1 ? "follower" : "followers"}
+                </Link>
+              </>
+            ) : (
+              <>
+                <span>
+                  <span className="font-semibold text-fg">{profile.following.toLocaleString("en-US")}</span> following
+                </span>
+                <span>
+                  <span className="font-semibold text-fg">{profile.followers.toLocaleString("en-US")}</span> {profile.followers === 1 ? "follower" : "followers"}
+                </span>
+              </>
+            )}
+          </p>
+          {error && (
+            <p role="alert" className="mt-2 text-sm text-alert">
+              {error}
+            </p>
+          )}
+          {self && editing && <EditProfile me={me} onSaved={() => (setEditing(false), router.refresh())} />}
+        </div>
       </section>
 
       {self && requests.length > 0 && (
@@ -153,7 +175,7 @@ export function ProfileView({ me, profile, initialPosts, requests }: { me: Me; p
         <PublicProfileSetup me={me} onDone={() => router.refresh()} />
       ) : profile.can_see_posts ? (
         <>
-          <h2 className="sr-only">Posts</h2>
+          <h2 className="border-b border-line px-4 py-3 text-[15px] font-semibold">Posts</h2>
           <PostList
             me={me}
             posts={posts}
@@ -174,7 +196,7 @@ export function ProfileView({ me, profile, initialPosts, requests }: { me: Me; p
               : `@${profile.username}'s posts are only for followers. ${profile.relation === "pending" ? "Your request is waiting for approval." : "Ask to follow to see them."}`}
         </p>
       )}
-    </main>
+    </div>
   );
 }
 

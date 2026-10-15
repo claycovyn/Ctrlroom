@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PostCard } from "@/lib/social";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { Composer } from "./Composer";
 import { PostItem } from "./PostItem";
 import { PostList } from "./PostList";
@@ -14,8 +15,8 @@ export function ThreadView({ me, parent, post: initial, initialReplies }: { me: 
   const [post, setPost] = useState(initial);
   const [replies, setReplies] = useState(initialReplies);
   return (
-    <main className="mx-auto max-w-2xl border-x border-line">
-      <h1 className="sr-only">Post by {post.author_name}</h1>
+    <div>
+      <PageHeader title="Post" sub={`by ${post.author_name}`} back="/app" />
       {parent && (
         <div className="border-b border-line bg-raised/40 px-4 py-2 text-sm text-muted">
           Replying to{" "}
@@ -24,12 +25,12 @@ export function ThreadView({ me, parent, post: initial, initialReplies }: { me: 
           </Link>
         </div>
       )}
-      <PostItem post={post} me={me} onChange={setPost} onDeleted={() => router.push("/app/feed")} linkToThread={false} />
+      <PostItem post={post} me={me} onChange={setPost} onDeleted={() => router.push("/app")} linkToThread={false} />
       {me.public_profile ? (
         <Composer replyTo={post.id} placeholder={`Reply to ${post.author_name}`} onPosted={(p) => setReplies((list) => [...list, p])} />
       ) : (
         <p className="border-b border-line px-4 py-3 text-sm text-muted">
-          <Link href="/app/feed" className="font-medium text-fg underline">
+          <Link href="/app" className="font-medium text-fg underline">
             Turn on your public profile
           </Link>{" "}
           to reply.
@@ -37,6 +38,6 @@ export function ThreadView({ me, parent, post: initial, initialReplies }: { me: 
       )}
       <h2 className="sr-only">Replies</h2>
       <PostList me={me} posts={replies} setPosts={(fn) => setReplies(fn)} empty="No replies yet." />
-    </main>
+    </div>
   );
 }

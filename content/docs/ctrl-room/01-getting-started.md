@@ -26,7 +26,8 @@ One account works for every community you join.
 
 ## Start a community
 
-After signing in you land on **Your communities**. Under **Start a community**, fill in:
+After signing in you land on **Home**: the Feed in the middle and your communities beside it (on a phone, under the
+**Communities** tab). Choose **Start a community** and fill in:
 
 - **Icon**: an emoji or a short label (optional).
 - **Name**: shown in the sidebar.

@@ -13,8 +13,8 @@ export function ProviderButtons({ view, next }: { view: ProviderView; next: stri
       ))}
       {view.buttons.length > 0 && (
         <div className="space-y-3">
-          {view.buttons.map((p) => (
-            <a key={p} href={startHref(p, next)} className="btn-outline w-full py-2.5">
+          {view.buttons.map((p, i) => (
+            <a key={p} href={startHref(p, next)} className={`${i === 0 ? "btn-primary" : "btn-outline"} h-11 w-full rounded-full text-[15px] font-semibold`}>
               {PROVIDER_LABEL[p]}
             </a>
           ))}

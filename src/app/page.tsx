@@ -4,7 +4,9 @@ import { CheckIcon } from "@/components/chat/icons";
 import { Logo } from "@/components/Logo";
 import { BoardArt, CallArt, HelperArt, IconsArt, ImagesArt, OutcomeArt, RequestArt, ROOM_ICON_COUNT } from "@/components/landing/FeatureArt";
 import { HeroMark } from "@/components/landing/HeroMark";
-import { ProductMock } from "@/components/landing/ProductMock";
+import { HomeMock } from "@/components/landing/HomeMock";
+import { RoomMock } from "@/components/landing/ProductMock";
+import { CommunityPostArt, ListsArt, MediaArt, ProfileArt, TabsArt } from "@/components/landing/SocialArt";
 import { Reveal } from "@/components/landing/Reveal";
 import { CtaLink, Cut, Eyebrow, H2, LEAD } from "@/components/landing/parts";
 import s from "@/components/landing/landing.module.css";
@@ -13,7 +15,28 @@ import { amountLine, CLOUD, CLOUD_PRICE_LABEL, cloudEnabled } from "@/lib/cloud"
 export const metadata: Metadata = {
   title: { absolute: "Ctrl Room · Where the collective talks." },
   description:
-    "Community chat with rooms, threads, voice and video. Full history and search, quiet by default, threads that close with an outcome. Open source, by OpenCtrl.",
+    "Community chat with rooms, threads, voice and video, plus a feed of the people and communities you follow. Full history and search, quiet by default, no ranking. Open source, by OpenCtrl.",
+  keywords: [
+    "community chat",
+    "Discord alternative",
+    "Slack alternative",
+    "open source chat",
+    "self-hosted chat",
+    "rooms and threads",
+    "voice and video chat",
+    "community feed",
+    "public profiles",
+    "follow communities",
+    "direct messages",
+    "Ctrl Room",
+    "OpenCtrl",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Ctrl Room · Where the collective talks.",
+    description: "Rooms, threads, voice and video for your communities, and a feed of the people and communities you follow. Open source, by OpenCtrl.",
+    url: "/",
+  },
 };
 
 // Every line here is something Ctrl Room does today (README.md, content/docs/ctrl-room).
@@ -39,8 +62,46 @@ const FIXES = [
     fix: "Threads open side by side and close with an outcome. The outcome shows in the room and can go on the board.",
   },
   {
+    pain: "Feeds built to keep you scrolling",
+    fix: "Two plain tabs, Following and Everyone, newest first. Nothing is ranked, and new posts wait until you ask for them.",
+  },
+  {
     pain: "Upsells and ID checks",
     fix: "No feature paywalls and no ID checks. Four plain roles: owner, admin, mod, member.",
+  },
+];
+
+// The social side (README "Posts and follows"; migrations 0020, 0021).
+const SOCIAL = [
+  {
+    title: "Following and Everyone",
+    body: "Following shows you, the people you follow and the public communities you're in or follow. Everyone shows every post you can see. Newest first, no ranking.",
+    art: <TabsArt />,
+    span: "lg:col-span-3",
+  },
+  {
+    title: "Public profiles and follows",
+    body: "Your profile at /u/you shows your photo, bio and posts. Follow anyone with a public profile, or make your account private and approve followers yourself.",
+    art: <ProfileArt />,
+    span: "lg:col-span-3",
+  },
+  {
+    title: "Posts that know their community",
+    body: "Post to your followers or into a public community you're in. Its name shows on the post, and following a public community puts its posts in your feed.",
+    art: <CommunityPostArt />,
+    span: "lg:col-span-2",
+  },
+  {
+    title: "Follower and following lists",
+    body: "Every profile you can see has its lists. Follow back from them, and see who's waiting on a request.",
+    art: <ListsArt />,
+    span: "lg:col-span-2",
+  },
+  {
+    title: "Photos, videos and links",
+    body: "Up to 4 photos or videos a post. The first link gets a preview, fetched by the server so readers' addresses never reach the linked site.",
+    art: <MediaArt />,
+    span: "lg:col-span-2",
   },
 ];
 
@@ -173,7 +234,8 @@ export default function Home() {
             className={`${s.rise} ${LEAD} mx-auto mt-6 max-w-2xl sm:text-xl`}
             style={{ "--d": "300ms" } as React.CSSProperties}
           >
-            Community chat with rooms, threads, voice and video, built around what people dislike about Discord and Slack.
+            Community chat with rooms, threads, voice and video, and a feed of the people and communities you follow. Built
+            around what people dislike about Discord and Slack.
           </p>
           <div className={`${s.rise} mt-8 flex flex-wrap justify-center gap-3`} style={{ "--d": "400ms" } as React.CSSProperties}>
             <CtaLink href="/login?mode=signup">Start a community</CtaLink>
@@ -200,9 +262,9 @@ export default function Home() {
               <Cut cut={28} inner="overflow-hidden">
                 <div
                   role="img"
-                  aria-label="The Ctrl Room app: communities on the left, a sidebar of rooms grouped in sections, a room with a call bar, a closed thread with its outcome, and an open thread beside it."
+                  aria-label="Ctrl Room's Home: a menu on the left, the Feed in the middle with Following and Everyone tabs, a post from a community, and your communities on the right showing which rooms are active."
                 >
-                  <ProductMock />
+                  <HomeMock />
                 </div>
               </Cut>
               <figcaption className="mt-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
@@ -246,6 +308,44 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Posts and follows */}
+        <section className="mx-auto mt-28 max-w-6xl px-4 sm:mt-40 sm:px-6" aria-labelledby="social-heading">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end">
+            <Reveal className="max-w-2xl">
+              <Eyebrow>Posts and follows</Eyebrow>
+              <h2 id="social-heading" className={`${H2} mt-5`}>
+                Your communities, <span className="text-muted">and the people in them.</span>
+              </h2>
+            </Reveal>
+            <Reveal delay={80}>
+              <p className={LEAD}>
+                Next to the chat there&apos;s a public side: posts, profiles and follows. Home puts your feed in the middle and
+                your communities beside it, so the rooms are one click away.
+              </p>
+            </Reveal>
+          </div>
+          <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            {SOCIAL.map((f, i) => (
+              <Reveal key={f.title} delay={(i % 3) * 70} className={`${f.span} ${i === SOCIAL.length - 1 && SOCIAL.length % 2 ? "sm:col-span-2" : ""}`}>
+                <Cut hover cut={18} className="h-full" inner="flex h-full flex-col">
+                  <div className={`${s.stage} flex h-40 items-center justify-center px-6 sm:px-8`}>
+                    <div className="w-full max-w-[17rem]">{f.art}</div>
+                  </div>
+                  <div className="p-6 pt-5 sm:px-7 sm:pb-7">
+                    <h3 className="text-lg font-semibold tracking-tight">{f.title}</h3>
+                    <p className="mt-2 text-pretty text-[15px] leading-relaxed text-muted">{f.body}</p>
+                  </div>
+                </Cut>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal className="mt-6">
+            <p className="text-center text-sm text-muted">
+              Posting is part of your public profile, which you can turn off any time. Blocks apply to posts and follows too.
+            </p>
+          </Reveal>
+        </section>
+
         {/* Features */}
         <section className="mx-auto mt-28 max-w-6xl px-4 sm:mt-40 sm:px-6" aria-labelledby="features-heading">
           <Reveal className="max-w-2xl">
@@ -253,6 +353,21 @@ export default function Home() {
             <h2 id="features-heading" className={`${H2} mt-5`}>
               Built for talking, and for finishing the conversation.
             </h2>
+          </Reveal>
+          <Reveal className="relative mt-12">
+            <figure>
+              <Cut cut={24} inner="overflow-hidden">
+                <div
+                  role="img"
+                  aria-label="Inside a community: communities on the left, a sidebar of rooms grouped in sections, a room with a call bar, a closed thread with its outcome, and an open thread beside it."
+                >
+                  <RoomMock />
+                </div>
+              </Cut>
+              <figcaption className="mt-4 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+                Illustration · names and messages are examples
+              </figcaption>
+            </figure>
           </Reveal>
           <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
             {FEATURES.map((f, i) => (

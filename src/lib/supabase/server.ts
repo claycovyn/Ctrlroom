@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/env";
@@ -19,9 +20,12 @@ export async function supabaseServer() {
   });
 }
 
-/** The signed-in user (verified with Supabase Auth), or null. */
-export async function currentUser() {
+/**
+ * The signed-in user (verified with Supabase Auth), or null. Once per request while rendering: the signed-in shell's
+ * layout and its page share one check (outside a render, e.g. in a server action, it simply runs).
+ */
+export const currentUser = cache(async () => {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
   return { supabase, user: data.user };
-}
+});

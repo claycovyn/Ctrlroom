@@ -270,8 +270,8 @@ function Thread() {
   );
 }
 
-/** The product visual on the landing page: HTML and CSS, no screenshot. */
-export function ProductMock() {
+/** A community, open on a room: HTML and CSS, no screenshot. */
+export function RoomMock() {
   return (
     <div className={`${s.mock} flex overflow-hidden md:h-[36rem]`} aria-hidden="true">
       <Sidebar />

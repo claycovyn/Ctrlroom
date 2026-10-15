@@ -5,7 +5,8 @@ import { useEffect } from "react";
 import { Avatar } from "@/components/chat/Avatar";
 import { shortAge } from "@/lib/social";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { SEEN_EVENT } from "./ActivityLink";
+import { PageHeader } from "@/components/shell/PageHeader";
+import { SEEN_EVENT } from "@/lib/shell";
 
 export interface ActivityItem {
   kind: "follow" | "request" | "approved" | "like" | "reply";
@@ -34,8 +35,8 @@ export function ActivityView({ me, items }: { me: { id: string; username: string
       .then(() => window.dispatchEvent(new Event(SEEN_EVENT)));
   }, []);
   return (
-    <main className="mx-auto max-w-2xl border-x border-line">
-      <h1 className="border-b border-line px-4 py-3 text-lg font-semibold">Activity</h1>
+    <div>
+      <PageHeader title="Activity" sub="Follows, likes and replies" />
       {items.length === 0 ? (
         <p className="px-4 py-10 text-center text-sm text-muted">New followers, and likes and replies on your posts, show up here.</p>
       ) : (
@@ -70,6 +71,6 @@ export function ActivityView({ me, items }: { me: { id: string; username: string
           })}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

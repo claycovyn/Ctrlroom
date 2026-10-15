@@ -7,6 +7,7 @@ import { cloudErrorText } from "@/lib/cloudErrors";
 import { useBroadcast } from "@/lib/realtime";
 import { FEED_PAGE, mergePosts, type PostCard } from "@/lib/social";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { Composer } from "./Composer";
 import { PostList } from "./PostList";
 
@@ -65,11 +66,12 @@ export function CommunityPostsView({ me, community, initial }: { me: { id: strin
   };
 
   return (
-    <main className="mx-auto max-w-2xl border-x border-line">
+    <div>
+      <PageHeader title={community.name} sub="Posts" back="/app" />
       <div className="flex items-start gap-3 border-b border-line px-4 py-4">
         <CommunityIcon community={community} className="h-12 w-12 rounded-xl bg-raised text-xl" />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-semibold">{community.name}</h1>
+          <h2 className="truncate text-lg font-semibold">{community.name}</h2>
           <p className="text-sm text-muted">Posts{community.is_public ? "" : " · private community"}</p>
           {community.description && <p className="mt-1 text-sm">{community.description}</p>}
         </div>
@@ -101,14 +103,14 @@ export function CommunityPostsView({ me, community, initial }: { me: { id: strin
       {community.member && community.is_public && !me.public_profile && (
         <p className="border-b border-line px-4 py-3 text-sm text-muted">
           Your public profile is off, so you can&apos;t post.{" "}
-          <Link href="/app/feed" className="underline">
-            Turn it on in the Feed
+          <Link href="/app" className="underline">
+            Turn it on from Home
           </Link>
           .
         </p>
       )}
       {waiting.length > 0 && (
-        <div className="sticky top-[57px] z-[5] flex justify-center py-2">
+        <div className="sticky top-[calc(var(--cr-safe-top)+4rem)] z-[5] flex justify-center py-2">
           <button type="button" className="btn-primary h-8 rounded-full px-4 text-sm shadow" onClick={showWaiting}>
             Show {waiting.length} new {waiting.length === 1 ? "post" : "posts"}
           </button>
@@ -121,6 +123,6 @@ export function CommunityPostsView({ me, community, initial }: { me: { id: strin
         loadMore={(before) => fetchPosts(community.id, before)}
         empty={community.is_public ? (community.member ? "No posts yet. Be the first." : "No posts yet.") : "Only public communities have posts."}
       />
-    </main>
+    </div>
   );
 }

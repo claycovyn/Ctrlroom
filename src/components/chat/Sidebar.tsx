@@ -240,7 +240,7 @@ export function Sidebar() {
       >
         {/* community rail */}
         <nav className="scroll-thin flex w-16 shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-line bg-bg py-3" aria-label="Communities">
-          <Link href="/app" title="All communities" className="mb-1">
+          <Link href="/app" title="Home" className="mb-1">
             <LogoMark className="h-10 w-10" />
           </Link>
           {dm && (
@@ -260,7 +260,7 @@ export function Sidebar() {
             </Link>
           )}
           <Link
-            href={social > 0 ? "/app/feed/activity" : "/app/feed"}
+            href={social > 0 ? "/app/feed/activity" : "/app"}
             title="Feed"
             aria-label={social > 0 ? `Feed, ${badgeLabel(social)} new` : "Feed"}
             className="relative mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-raised text-muted hover:bg-line hover:text-fg"
@@ -293,7 +293,7 @@ export function Sidebar() {
               />
             </Link>
           ))}
-          <Link href="/app" title="Create or join" className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-line text-muted hover:text-fg">
+          <Link href="/app/communities" title="Create or join" className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-line text-muted hover:text-fg">
             <PlusIcon />
           </Link>
         </nav>
