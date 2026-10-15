@@ -1,5 +1,6 @@
 import { Fragment } from "react";
-import { tokenize } from "@/lib/format";
+import { EVERYONE, tokenize } from "@/lib/format";
+import { ProfileHover } from "./ProfileCard";
 
 export function RichText({ body, myUsername }: { body: string; myUsername: string }) {
   return (
@@ -9,17 +10,26 @@ export function RichText({ body, myUsername }: { body: string; myUsername: strin
           case "text":
             return <Fragment key={i}>{t.value}</Fragment>;
           case "mention":
+            // @everyone isn't a person: no card, and it's marked like a ping for you.
+            if (t.username === EVERYONE) {
+              return (
+                <span key={i} className="rounded bg-signal/25 px-0.5 font-medium text-fg">
+                  @{t.username}
+                </span>
+              );
+            }
             return (
-              <span
+              <ProfileHover
                 key={i}
+                username={t.username}
                 className={
                   t.username === myUsername
-                    ? "rounded bg-signal/25 px-0.5 font-medium text-fg"
-                    : "rounded bg-raised px-0.5 font-medium text-signal"
+                    ? "rounded bg-signal/25 px-0.5 font-medium text-fg hover:underline"
+                    : "rounded bg-raised px-0.5 font-medium text-signal hover:underline"
                 }
               >
                 @{t.username}
-              </span>
+              </ProfileHover>
             );
           case "link":
             return (

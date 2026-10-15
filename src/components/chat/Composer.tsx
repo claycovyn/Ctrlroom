@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { EVERYONE } from "@/lib/format";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AttachButton, AttachmentTray } from "./attachments/AttachmentTray";
 import { useAttachmentDrafts, type AttachScope, type OutgoingAttachment } from "./attachments/useAttachmentDrafts";
@@ -16,6 +17,7 @@ const BOTS: Suggestion[] = [
   { username: "ctrl", display_name: "Ctrl", hint: "AI: questions and web research" },
   { username: "openctrl", display_name: "OpenCtrl", hint: "AI: help with OpenCtrl apps" },
 ];
+const EVERYONE_SUGGESTION: Suggestion = { username: EVERYONE, display_name: "Everyone", hint: "Pings everyone in the community" };
 
 export function Composer({
   placeholder,
@@ -26,6 +28,7 @@ export function Composer({
   onTyping,
   autoFocus,
   attach,
+  everyone = false,
 }: {
   placeholder: string;
   /** For @mention suggestions; null turns them off (direct messages). */
@@ -37,6 +40,8 @@ export function Composer({
   autoFocus?: boolean;
   /** Where attached files go; leave it out for a composer without files. */
   attach?: AttachScope;
+  /** Offer @everyone (mods and up: it pings the whole community, 0019). */
+  everyone?: boolean;
 }) {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -78,14 +83,15 @@ export function Composer({
         .limit(6);
       if (cancelled) return;
       const bots = BOTS.filter((b) => b.username.startsWith(mentionQuery));
-      setSuggestions([...bots, ...((data ?? []) as unknown as { profiles: Suggestion }[]).map((r) => r.profiles)].slice(0, 7));
+      const all = everyone && EVERYONE.startsWith(mentionQuery) ? [EVERYONE_SUGGESTION] : [];
+      setSuggestions([...all, ...bots,...((data ?? []) as unknown as { profiles: Suggestion }[]).map((r) => r.profiles)].slice(0, 7));
       setActive(0);
     }, 120);
     return () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [mentionQuery, communityId]);
+  }, [mentionQuery, communityId, everyone]);
 
   const pick = (s: Suggestion) => {
     const el = ref.current;

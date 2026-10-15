@@ -7,6 +7,7 @@ import type { ReactionSummary } from "@/lib/format";
 import type { Message, Profile } from "@/lib/types";
 import { MessageAttachments } from "./attachments/MessageAttachments";
 import { PresenceAvatar } from "./PresenceAvatar";
+import { ProfileHover } from "./ProfileCard";
 import { BlockIcon, CheckIcon, EditIcon, FlagIcon, PinIcon, SmileIcon, ThreadIcon, TrashIcon } from "./icons";
 import { RichText } from "./RichText";
 
@@ -95,7 +96,13 @@ export const MessageItem = memo(function MessageItem({
       <div className="min-w-0 flex-1">
         {!compact && (
           <div className="flex items-baseline gap-2">
-            <span className="font-medium">{author?.display_name ?? "…"}</span>
+            {author ? (
+              <ProfileHover username={author.username} className="font-medium hover:underline">
+                {author.display_name}
+              </ProfileHover>
+            ) : (
+              <span className="font-medium">…</span>
+            )}
             {author?.is_bot && <span className="rounded bg-signal px-1 text-[10px] font-bold uppercase leading-4 text-signal-fg">AI</span>}
             <span className="text-xs text-muted">{timeLabel(m.created_at)}</span>
           </div>

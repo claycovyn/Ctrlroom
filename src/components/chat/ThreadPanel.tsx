@@ -63,6 +63,7 @@ export function ThreadPanel({
               communityId={community.id}
               onSend={onReply}
               attach={{ kind: "room", roomId: root.room_id }}
+              everyone={atLeast(role, "mod")}
               autoFocus
             />
           </div>

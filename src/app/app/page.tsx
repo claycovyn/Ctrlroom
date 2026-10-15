@@ -13,7 +13,7 @@ import { UsageCard } from "@/components/cloud/UsageCard";
 import { cloudEnabled } from "@/lib/cloud";
 import { loadMyCloud } from "@/lib/cloudStatus";
 import { isConfigured } from "@/lib/env";
-import { LAST_PLACE_COOKIE, launchTarget } from "@/lib/lastPlace";
+import { desktopLaunch, LAST_PLACE_COOKIE, launchTarget } from "@/lib/lastPlace";
 import { currentUser } from "@/lib/supabase/server";
 import type { Community, Profile, Role } from "@/lib/types";
 import { CreateCommunityForm, JoinCommunityForm } from "./HomeForms";
@@ -30,7 +30,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const target = launchTarget({ launch, userAgent: head.get("user-agent"), cookie: jar.get(LAST_PLACE_COOKIE)?.value });
   if (target) redirect(target);
   const { supabase, user } = await currentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(launch === "desktop" ? `/login?next=${encodeURIComponent("/app?launch=desktop")}` : "/login");
 
   const [{ data: memberships }, { data: profile }, cloud] = await Promise.all([
     supabase
@@ -44,6 +44,11 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const communities = ((memberships ?? []) as unknown as { role: Role; communities: Community }[]).filter(
     (m) => m.communities,
   );
+  // The desktop app opens here: straight to your community, or your messages when you're in more than one.
+  if (launch === "desktop") {
+    const to = desktopLaunch({ communitySlugs: communities.map((m) => m.communities.slug), cookie: jar.get(LAST_PLACE_COOKIE)?.value });
+    if (to) redirect(to);
+  }
 
   return (
     <main className="min-h-screen">

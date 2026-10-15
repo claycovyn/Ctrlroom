@@ -11,6 +11,9 @@ use tauri::{WebviewUrl, WebviewWindowBuilder};
 const HOME: &str = "https://www.openctrlroom.app";
 // The bare domain redirects to HOME, so it stays in the window too.
 const APEX: &str = "openctrlroom.app";
+// Where the window opens: signed in, the server sends you to your community (or your messages when you're in more
+// than one); signed out, to sign in. See `desktopLaunch` in src/lib/lastPlace.ts.
+const START: &str = "https://www.openctrlroom.app/app?launch=desktop";
 
 fn is_home(url: &url::Url) -> bool {
     let home: url::Url = HOME.parse().expect("valid home URL");
@@ -48,8 +51,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            let home = HOME.parse().expect("valid home URL");
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::External(home))
+            let start = START.parse().expect("valid start URL");
+            WebviewWindowBuilder::new(app, "main", WebviewUrl::External(start))
                 .title("Ctrl Room")
                 .inner_size(1280.0, 840.0)
                 .min_inner_size(380.0, 600.0)

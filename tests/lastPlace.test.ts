@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lastPlaceCookie, launchTarget, validPlace } from "@/lib/lastPlace";
+import { desktopLaunch, lastPlaceCookie, launchTarget, validPlace } from "@/lib/lastPlace";
 
 const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
 const DESKTOP = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
@@ -14,6 +14,19 @@ describe("validPlace", () => {
     for (const bad of ["//evil.example/c/x", "https://evil.example", "/admin", "/c/x/y/z", "/c/X Y", "%E0%A4%A", "", null, undefined]) {
       expect(validPlace(bad)).toBeNull();
     }
+  });
+});
+
+describe("desktopLaunch (the desktop app's window opening)", () => {
+  it("one community: its last room, or the community", () => {
+    expect(desktopLaunch({ communitySlugs: ["night-shift"], cookie: encodeURIComponent("/c/night-shift/design") })).toBe("/c/night-shift/design");
+    expect(desktopLaunch({ communitySlugs: ["night-shift"], cookie: undefined })).toBe("/c/night-shift");
+    expect(desktopLaunch({ communitySlugs: ["night-shift"], cookie: "/c/other/general" })).toBe("/c/night-shift");
+    expect(desktopLaunch({ communitySlugs: ["night-shift"], cookie: "//evil.example" })).toBe("/c/night-shift");
+  });
+  it("more than one: messages first; none: the list", () => {
+    expect(desktopLaunch({ communitySlugs: ["a", "b"], cookie: "/c/a/general" })).toBe("/app/dm");
+    expect(desktopLaunch({ communitySlugs: [], cookie: "/c/a/general" })).toBeNull();
   });
 });
 

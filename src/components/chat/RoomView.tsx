@@ -175,6 +175,35 @@ export function RoomView({
     addProfiles(initialProfiles);
     currentRoomId.current = room.id;
     let cancelled = false;
+    // The page's messages can be a cached copy (rooms are prefetched, and the router keeps them a few minutes), so a
+    // message sent before you left would be missing when you come back. Load the newest page again and merge it.
+    (async () => {
+      const { data } = await supabase
+        .from("messages")
+        .select(WITH_ATTACHMENTS)
+        .eq("room_id", room.id)
+        .is("parent_id", null)
+        .order("created_at", { ascending: false })
+        .limit(PAGE);
+      if (cancelled || !data) return;
+      const latest = (data as Message[]).reverse();
+      if (!latest.length) return;
+      ensureProfiles([...new Set(latest.map((m) => m.author_id))]);
+      const newest = latest[latest.length - 1].created_at;
+      const oldest = latest[0].created_at;
+      setMessages((list) => {
+        // Keep what's older than this page only when the two overlap; anything newer (realtime, your own just sent) stays.
+        const overlaps = list.some((m) => m.created_at >= oldest);
+        const older = overlaps ? list.filter((m) => m.created_at < oldest) : [];
+        const newer = list.filter((m) => m.created_at > newest && !latest.some((x) => x.id === m.id));
+        return [...older, ...latest, ...newer];
+      });
+      if (latest.length === PAGE) setMore(true);
+      const { data: rx } = await supabase.from("reactions").select("message_id, user_id, emoji").in("message_id", latest.map((m) => m.id));
+      if (cancelled || !rx) return;
+      const ids = new Set(latest.map((m) => m.id));
+      setReactions((list) => [...list.filter((r) => !ids.has(r.message_id)), ...(rx as Reaction[])]);
+    })();
     (async () => {
       const { data } = await supabase.rpc("catch_up", { p_room: room.id });
       if (!cancelled && data && (data as CatchUp).new_messages > 0) setCatchUp(data as CatchUp);
@@ -753,6 +782,7 @@ ${room.description}` : room.topic}
           // Text goes out optimistically (sendNow); with files it waits for the upload path (post_message, 0013).
           onSend={(body, files) => (files.length ? send(body, null, files) : sendNow(body))}
           attach={{ kind: "room", roomId: room.id }}
+          everyone={canModerate}
           onTyping={sendTyping}
         />
       </section>

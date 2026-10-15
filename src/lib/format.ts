@@ -43,6 +43,9 @@ export function tokenize(body: string): Token[] {
   return out.filter((t) => t.type !== "text" || t.value.length > 0);
 }
 
+/** @everyone pings every member when a mod, admin or owner sends it (0019); it's never a username. */
+export const EVERYONE = "everyone";
+
 export function mentionsIn(body: string): string[] {
   return [...new Set(tokenize(body).flatMap((t) => (t.type === "mention" ? [t.username] : [])))];
 }

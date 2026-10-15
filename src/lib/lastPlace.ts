@@ -27,6 +27,18 @@ export function lastPlaceCookie(place: string, secure: boolean): string {
 /** Phones (iPhone, Android phones), by user agent; the server can't see the screen. */
 export const PHONE_UA = /iPhone|iPod|Android.+Mobile|Mobile Safari|Windows Phone/i;
 
+/**
+ * Where the desktop app's window opens (/app?launch=desktop), once you're signed in: in one community, its last room
+ * (or the community); in more than one, your messages; in none, the communities list (null).
+ */
+export function desktopLaunch({ communitySlugs, cookie }: { communitySlugs: string[]; cookie: string | undefined }): string | null {
+  if (communitySlugs.length > 1) return "/app/dm";
+  if (communitySlugs.length === 0) return null;
+  const slug = communitySlugs[0];
+  const place = validPlace(cookie);
+  return place && place.split("/")[2] === slug ? place : `/c/${slug}`;
+}
+
 /** Where /app?launch=1 should go on the server, or null to show the communities list. */
 export function launchTarget({ launch, userAgent, cookie }: { launch: string | undefined; userAgent: string | null; cookie: string | undefined }): string | null {
   if (launch !== "1" || !PHONE_UA.test(userAgent ?? "")) return null;
