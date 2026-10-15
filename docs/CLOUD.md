@@ -151,7 +151,7 @@ notification:
 4. The service worker (`public/sw.js`) shows it; a tap opens the message.
 
 Fallback without pg_net: after sending a message with an @mention, a thread reply or a DM, the app itself calls the
-dispatch route (signed-in users only; it only sends what the database already queued). Vercel Hobby crons run daily,
+dispatch route (signed-in users only; it only sends what the database already queued). Vercel Pro allows frequent crons (the team is on Pro),
 so they can't be the fallback. Supabase's pg_cron could call `push_nudge()` every minute if you want one more.
 
 Setup (`scripts/setup-cloud.sh` does all of it):

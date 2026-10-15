@@ -51,7 +51,7 @@ TypeScript, Tailwind, Supabase (Postgres + Auth + Realtime), LiveKit.
   answer; Free over its AI limit → job `limited` with error `cloud:ai_replies`. Notices: daily cron `/api/cron/usage`.
 
 ## Hosting and commits
-- GitHub: https://github.com/claycovyn/ctrlroom. Vercel Hobby team owned by `claycovyn`: commits must be authored by
+- GitHub: https://github.com/claycovyn/ctrlroom. Vercel Pro team "claysin96-gmailcom's projects": commits must be authored by
   `claycovyn <283821699+claycovyn@users.noreply.github.com>` with **no `Co-Authored-By:` trailer**, or the deploy
   is blocked.
 
