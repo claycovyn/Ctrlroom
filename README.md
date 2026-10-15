@@ -92,6 +92,40 @@ OpenCtrl Cloud meters (messages, call minutes and AI answers a month), the Free 
 Cloud subscription and the add-on packs. Limits only apply when `CTRLROOM_CLOUD=1`: **self-hosting is never limited**.
 Nothing is ever deleted for going over, and export always works. Operator guide: [docs/CLOUD.md](docs/CLOUD.md).
 
+## OpenCtrl Shift invites (the `openctrl` community)
+
+Shift's waitlist lives here: anyone who joins the `openctrl` community and reacts to the pinned post in #waitlist
+gets an OpenCtrl Shift invite link by DM from the OpenCtrl account. No migration; it uses the tables as they are.
+
+- **Cron** `/api/cron/shift-invites`, every 5 minutes (`vercel.json`), with `Authorization: Bearer $CRON_SECRET` like
+  `/api/cron/usage`. Off (answers `configured: false`) until `SHIFT_CTRLROOM_SECRET` is set.
+- **The post**: the newest message in #waitlist pinned to the board ("Pin to board") by a mod or above, or the
+  message named by `CTRLROOM_SHIFT_INVITE_MESSAGE_ID`.
+- **Who gets one**: each person who reacted (any emoji), isn't a bot, is a member and not banned, has a confirmed
+  email, and takes DMs from OpenCtrl. "Who can message you: Nobody", or a block, means skip: nothing is recorded or
+  asked of Shift, and the next run after they change it picks them up. The default setting allows it (OpenCtrl speaks
+  for the community they asked in).
+- **Shift** (`SHIFT_ISSUE_URL`, default `https://shift.openctrl.app/api/invites/issue`) gets
+  `{ externalId: <user id>, source: "ctrlroom" }`, signed with HMAC-SHA256 over `<unix seconds>.<nonce>.<body>` and
+  `SHIFT_CTRLROOM_SECRET`. It keeps one code per user id and says `fresh: true` only the first time. Its daily cap
+  answers 429, and Shift open to everyone answers 410; either ends the run, and the next run carries on.
+- **The DM** goes in the person's 1:1 with the OpenCtrl account, straight to their inbox (reacting was the request):
+  "Here's your invite to OpenCtrl Shift: <url>. It works once. Once you're in, you'll get five of your own to share."
+  The 0011 triggers (blocks, flood guard, realtime) and the 0014 push still apply.
+- **No duplicates**: someone who already has an invite DM is skipped without asking Shift; a DM is sent only for a
+  fresh code, so two runs at once can't both send. A code issued over 10 minutes ago that has no DM (the DM failed)
+  and isn't used is sent again. At most 20 DMs and 40 people checked per run.
+- **By hand**: post the invite message in #waitlist and pin it to the board (as a mod or above).
+- Code: `src/lib/shiftInvites.ts` (rules, signed client), `src/lib/shiftInviteStore.ts` (service-role reads and the
+  DM), `tests/shiftInvites.test.ts` (mocked Shift and Supabase).
+
+| Env | |
+| --- | --- |
+| `SHIFT_CTRLROOM_SECRET` | The same value as in Shift's project (at least 32 characters) |
+| `SHIFT_ISSUE_URL` | Optional; defaults to `https://shift.openctrl.app/api/invites/issue` |
+| `CTRLROOM_SHIFT_INVITE_MESSAGE_ID` | Optional; the invite post's message id instead of the pinned one |
+| `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` | Already used by the other cron and the bots |
+
 ## Deploy
 
 1. **Supabase**: create a project, then `npx supabase link --project-ref <ref>` and `npx supabase db push`.
