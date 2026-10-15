@@ -58,10 +58,15 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
           <Logo />
         </Link>
         <div className="flex items-center gap-3 text-sm">
+          <Link href="/app/feed" className="btn-ghost">
+            Feed
+          </Link>
           <Link href="/app/dm" className="btn-ghost">
             Messages
           </Link>
-          <span className="text-muted">@{profile?.username}</span>
+          <Link href={`/u/${profile?.username}`} className="text-muted hover:text-fg hover:underline">
+            @{profile?.username}
+          </Link>
           <form action="/auth/signout" method="post">
             <button className="btn-ghost">Sign out</button>
           </form>

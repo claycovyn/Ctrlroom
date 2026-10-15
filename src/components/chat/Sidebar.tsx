@@ -21,7 +21,7 @@ import { lastRoom, navigateWithTransition, prefetchRoute } from "./roomNav";
 import { useOptionalDm } from "@/components/dm/DmContext";
 import { badgeLabel } from "@/lib/dms";
 import { keepNavOpenForNextCommunity, useCommunity } from "./CommunityContext";
-import { BellIcon, ChatsIcon, ChevronDownIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SearchIcon, SettingsIcon, UserPlusIcon } from "./icons";
+import { BellIcon, ChatsIcon, ChevronDownIcon, FeedIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SearchIcon, SettingsIcon, UserPlusIcon } from "./icons";
 import { OPEN_PANEL } from "./roomNav";
 import { HeadsetIcon } from "./icons";
 import { Avatar } from "./Avatar";
@@ -247,6 +247,9 @@ export function Sidebar() {
               )}
             </Link>
           )}
+          <Link href="/app/feed" title="Feed" aria-label="Feed" className="mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-raised text-muted hover:bg-line hover:text-fg">
+            <FeedIcon className="h-5 w-5" />
+          </Link>
           <span aria-hidden="true" className="mb-1 h-px w-8 bg-line" />
           {communities.map((c) => (
             <Link

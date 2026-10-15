@@ -193,6 +193,11 @@ function CardBody({ card }: { card: CardData }) {
           {peer && <span>{peer.label}</span>}
           {joined_at && Date.parse(joined_at) > 0 && <span>Joined {new Date(joined_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>}
         </div>
+        {!profile.is_bot && (
+          <a href={`/u/${profile.username}`} className="mt-2 inline-block text-xs font-medium text-fg underline decoration-muted underline-offset-2 hover:decoration-fg">
+            View profile
+          </a>
+        )}
       </div>
     </div>
   );

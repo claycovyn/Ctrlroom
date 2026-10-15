@@ -16,6 +16,17 @@ Ctrl Room is community chat with rooms, threads, voice and video. It is built ar
 | File links anyone can open | **Files and images** in rooms, threads and DMs (up to 10 MB each, 10 per message). Private: only people who can read the message can open them. Photos are shrunk and stripped of location data in the browser |
 | Spam from strangers in your DMs | **Direct messages** and group DMs (up to 10 people). By default only people you share a community with can message you, first messages from new people land in **Requests**, and block and report are built in |
 | Per-seat pricing | One account for any number of communities, each with its own invite links |
+| Feeds built to keep you scrolling | **Feed** with two plain tabs: **Following** (people you follow, and public communities you're in or follow) and **Everyone**, newest first. No ranking. Posting and being followed are opt-in: turn on your **public profile** first, and make it private if only followers you approve should see your posts |
+
+## Posts and follows
+
+Next to the chat there's a public side (`supabase/migrations/0020_social.sql`, `src/app/app/feed`, `src/app/u/[username]`):
+
+- **Public profile, opt-in.** Until you turn it on, nothing changes: only people you share a community or a DM with can see you. With it on, anyone signed in can see your name, photo and bio, follow you, and read your posts.
+- **Private accounts.** Following needs your approval, and only approved followers see your posts. Going public again approves everyone waiting.
+- **Posts** are up to 500 characters, to your followers or into a public community you're a member of (its members reply there). Replies, likes, edits (your own), deletes (your own, or a mod's in their community) and reports.
+- **Feed**: Following (you, people you follow, public communities you're in or follow) and Everyone (every post you can see), newest first. Profiles at `/u/<username>` show someone's posts when you're allowed to see them.
+- **Blocks** work here too: no seeing each other's posts, and follows between you end.
 
 ## Brand
 
