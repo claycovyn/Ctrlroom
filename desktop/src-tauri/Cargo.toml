@@ -1,6 +1,6 @@
 [package]
 name = "ctrlroom-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "Ctrl Room desktop app"
 authors = ["OpenCtrl"]
 license = "AGPL-3.0-only"
