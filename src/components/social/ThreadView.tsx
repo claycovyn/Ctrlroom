@@ -26,7 +26,7 @@ export function ThreadView({ me, parent, post: initial, initialReplies }: { me: 
       )}
       <PostItem post={post} me={me} onChange={setPost} onDeleted={() => router.push("/app/feed")} linkToThread={false} />
       {me.public_profile ? (
-        <Composer me={me} replyTo={post.id} placeholder={`Reply to ${post.author_name}`} onPosted={(p) => setReplies((list) => [...list, p])} />
+        <Composer replyTo={post.id} placeholder={`Reply to ${post.author_name}`} onPosted={(p) => setReplies((list) => [...list, p])} />
       ) : (
         <p className="border-b border-line px-4 py-3 text-sm text-muted">
           <Link href="/app/feed" className="font-medium text-fg underline">

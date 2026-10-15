@@ -12,6 +12,9 @@ select tests.ok((select username from public.profiles where id = '00000000-0000-
 select tests.ok((select username from public.profiles where id = '00000000-0000-0000-0000-00000000000d') = 'mallory', 'username sanitised');
 select tests.ok((select username from public.profiles where id = '00000000-0000-0000-0000-00000000000e') ~ '^bob[0-9]{4}$', 'username collision gets a suffix');
 
+-- Profiles are public by default since 0020. The people here have turned their public profile off, so these tests
+-- keep checking who can see a hidden profile (the rules from before 0020).
+update public.profiles set public_profile = false where not is_bot;
 set role authenticated;
 
 -- ── alice creates a community

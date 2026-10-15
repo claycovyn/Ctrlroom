@@ -77,3 +77,41 @@ export async function safeFetchText(raw: string, opts: { timeoutMs?: number; max
   }
   throw new Error("too many redirects");
 }
+
+const IMAGE_TYPES = /^image\/(png|jpeg|webp|gif)$/;
+
+/**
+ * Fetches a public image (link preview pictures): the same rules as safeFetchText (http(s), public addresses checked on
+ * every redirect, a time limit), PNG, JPEG, WebP or GIF only (never SVG), and a size cap. Over the cap is an error.
+ */
+export async function safeFetchImage(raw: string, opts: { timeoutMs?: number; maxBytes?: number } = {}): Promise<{ contentType: string; bytes: Buffer }> {
+  const { timeoutMs = 8_000, maxBytes = 4_000_000 } = opts;
+  let url = new URL(raw);
+  const signal = AbortSignal.timeout(timeoutMs);
+  for (let hop = 0; hop < 4; hop++) {
+    await assertPublic(url);
+    const res = await fetch(url, { redirect: "manual", signal, headers: { "User-Agent": "CtrlRoomBot/1.0 (+https://github.com/claycovyn/Ctrlroom)", Accept: "image/webp,image/png,image/jpeg,image/gif" } });
+    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+      url = new URL(res.headers.get("location")!, url);
+      continue;
+    }
+    if (!res.ok) throw new Error(`the image returned ${res.status}`);
+    const contentType = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+    if (!IMAGE_TYPES.test(contentType)) throw new Error("that isn't a picture");
+    const reader = res.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (reader) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel();
+        throw new Error("the picture is too big");
+      }
+      chunks.push(value);
+    }
+    return { contentType, bytes: Buffer.concat(chunks) };
+  }
+  throw new Error("too many redirects");
+}

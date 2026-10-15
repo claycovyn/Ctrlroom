@@ -346,6 +346,8 @@ export interface UploadHandle {
  * endpoint directly because supabase-js has no upload progress. `x-upsert` lets a failed upload be retried.
  */
 export function uploadWithProgress(o: {
+  /** The Storage bucket: attachments (default) or post-media (0021). */
+  bucket?: string;
   supabaseUrl: string;
   anonKey: string;
   accessToken: string;
@@ -355,7 +357,7 @@ export function uploadWithProgress(o: {
   onProgress: (fraction: number) => void;
 }): UploadHandle {
   const xhr = new XMLHttpRequest();
-  const url = `${o.supabaseUrl.replace(/\/$/, "")}/storage/v1/object/attachments/${o.path.split("/").map(encodeURIComponent).join("/")}`;
+  const url = `${o.supabaseUrl.replace(/\/$/, "")}/storage/v1/object/${o.bucket ?? "attachments"}/${o.path.split("/").map(encodeURIComponent).join("/")}`;
   const done = new Promise<void>((resolve, reject) => {
     xhr.open("POST", url);
     xhr.setRequestHeader("authorization", `Bearer ${o.accessToken}`);

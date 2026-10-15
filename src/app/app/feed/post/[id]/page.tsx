@@ -27,7 +27,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const parent = (post as PostCard).reply_to ? (await supabase.from("post_cards").select("*").eq("id", (post as PostCard).reply_to!).maybeSingle()).data : null;
   return (
     <>
-      <SocialHeader username={me.username} />
+      <SocialHeader me={me} />
       <ThreadView me={me} parent={(parent as PostCard | null) ?? null} post={post as PostCard} initialReplies={(replies ?? []) as PostCard[]} />
     </>
   );

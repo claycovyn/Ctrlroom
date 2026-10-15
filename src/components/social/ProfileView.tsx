@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { Avatar } from "@/components/chat/Avatar";
@@ -67,7 +68,21 @@ export function ProfileView({ me, profile, initialPosts, requests }: { me: Me; p
             </p>
             {profile.bio && <p className="mt-2 whitespace-pre-wrap text-[15px] [overflow-wrap:anywhere]">{profile.bio}</p>}
             <p className="mt-2 text-sm text-muted">
-              {countLabel(profile.followers, "follower", "followers")} · {profile.following.toLocaleString("en-US")} following
+              {profile.can_see_posts ? (
+                <>
+                  <Link href={`/u/${profile.username}/followers`} className="hover:text-fg hover:underline">
+                    {countLabel(profile.followers, "follower", "followers")}
+                  </Link>{" "}
+                  ·{" "}
+                  <Link href={`/u/${profile.username}/following`} className="hover:text-fg hover:underline">
+                    {profile.following.toLocaleString("en-US")} following
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {countLabel(profile.followers, "follower", "followers")} · {profile.following.toLocaleString("en-US")} following
+                </>
+              )}
             </p>
           </div>
         </div>

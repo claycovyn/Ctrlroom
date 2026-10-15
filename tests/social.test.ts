@@ -4,7 +4,7 @@ import { charsLeft, countLabel, isFeedScope, mergePosts, shortAge, toggledLike, 
 const post = (id: string, over: Partial<PostCard> = {}): PostCard => ({
   id, author_id: "a", community_id: null, reply_to: null, body: "hi", created_at: "2026-10-15T12:00:00Z", edited_at: null,
   author_username: "ann", author_name: "Ann", author_avatar: null, author_is_bot: false, community_slug: null,
-  community_name: null, community_icon: null, like_count: 0, reply_count: 0, liked: false, ...over,
+  community_name: null, community_icon: null, like_count: 0, reply_count: 0, liked: false, media: [], ...over,
 });
 
 describe("posts", () => {

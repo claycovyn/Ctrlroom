@@ -49,6 +49,13 @@ export function Sidebar() {
   const [addingIn, setAddingIn] = useState<RoomSection | null>(null);
   // Pending join requests (0008), owners and admins only. Refreshed on the join_request event below.
   const [requests, setRequests] = useState(0);
+  // New follows, likes and replies on the Feed (0021), shown on the rail's Feed icon.
+  const [social, setSocial] = useState(0);
+  useEffect(() => {
+    void supabaseBrowser()
+      .rpc("my_activity_unseen")
+      .then(({ data }) => setSocial(typeof data === "number" ? data : 0));
+  }, []);
   const loadRequests = useCallback(async () => {
     if (!isAdmin) return setRequests(0);
     const { count } = await supabaseBrowser()
@@ -158,6 +165,11 @@ export function Sidebar() {
       loadRequests();
       window.dispatchEvent(new CustomEvent("ctrlroom:join-requests"));
     },
+    // Feed activity: counted here, read on /app/feed/activity.
+    follow: () => setSocial((n) => n + 1),
+    follow_approved: () => setSocial((n) => n + 1),
+    post_like: () => setSocial((n) => n + 1),
+    post_reply: () => setSocial((n) => n + 1),
     mention: (p: { kind: string; room_id: string; community_id: string; author: string; preview: string }) => {
       // The user topic carries mentions from every community; the room's mute setting is only known for this one.
       play("mention", { roomNotify: p.community_id === community.id ? (unreads[p.room_id]?.notify ?? "mentions") : undefined });
@@ -247,8 +259,18 @@ export function Sidebar() {
               )}
             </Link>
           )}
-          <Link href="/app/feed" title="Feed" aria-label="Feed" className="mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-raised text-muted hover:bg-line hover:text-fg">
+          <Link
+            href={social > 0 ? "/app/feed/activity" : "/app/feed"}
+            title="Feed"
+            aria-label={social > 0 ? `Feed, ${badgeLabel(social)} new` : "Feed"}
+            className="relative mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-raised text-muted hover:bg-line hover:text-fg"
+          >
             <FeedIcon className="h-5 w-5" />
+            {social > 0 && (
+              <span aria-hidden="true" className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg">
+                {badgeLabel(social)}
+              </span>
+            )}
           </Link>
           <span aria-hidden="true" className="mb-1 h-px w-8 bg-line" />
           {communities.map((c) => (
@@ -330,6 +352,11 @@ export function Sidebar() {
               <p role="alert" className="mx-2 mb-2 text-xs text-alert">
                 {error}
               </p>
+            )}
+            {community.is_public && (
+              <Link href={`/app/feed/c/${community.slug}`} className="mb-3 flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-muted hover:bg-raised hover:text-fg">
+                <FeedIcon className="h-4 w-4 shrink-0" /> Posts
+              </Link>
             )}
             {layout.pinned.length > 0 && roomGroup("Pinned", layout.pinned, true)}
             {(text.length > 0 || layout.sections.length === 0) && roomGroup("Rooms", text)}

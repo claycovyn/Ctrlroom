@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { FEED_PAGE, type FeedScope, type PostCard } from "@/lib/social";
+import { useEffect, useRef, useState } from "react";
+import { useBroadcast } from "@/lib/realtime";
+import { FEED_PAGE, mergePosts, type FeedScope, type PostCard } from "@/lib/social";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { POST_EVENT } from "./ActivityLink";
 import { Composer, type Audience } from "./Composer";
 import { PostList } from "./PostList";
 import { PublicProfileSetup } from "./PublicProfileSetup";
@@ -19,13 +21,43 @@ async function fetchFeed(scope: FeedScope, before: string | null): Promise<PostC
   return (data ?? []) as PostCard[];
 }
 
-/** The Feed: two tabs, the composer (once the public profile is on), and the posts. */
-export function FeedView({ me, scope, initial, audiences }: { me: { id: string; username: string; bio: string; is_private: boolean; public_profile: boolean }; scope: FeedScope; initial: PostCard[]; audiences: Audience[] }) {
+type NewPost = { id: string; author_id: string; community_id: string | null };
+
+/**
+ * The Feed: two tabs, the composer, and the posts. New posts arrive live (posts:public for public ones, your own topic
+ * for private accounts you follow) and wait behind a "Show new posts" button, so the list never jumps while reading.
+ */
+export function FeedView({ me, scope, initial, audiences, following, communities }: { me: { id: string; username: string; bio: string; is_private: boolean; public_profile: boolean }; scope: FeedScope; initial: PostCard[]; audiences: Audience[]; following: string[]; communities: string[] }) {
   const router = useRouter();
   const [posts, setPostsState] = useState(initial);
+  const [waiting, setWaiting] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const setPosts = (fn: (list: PostCard[]) => PostCard[]) => setPostsState((list) => fn(list));
   const tab = TABS.find((t) => t.scope === scope)!;
+  const sets = useRef({ following: new Set(following), communities: new Set(communities) });
+
+  const onPost = (p: NewPost) => {
+    if (!p?.id || p.author_id === me.id) return;
+    const mine = scope === "everyone" || sets.current.following.has(p.author_id) || (p.community_id !== null && sets.current.communities.has(p.community_id));
+    if (!mine) return;
+    setWaiting((w) => (w.includes(p.id) || posts.some((x) => x.id === p.id) ? w : [...w, p.id]));
+  };
+  useBroadcast("posts:public", { post: onPost });
+  // Private accounts you follow: their posts come on your own topic, which the header's ActivityLink listens to.
+  const onPostRef = useRef(onPost);
+  onPostRef.current = onPost;
+  useEffect(() => {
+    const fn = (e: Event) => onPostRef.current((e as CustomEvent<NewPost>).detail);
+    window.addEventListener(POST_EVENT, fn);
+    return () => window.removeEventListener(POST_EVENT, fn);
+  }, []);
+
+  const showWaiting = async () => {
+    const ids = waiting;
+    setWaiting([]);
+    const { data } = await supabaseBrowser().from("post_cards").select("*").in("id", ids).order("created_at", { ascending: false });
+    setPostsState((list) => mergePosts((data ?? []) as PostCard[], list));
+  };
 
   return (
     <main className="mx-auto max-w-2xl border-x border-line">
@@ -44,9 +76,16 @@ export function FeedView({ me, scope, initial, audiences }: { me: { id: string; 
         ))}
       </div>
       {me.public_profile ? (
-        <Composer me={me} audiences={audiences} onPosted={(p) => setPosts((list) => [p, ...list])} />
+        <Composer audiences={audiences} onPosted={(p) => setPosts((list) => [p, ...list])} />
       ) : (
         <PublicProfileSetup me={me} onDone={() => router.refresh()} />
+      )}
+      {waiting.length > 0 && (
+        <div className="sticky top-[57px] z-[5] flex justify-center py-2">
+          <button type="button" className="btn-primary h-8 rounded-full px-4 text-sm shadow" onClick={showWaiting}>
+            Show {waiting.length} new {waiting.length === 1 ? "post" : "posts"}
+          </button>
+        </div>
       )}
       <div className="flex justify-end border-b border-line px-4 py-1.5">
         <button
@@ -57,7 +96,10 @@ export function FeedView({ me, scope, initial, audiences }: { me: { id: string; 
             setRefreshing(true);
             const fresh = await fetchFeed(scope, null).catch(() => null);
             setRefreshing(false);
-            if (fresh) setPostsState(fresh);
+            if (fresh) {
+              setPostsState(fresh);
+              setWaiting([]);
+            }
           }}
         >
           {refreshing ? "Checking…" : "Check for new posts"}

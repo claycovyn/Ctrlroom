@@ -39,3 +39,33 @@ export async function cleanupAttachments(db: CleanupDb, { rounds = 10 } = {}): P
   }
   return { removed, failed };
 }
+
+/**
+ * Daily, from the cron (service role): post_media_cleanup (0021) lists photos and videos nobody posted within 24 hours
+ * and those of deleted posts. Their bytes are removed from the post-media bucket, then their rows are dropped; a chunk
+ * that fails stays for tomorrow. A file of a post people can still see is never listed.
+ */
+export async function cleanupPostMedia(db: CleanupDb, { rounds = 10 } = {}): Promise<{ removed: number; failed: number }> {
+  let removed = 0;
+  let failed = 0;
+  for (let round = 0; round < rounds; round++) {
+    const { data, error } = await db.rpc("post_media_cleanup", { p_limit: 500 });
+    if (error) throw new Error(error.message);
+    const paths = ((data ?? []) as { path: string }[]).map((r) => r.path);
+    if (!paths.length) break;
+    const done: string[] = [];
+    for (let i = 0; i < paths.length; i += CHUNK) {
+      const chunk = paths.slice(i, i + CHUNK);
+      const res = await db.storage.from("post-media").remove(chunk);
+      if (res.error) failed += chunk.length;
+      else done.push(...chunk);
+    }
+    if (done.length) {
+      const { error: doneError } = await db.rpc("post_media_cleanup_done", { p_paths: done });
+      if (doneError) throw new Error(doneError.message);
+      removed += done.length;
+    }
+    if (done.length < paths.length || paths.length < 500) break;
+  }
+  return { removed, failed };
+}

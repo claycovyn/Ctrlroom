@@ -34,21 +34,34 @@ $$;
 create function tests.sees(p_post uuid) returns boolean language sql stable as $$
   select exists (select 1 from public.post_cards where id = p_post)
 $$;
-grant execute on function tests.id(text), tests.post(text, uuid, uuid), tests.sees(uuid) to authenticated, anon;
+-- A post with the commit-time checks run at once (posts_need_content is deferred to commit, 0021).
+create function tests.post_now(p_body text) returns uuid language plpgsql as $$
+declare
+  pid uuid;
+begin
+  insert into public.posts (author_id, body) values (auth.uid(), p_body) returning id into pid;
+  set constraints all immediate;
+  return pid;
+end $$;
+grant execute on function tests.id(text), tests.post(text, uuid, uuid), tests.sees(uuid), tests.post_now(text) to authenticated, anon;
 
 set role authenticated;
 
--- ── opt-in: until the public profile is on, nothing changes
+-- ── public by default; a hidden profile works as before 0020
 select tests.login(:'b');
-select tests.ok((select count(*) from public.profiles where id = :'a') = 0, 'Ben cannot see Ann''s profile (nothing shared, not public)');
-select tests.ok((select count(*) from public.profile_view('ann20')) = 0, 'profile_view says not found too');
-select tests.ok(tests.throws($$ select public.follow_user('c2000000-0000-0000-0000-00000000000a') $$), 'Ben cannot follow a profile that is not public');
+select tests.ok((select count(*) from public.profiles where id = :'a') = 1, 'Ben sees Ann''s profile: public by default');
 select tests.login(:'a');
-select tests.ok(tests.throws($$ select tests.post('hello') $$), 'Ann cannot post before turning her public profile on');
+select public.set_public_profile(false);
+select tests.login(:'b');
+select tests.ok((select count(*) from public.profiles where id = :'a') = 0, 'with it off, Ben cannot see Ann (nothing shared)');
+select tests.ok((select count(*) from public.profile_view('ann20')) = 0, 'profile_view says not found too');
+select tests.ok(tests.throws($$ select public.follow_user('c2000000-0000-0000-0000-00000000000a') $$), 'Ben cannot follow a hidden profile');
+select tests.login(:'a');
+select tests.ok(tests.throws($$ select tests.post('hello') $$), 'Ann cannot post while her profile is hidden');
 select public.set_public_profile(true);
 insert into t_ids values ('hello', tests.post('  hello world  '));
 select tests.ok((select body = 'hello world' and edited_at is null from public.posts where id = tests.id('hello')), 'posts are trimmed');
-select tests.ok(tests.throws($$ select tests.post('   ') $$), 'an empty post is refused');
+select tests.ok(tests.throws($$ select tests.post_now('   ') $$), 'an empty post is refused');
 select tests.ok(tests.throws(format($$ select tests.post(%L) $$, repeat('x', 501))), 'a post over 500 characters is refused');
 select tests.ok(tests.throws(format($$ insert into public.posts (author_id, body) values (%L, 'as Ben') $$, :'b')), 'nobody posts as someone else');
 
@@ -68,7 +81,9 @@ select tests.ok((select payload ->> 'follower_id' = 'c2000000-0000-0000-0000-000
                  from realtime.messages where topic = 'user:' || :'a' and event = 'follow' order by id desc limit 1), 'Ann hears about her new follower');
 set role authenticated;
 
--- ── Ben's own profile is still off: Ann sees him only because he follows her
+-- ── Ben hides his profile: Ann still sees him because he follows her
+select tests.login(:'b');
+select public.set_public_profile(false);
 select tests.login(:'a');
 select tests.ok((select count(*) from public.profiles where id = :'b') = 1, 'Ann sees Ben (he follows her)');
 select tests.login(:'c');
@@ -105,7 +120,7 @@ select tests.ok((select count(*) from public.my_follow_requests()) = 0, 'going p
 select tests.login(:'c');
 select tests.ok((select relation = 'active' from public.profile_view('ann20')), 'Cat follows Ann now');
 
--- ── replies and likes
+-- ── replies and likes (Ben shows his profile again)
 select tests.login(:'b');
 select public.set_public_profile(true);
 insert into t_ids values ('reply', tests.post('nice', null, tests.id('hello')));

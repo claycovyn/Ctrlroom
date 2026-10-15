@@ -39,6 +39,9 @@ insert into public.bans (community_id, user_id, reason) values (:'c', :'bad', 't
 
 select tests.ok((select not accepts_requests from public.communities where id = :'c'), 'communities start not accepting requests');
 
+-- Profiles are public by default since 0020. The people here have turned their public profile off, so these tests
+-- keep checking who can see a hidden profile (the rules from before 0020).
+update public.profiles set public_profile = false where not is_bot;
 set role authenticated;
 
 -- ── the setting: owners and admins turn it on, mods and members can't

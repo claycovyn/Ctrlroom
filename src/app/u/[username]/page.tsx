@@ -34,7 +34,7 @@ export default async function Profile({ params }: { params: Promise<{ username: 
   ]);
   return (
     <>
-      <SocialHeader username={me.username} current={profile.relation === "self" ? "me" : undefined} />
+      <SocialHeader me={me} current={profile.relation === "self" ? "me" : undefined} />
       <ProfileView me={me} profile={profile} initialPosts={(posts ?? []) as PostCard[]} requests={(requests ?? []) as FollowRequest[]} />
     </>
   );

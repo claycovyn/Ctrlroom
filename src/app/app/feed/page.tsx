@@ -17,10 +17,12 @@ export default async function Feed({ searchParams }: { searchParams: Promise<{ t
   const scope = isFeedScope(tab) ? tab : "following";
   const { supabase, user } = await currentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent("/app/feed")}`);
-  const [{ data: me }, { data: posts }, { data: memberships }] = await Promise.all([
+  const [{ data: me }, { data: posts }, { data: memberships }, { data: follows }, { data: communityFollows }] = await Promise.all([
     supabase.from("profiles").select("id, username, bio, is_private, public_profile").eq("id", user.id).single(),
     supabase.rpc("feed_posts", { p_scope: scope, p_before: null, p_limit: FEED_PAGE }),
     supabase.from("community_members").select("communities(id, name, is_public)").eq("user_id", user.id),
+    supabase.from("follows").select("followee_id").eq("follower_id", user.id).eq("status", "active"),
+    supabase.from("community_follows").select("community_id").eq("user_id", user.id),
   ]);
   if (!me) redirect("/app");
   // Posts go into public communities you're a member of.
@@ -30,8 +32,19 @@ export default async function Feed({ searchParams }: { searchParams: Promise<{ t
     .map((c) => ({ communityId: c.id, label: c.name }));
   return (
     <>
-      <SocialHeader username={me.username} current="feed" />
-      <FeedView key={scope} me={me} scope={scope} initial={(posts ?? []) as PostCard[]} audiences={audiences} />
+      <SocialHeader me={me} current="feed" />
+      <FeedView
+        key={scope}
+        me={me}
+        scope={scope}
+        initial={(posts ?? []) as PostCard[]}
+        audiences={audiences}
+        following={(follows ?? []).map((f) => f.followee_id as string)}
+        communities={[
+          ...((memberships ?? []) as unknown as { communities: { id: string } | null }[]).map((m) => m.communities?.id).filter((x): x is string => !!x),
+          ...(communityFollows ?? []).map((c) => c.community_id as string),
+        ]}
+      />
     </>
   );
 }

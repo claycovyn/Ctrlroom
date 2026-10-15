@@ -61,6 +61,9 @@ create function tests.visible(p_conv uuid) returns int language sql stable as $$
 $$;
 grant execute on function tests.id(text), tests.say(uuid, text), tests.say_many(uuid, int), tests.visible(uuid) to authenticated, anon;
 
+-- Profiles are public by default since 0020. The people here have turned their public profile off, so these tests
+-- keep checking who can see a hidden profile (the rules from before 0020).
+update public.profiles set public_profile = false where not is_bot;
 set role authenticated;
 
 -- ── the default: people you share a community with

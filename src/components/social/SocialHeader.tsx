@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { ActivityLink } from "./ActivityLink";
 
-/** The top bar of the Feed, profiles and posts: back to your communities, Feed, Messages, your profile. */
-export function SocialHeader({ username, current }: { username: string | null; current?: "feed" | "me" }) {
+/** The top bar of the Feed, profiles and posts: back to your communities, Feed, Activity, Messages, your profile. */
+export function SocialHeader({ me, current }: { me: { id: string; username: string } | null; current?: "feed" | "activity" | "me" }) {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-bg/95 backdrop-blur">
       <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3">
@@ -13,11 +14,12 @@ export function SocialHeader({ username, current }: { username: string | null; c
           <Link href="/app/feed" className="btn-ghost" aria-current={current === "feed" ? "page" : undefined}>
             Feed
           </Link>
-          <Link href="/app/dm" className="btn-ghost">
+          {me && <ActivityLink userId={me.id} current={current === "activity"} />}
+          <Link href="/app/dm" className="btn-ghost max-sm:hidden">
             Messages
           </Link>
-          {username && (
-            <Link href={`/u/${username}`} className="btn-ghost" aria-current={current === "me" ? "page" : undefined}>
+          {me && (
+            <Link href={`/u/${me.username}`} className="btn-ghost" aria-current={current === "me" ? "page" : undefined}>
               Profile
             </Link>
           )}

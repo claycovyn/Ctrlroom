@@ -1,9 +1,10 @@
 -- Ctrl Room — posts and follows: a public side next to the chat.
 --
--- The public side is opt-in: a person turns on their public profile (set_public_profile) to post and to be followed.
--- Until then nothing changes for them: their profile stays visible only to people they share a community or a DM
--- with, as before (0001, 0011). With it on, people write short posts (up to 500 characters), to their followers or
--- into a public community they're in, and anyone can follow people and public communities. The Feed (src/app/app/feed) has two tabs: Following (people you follow,
+-- Profiles are public by default from here on: anyone signed in can see a person's name, photo and bio, follow them
+-- and read their posts. A person can turn their public profile off (set_public_profile): then they're visible only to
+-- people they share a community or a DM with, or who follow them, as before 0020 (0001, 0011), and their posts are
+-- hidden. People write short posts (up to 500 characters), to their followers or into a public community they're in,
+-- and follow people and public communities. The Feed (src/app/app/feed) has two tabs: Following (people you follow,
 -- yourself, and public communities you're in or follow) and Everyone (every post you're allowed to see). A profile
 -- (/u/<username>) shows someone's posts when you're allowed to see them.
 --
@@ -30,7 +31,7 @@
 
 alter table public.profiles add column bio text not null default '' check (char_length(bio) <= 160);
 alter table public.profiles add column is_private boolean not null default false;
-alter table public.profiles add column public_profile boolean not null default false;
+alter table public.profiles add column public_profile boolean not null default true;
 
 -- ───────────────────────── tables ─────────────────────────
 
@@ -95,6 +96,14 @@ language sql stable security definer set search_path = public as $$
     select 1 from public.follows
     where (follower_id = (select auth.uid()) and followee_id = p_user) or (follower_id = p_user and followee_id = (select auth.uid()))
   )
+$$;
+
+-- May the caller see p_user's profile? Public profiles, or (turned off) the pre-0020 rules plus follows between them.
+create or replace function public.can_see_profile(p_user uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select p_user = (select auth.uid())
+    or exists (select 1 from public.profiles where id = p_user and public_profile)
+    or public.follow_related(p_user) or public.shares_community(p_user) or public.shares_dm(p_user)
 $$;
 
 -- May the caller see a post by p_author (in p_community, if any)? Never while the author's public profile is off.
@@ -273,6 +282,7 @@ begin
   if uid is null then raise exception 'sign in first'; end if;
   if p_accept then
     update public.follows set status = 'active' where followee_id = uid and follower_id = p_user and status = 'pending';
+    if found then perform realtime.send(jsonb_build_object('by', uid), 'follow_approved', 'user:' || p_user::text, true); end if;
   else
     delete from public.follows where followee_id = uid and follower_id = p_user and status = 'pending';
   end if;
@@ -367,8 +377,8 @@ declare
 begin
   if uid is null then return; end if;
   select * into pr from public.profiles p where p.username = lower(p_username);
-  -- Only a profile the caller may see (0001/0011 rules, or public, or a follow between them): otherwise "not found".
-  if not found or not (pr.id = uid or pr.public_profile or public.follow_related(pr.id) or public.shares_community(pr.id) or public.shares_dm(pr.id)) then
+  -- Only a profile the caller may see (public, or the 0001/0011 rules, or a follow between them): otherwise "not found".
+  if not found or not public.can_see_profile(pr.id) then
     return;
   end if;
   return query select pr.id, pr.username, pr.display_name, pr.avatar_url, pr.bio, pr.is_private, pr.is_bot, pr.public_profile, pr.created_at,
@@ -420,6 +430,7 @@ $$;
 revoke execute on function
   public.follows_user(uuid),
   public.follow_related(uuid),
+  public.can_see_profile(uuid),
   public.can_see_post(uuid, uuid),
   public.posts_before_insert(),
   public.posts_before_update(),
@@ -442,6 +453,7 @@ from public, anon, authenticated;
 grant execute on function
   public.follows_user(uuid),
   public.follow_related(uuid),
+  public.can_see_profile(uuid),
   public.can_see_post(uuid, uuid),
   public.follow_user(uuid),
   public.unfollow_user(uuid),

@@ -8,6 +8,9 @@ import { useConfirm } from "@/components/Dialogs";
 import { cloudErrorText } from "@/lib/cloudErrors";
 import { shortAge, toggledLike, type PostCard } from "@/lib/social";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { firstLink } from "@/lib/postMedia";
+import { LinkPreviewCard } from "./LinkPreviewCard";
+import { PostMedia } from "./PostMedia";
 import { ReportPostDialog } from "./ReportPostDialog";
 
 /**
@@ -21,6 +24,7 @@ export function PostItem({ post, me, onChange, onDeleted, linkToThread = true }:
   const mine = post.author_id === me.id;
   const profile = { id: post.author_id, username: post.author_username, display_name: post.author_name, avatar_url: post.author_avatar };
   const thread = `/app/feed/post/${post.id}`;
+  const link = firstLink(post.body);
 
   const like = async () => {
     const next = toggledLike(post);
@@ -58,13 +62,17 @@ export function PostItem({ post, me, onChange, onDeleted, linkToThread = true }:
           {post.edited_at && <span className="text-xs text-muted">(edited)</span>}
         </div>
         {post.community_slug && (
-          <Link href={`/c/${post.community_slug}`} className="mt-0.5 inline-block text-xs text-muted hover:text-fg hover:underline">
+          <Link href={`/app/feed/c/${post.community_slug}`} className="mt-0.5 inline-block text-xs text-muted hover:text-fg hover:underline">
             in {post.community_name}
           </Link>
         )}
-        <p className="mt-1 whitespace-pre-wrap text-[15px] leading-snug [overflow-wrap:anywhere]">
-          <RichText body={post.body} myUsername={me.username} />
-        </p>
+        {post.body && (
+          <p className="mt-1 whitespace-pre-wrap text-[15px] leading-snug [overflow-wrap:anywhere]">
+            <RichText body={post.body} myUsername={me.username} />
+          </p>
+        )}
+        <PostMedia media={post.media ?? []} />
+        {!post.media?.length && link && <LinkPreviewCard url={link} />}
         <div className="mt-2 flex items-center gap-1 text-sm text-muted">
           {linkToThread ? (
             <Link href={thread} className="btn-ghost h-8 px-2" aria-label={`Reply. ${post.reply_count} ${post.reply_count === 1 ? "reply" : "replies"}`}>

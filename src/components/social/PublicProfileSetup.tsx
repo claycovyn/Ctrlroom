@@ -6,8 +6,8 @@ import { BIO_MAX } from "@/lib/social";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 /**
- * Turning on the public profile (set_public_profile, 0020): it's what lets you post and be followed. Until then only
- * people you share a community or a conversation with can see you, as before.
+ * Turning the public profile back on (set_public_profile, 0020). Profiles are public by default; this shows only for
+ * people who turned theirs off, who are then seen only by people they share a community or a conversation with.
  */
 export function PublicProfileSetup({ me, onDone }: { me: { id: string; bio: string; is_private: boolean }; onDone: () => void }) {
   const id = useId();
@@ -39,9 +39,9 @@ export function PublicProfileSetup({ me, onDone }: { me: { id: string; bio: stri
 
   return (
     <form onSubmit={submit} className="card m-4 space-y-3 p-5">
-      <h2 className="text-base font-semibold">Turn on your public profile</h2>
+      <h2 className="text-base font-semibold">Your public profile is off</h2>
       <p className="text-sm text-muted">
-        It lets you post and lets people follow you. Anyone signed in can see your name, photo and bio. Until you turn it on, only people you share a community or a conversation with can see you.
+        Turn it on to post and let people follow you. Anyone signed in can then see your name, photo and bio. While it&apos;s off, only people you share a community or a conversation with can see you.
       </p>
       <div>
         <label htmlFor={`${id}-bio`} className="mb-1 block text-sm font-medium">

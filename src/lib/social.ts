@@ -1,4 +1,5 @@
-// Posts and follows (supabase/migrations/0020_social.sql): the shapes the app reads, and small pure helpers.
+// Posts and follows (supabase/migrations/0020_social.sql, 0021): the shapes the app reads, and small pure helpers.
+import type { PostMediaItem } from "./postMedia";
 
 export const POST_MAX = 500;
 export const BIO_MAX = 160;
@@ -23,6 +24,8 @@ export interface PostCard {
   like_count: number;
   reply_count: number;
   liked: boolean;
+  /** Photos and videos, in order (0021). */
+  media: PostMediaItem[];
 }
 
 /** profile_view(): a profile the caller may see, its counts, and where the caller stands with it. */
