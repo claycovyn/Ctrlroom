@@ -173,8 +173,8 @@ export function AppShell({ me, communities, cloud, children }: { me: ShellMe; co
           Skip to content
         </a>
         <div className="mx-auto flex max-w-[1265px] justify-center">
-          {/* Rail: icons from 768px, labels from 1280px (unless collapsed). */}
-          <header className={`sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col items-center px-2 py-3 transition-[width] duration-300 ease-out md:flex ${expanded ? "xl:w-[260px] xl:items-stretch xl:px-3" : ""}`}>
+          {/* Rail: a floating glass panel. Icons from 768px, labels from 1280px (unless collapsed). */}
+          <header className={`sticky top-2 z-20 mb-2 hidden h-[calc(100dvh-1rem)] w-[76px] shrink-0 flex-col items-center rounded-2xl bg-raised/30 px-2 py-3 shadow-lg ring-1 ring-line/70 backdrop-blur-xl transition-[width] duration-300 ease-out md:flex ${expanded ? "xl:w-[260px] xl:items-stretch xl:px-3" : ""}`}>
             <div className={`mb-3 flex w-full flex-col items-center gap-1 ${expanded ? "xl:flex-row xl:justify-between" : ""}`}>
               <Link href="/app" className="flex h-12 w-12 items-center justify-center rounded-xl hover:bg-raised xl:ml-1" aria-label="Ctrl Room home">
                 <LogoMark className="h-9 w-9" />
@@ -267,10 +267,14 @@ function RailNav({ items, current, count, expanded }: { items: NavItem[]; curren
   const navRef = useRef<HTMLElement>(null);
   const refs = useRef(new Map<NavKey, HTMLAnchorElement>());
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  // The pill tracks the item you point at or focus, and slides back to the current page when you leave (the reel's
+  // behaviour). `active` is a dimmer marker that always sits on the current page, so you never lose where you are.
+  const [hover, setHover] = useState<NavKey | null>(null);
+  const target = hover ?? current;
 
   useEffect(() => {
     const measure = () => {
-      const el = current ? refs.current.get(current) : null;
+      const el = target ? refs.current.get(target) : null;
       if (!el) return setBox(null);
       setBox({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
     };
@@ -282,11 +286,25 @@ function RailNav({ items, current, count, expanded }: { items: NavItem[]; curren
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-    // Re-measure when the page changes or the rail collapses/expands.
-  }, [current, expanded]);
+    // Re-measure when the pointed/current item changes or the rail collapses/expands.
+  }, [target, expanded]);
+
+  const activeEl = current ? refs.current.get(current) : null;
 
   return (
-    <nav ref={navRef} aria-label="Main" className="relative flex flex-col items-center gap-0.5 xl:items-stretch">
+    <nav
+      ref={navRef}
+      aria-label="Main"
+      className="relative flex flex-col items-center gap-0.5 xl:items-stretch"
+      onMouseLeave={() => setHover(null)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setHover(null);
+      }}
+    >
+      {/* A faint marker always on the current page (so hovering elsewhere doesn't lose your place). */}
+      {current && activeEl && hover && hover !== current && (
+        <span aria-hidden="true" className="pointer-events-none absolute left-0 top-0 rounded-xl ring-1 ring-line/50 motion-reduce:transition-none" style={{ transform: `translate(${activeEl.offsetLeft}px, ${activeEl.offsetTop}px)`, width: activeEl.offsetWidth, height: activeEl.offsetHeight }} />
+      )}
       {box && (
         <span
           aria-hidden="true"
@@ -305,10 +323,12 @@ function RailNav({ items, current, count, expanded }: { items: NavItem[]; curren
               else refs.current.delete(n.key);
             }}
             href={n.href}
+            onMouseEnter={() => setHover(n.key)}
+            onFocus={() => setHover(n.key)}
             aria-current={on ? "page" : undefined}
             aria-label={c > 0 ? `${n.label}, ${badgeLabel(c)} new` : n.label}
             title={n.label}
-            className={`relative z-10 flex h-12 items-center gap-4 rounded-xl px-3 text-[17px] transition-colors hover:bg-raised/60 ${expanded ? "xl:pr-4" : ""} ${on ? "font-semibold text-fg" : "text-fg/80"}`}
+            className={`relative z-10 flex h-12 items-center gap-4 rounded-xl px-3 text-[17px] transition-colors ${expanded ? "xl:pr-4" : ""} ${on || hover === n.key ? "font-semibold text-fg" : "text-fg/80"}`}
           >
             <span className="relative">
               <n.icon className="h-[22px] w-[22px]" />
