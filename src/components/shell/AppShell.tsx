@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/chat/Avatar";
-import { BellIcon, ChatsIcon, CompassIcon, FeatherIcon, HexIcon, HomeIcon, MoreIcon, PlusIcon, SettingsIcon, UserIcon } from "@/components/chat/icons";
+import { BellIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon, CompassIcon, FeatherIcon, HexIcon, HomeIcon, MoreIcon, PlusIcon, SettingsIcon, UserIcon } from "@/components/chat/icons";
 import { LogoMark } from "@/components/Logo";
 import { badgeCount, badgeLabel, type DmConversation } from "@/lib/dms";
 import { useBroadcast } from "@/lib/realtime";
@@ -56,6 +56,28 @@ export function AppShell({ me, communities, cloud, children }: { me: ShellMe; co
   const [activityLoaded, setActivityLoaded] = useState(false);
   const onActivity = useRef(false);
   onActivity.current = current === "activity";
+
+  // The rail can be collapsed to icons on wide screens (it's already icons below 1280px). The choice is remembered.
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("cr_rail_collapsed") === "1");
+    } catch {
+      /* private mode */
+    }
+  }, []);
+  const toggleRail = useCallback(() => {
+    setCollapsed((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("cr_rail_collapsed", next ? "1" : "0");
+      } catch {
+        /* fine */
+      }
+      return next;
+    });
+  }, []);
+  const expanded = !collapsed; // at xl; narrower screens are always icon-only
 
   const loadDms = useCallback(async () => {
     const { data } = await supabaseBrowser().rpc("my_dm_inbox");
@@ -151,41 +173,31 @@ export function AppShell({ me, communities, cloud, children }: { me: ShellMe; co
           Skip to content
         </a>
         <div className="mx-auto flex max-w-[1265px] justify-center">
-          {/* Rail: icons from 768px, labels from 1280px. */}
-          <header className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col items-center px-2 py-3 md:flex xl:w-[260px] xl:items-stretch xl:px-3">
-            <Link href="/app" className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl hover:bg-raised xl:ml-1" aria-label="Ctrl Room home">
-              <LogoMark className="h-9 w-9" />
-            </Link>
-            <nav aria-label="Main" className="flex flex-col items-center gap-0.5 xl:items-stretch">
-              {nav.map((n) => {
-                const on = current === n.key;
-                const c = count(n.key);
-                return (
-                  <Link
-                    key={n.key}
-                    href={n.href}
-                    aria-current={on ? "page" : undefined}
-                    aria-label={c > 0 ? `${n.label}, ${badgeLabel(c)} new` : n.label}
-                    title={n.label}
-                    className={`relative flex h-12 items-center gap-4 rounded-xl px-3 text-[17px] transition-colors hover:bg-raised xl:pr-4 ${on ? "bg-raised/70 font-semibold text-fg" : "text-fg/80"}`}
-                  >
-                    <span className="relative">
-                      <n.icon className="h-[22px] w-[22px]" />
-                      {c > 0 && (
-                        <span aria-hidden="true" data-n={badgeLabel(c)} className="absolute -right-2 -top-1.5 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg after:content-[attr(data-n)]" />
-                      )}
-                    </span>
-                    <span className="hidden xl:inline">{n.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-            <button type="button" onClick={() => open("post")} className="btn-primary mt-4 h-12 w-12 rounded-full px-0 text-[15px] font-semibold xl:h-[50px] xl:w-full" aria-label="New post">
-              <FeatherIcon className="h-5 w-5 xl:hidden" />
-              <span className="hidden xl:inline">Post</span>
+          {/* Rail: icons from 768px, labels from 1280px (unless collapsed). */}
+          <header className={`sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col items-center px-2 py-3 transition-[width] duration-300 ease-out md:flex ${expanded ? "xl:w-[260px] xl:items-stretch xl:px-3" : ""}`}>
+            <div className={`mb-3 flex w-full flex-col items-center gap-1 ${expanded ? "xl:flex-row xl:justify-between" : ""}`}>
+              <Link href="/app" className="flex h-12 w-12 items-center justify-center rounded-xl hover:bg-raised xl:ml-1" aria-label="Ctrl Room home">
+                <LogoMark className="h-9 w-9" />
+              </Link>
+              {/* Collapse or expand the rail (wide screens only; it's already icon-only below 1280px). */}
+              <button
+                type="button"
+                onClick={toggleRail}
+                aria-pressed={collapsed}
+                aria-label={collapsed ? "Expand the sidebar" : "Collapse the sidebar"}
+                title={collapsed ? "Expand" : "Collapse"}
+                className="hidden h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-fg xl:flex"
+              >
+                {expanded ? <ChevronLeftIcon className="h-5 w-5" /> : <ChevronRightIcon className="h-5 w-5" />}
+              </button>
+            </div>
+            <RailNav items={nav} current={current} count={count} expanded={expanded} />
+            <button type="button" onClick={() => open("post")} className={`btn-primary mt-4 h-12 w-12 rounded-full px-0 text-[15px] font-semibold ${expanded ? "xl:h-[50px] xl:w-full" : ""}`} aria-label="New post">
+              <FeatherIcon className={`h-5 w-5 ${expanded ? "xl:hidden" : ""}`} />
+              {expanded && <span className="hidden xl:inline">Post</span>}
             </button>
             <div className="mt-auto w-full">
-              <AccountButton me={me} />
+              <AccountButton me={me} expanded={expanded} />
             </div>
           </header>
 
@@ -246,7 +258,73 @@ export function AppShell({ me, communities, cloud, children }: { me: ShellMe; co
 }
 
 /** Your account at the foot of the rail: name, @username, and a menu (profile, settings, desktop app, sign out). */
-function AccountButton({ me }: { me: ShellMe }) {
+/**
+ * The main nav, with an indicator that glides to the current page (the motion from the reference). Dependency-free:
+ * one positioned element whose transform and size follow the active item, animated with a CSS transition; it honours
+ * reduced motion. The items keep their routes, badges and keyboard behaviour.
+ */
+function RailNav({ items, current, count, expanded }: { items: NavItem[]; current: NavKey | null; count: (k: NavKey) => number; expanded: boolean }) {
+  const navRef = useRef<HTMLElement>(null);
+  const refs = useRef(new Map<NavKey, HTMLAnchorElement>());
+  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const el = current ? refs.current.get(current) : null;
+      if (!el) return setBox(null);
+      setBox({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (navRef.current) ro.observe(navRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+    // Re-measure when the page changes or the rail collapses/expands.
+  }, [current, expanded]);
+
+  return (
+    <nav ref={navRef} aria-label="Main" className="relative flex flex-col items-center gap-0.5 xl:items-stretch">
+      {box && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 rounded-xl bg-raised ring-1 ring-line/60 transition-[transform,width,height] duration-300 ease-out motion-reduce:transition-none"
+          style={{ transform: `translate(${box.x}px, ${box.y}px)`, width: box.w, height: box.h }}
+        />
+      )}
+      {items.map((n) => {
+        const on = current === n.key;
+        const c = count(n.key);
+        return (
+          <Link
+            key={n.key}
+            ref={(el) => {
+              if (el) refs.current.set(n.key, el);
+              else refs.current.delete(n.key);
+            }}
+            href={n.href}
+            aria-current={on ? "page" : undefined}
+            aria-label={c > 0 ? `${n.label}, ${badgeLabel(c)} new` : n.label}
+            title={n.label}
+            className={`relative z-10 flex h-12 items-center gap-4 rounded-xl px-3 text-[17px] transition-colors hover:bg-raised/60 ${expanded ? "xl:pr-4" : ""} ${on ? "font-semibold text-fg" : "text-fg/80"}`}
+          >
+            <span className="relative">
+              <n.icon className="h-[22px] w-[22px]" />
+              {c > 0 && (
+                <span aria-hidden="true" data-n={badgeLabel(c)} className="absolute -right-2 -top-1.5 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg after:content-[attr(data-n)]" />
+              )}
+            </span>
+            {expanded && <span className="hidden xl:inline">{n.label}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function AccountButton({ me, expanded }: { me: ShellMe; expanded: boolean }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -292,14 +370,16 @@ function AccountButton({ me }: { me: ShellMe }) {
         aria-expanded={open}
         aria-controls={open ? id : undefined}
         aria-label={`Account menu, ${me.display_name} @${me.username}`}
-        className="flex w-full items-center justify-center gap-3 rounded-xl p-2 hover:bg-raised xl:justify-start"
+        className={`flex w-full items-center justify-center gap-3 rounded-xl p-2 hover:bg-raised ${expanded ? "xl:justify-start" : ""}`}
       >
         <Avatar profile={me} size={40} />
-        <span className="hidden min-w-0 flex-1 text-left leading-tight xl:block">
-          <span className="block truncate text-[15px] font-semibold">{me.display_name}</span>
-          <span className="block truncate text-sm text-muted">@{me.username}</span>
-        </span>
-        <MoreIcon className="hidden h-5 w-5 text-muted xl:block" />
+        {expanded && (
+          <span className="hidden min-w-0 flex-1 text-left leading-tight xl:block">
+            <span className="block truncate text-[15px] font-semibold">{me.display_name}</span>
+            <span className="block truncate text-sm text-muted">@{me.username}</span>
+          </span>
+        )}
+        {expanded && <MoreIcon className="hidden h-5 w-5 text-muted xl:block" />}
       </button>
     </div>
   );

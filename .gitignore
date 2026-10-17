@@ -11,3 +11,6 @@ supabase/.temp/
 e2e-shots/
 scripts/qa/harness/dist/
 scripts/qa/out/
+
+# Claude Code worktrees
+.claude/worktrees/
