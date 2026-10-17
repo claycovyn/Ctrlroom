@@ -70,7 +70,7 @@ export function MobileTabBar({ me, dms, activity, onCompose, show = true }: { me
     { key: "profile", label: "Profile", href: `/u/${me.username}`, icon: UserIcon, n: activity },
   ] as const;
   return (
-    <nav aria-label="Main" className="cr-tabbar cr-chrome fixed inset-x-0 bottom-0 z-50 border-t border-line bg-bg/95 backdrop-blur md:hidden">
+    <nav aria-label="Main" className="cr-tabbar cr-chrome fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur md:hidden">
       <ul className="mx-auto flex h-16 max-w-md items-stretch justify-around">
         {items.map((n) =>
           n ? (

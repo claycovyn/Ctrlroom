@@ -4,7 +4,6 @@ import { CommunityProvider } from "@/components/chat/CommunityContext";
 import { DmProvider } from "@/components/dm/DmContext";
 import { PresenceProvider } from "@/components/chat/PresenceContext";
 import { ChatStage } from "@/components/chat/ChatStage";
-import { CommunityTabBar } from "@/components/chat/CommunityTabBar";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
 import { Logo } from "@/components/Logo";
@@ -78,7 +77,6 @@ export default async function CommunityLayout({ children, params }: { children: 
             </p>
           )}
           <ChatStage sidebar={<Sidebar />}>{children}</ChatStage>
-          <CommunityTabBar me={me} />
           <PushPrompt />
         </div>
         </DmProvider>

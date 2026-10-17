@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { DisplayStatus, ManualStatus } from "@/lib/presence";
 import type { Profile } from "@/lib/types";
-import { disablePush, isPushActive } from "@/lib/pushClient";
 import { Avatar } from "./Avatar";
 import { CheckIcon } from "./icons";
 import { usePresence } from "./PresenceContext";
@@ -16,12 +15,8 @@ const CHOICES: { value: ManualStatus; label: string; hint: string; dot: DisplayS
   { value: "invisible", label: "Appear offline", hint: "Nobody sees you here. You still see everyone.", dot: "offline" },
 ];
 
-/**
- * Your avatar: shows your status and opens a menu. `account` makes it the full account menu (settings, Help, Sign
- * out) for the places where there's no separate footer (phones); `placement` opens it up (default, for a footer) or
- * down (for a header).
- */
-export function StatusMenu({ me, settingsHref, account = false, placement = "up" }: { me: Profile; settingsHref: string; account?: boolean; placement?: "up" | "down" }) {
+/** Your avatar in the sidebar footer: shows your status and opens the status menu. */
+export function StatusMenu({ me, settingsHref }: { me: Profile; settingsHref: string }) {
   const presence = usePresence();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -79,7 +74,7 @@ export function StatusMenu({ me, settingsHref, account = false, placement = "up"
         )}
       </button>
       {open && (
-        <div role="menu" aria-label="Set your status" className={`absolute left-0 z-20 w-64 rounded-lg border border-line bg-panel py-1 text-sm shadow-lg ${placement === "down" ? "top-full mt-2" : "bottom-full mb-2"}`}>
+        <div role="menu" aria-label="Set your status" className="absolute bottom-full left-0 z-20 mb-2 w-64 rounded-lg border border-line bg-panel py-1 text-sm shadow-lg">
           {peer?.call && <p className="border-b border-line px-3 pb-2 pt-1.5 text-xs text-muted">{label}</p>}
           {CHOICES.map((c) => {
             const checked = presence.manual === c.value;
@@ -117,30 +112,8 @@ export function StatusMenu({ me, settingsHref, account = false, placement = "up"
           })}
           <div className="mt-1 border-t border-line pt-1">
             <Link href={settingsHref} role="menuitem" className="block px-3 py-2 text-muted hover:bg-raised hover:text-fg" onClick={() => setOpen(false)}>
-              {account ? "Settings" : "Profile photo and sounds"}
+              Profile photo and sounds
             </Link>
-            {account && (
-              <>
-                <Link href="/docs" role="menuitem" className="block px-3 py-2 text-muted hover:bg-raised hover:text-fg" onClick={() => setOpen(false)}>
-                  Help
-                </Link>
-                <form
-                  action="/auth/signout"
-                  method="post"
-                  onSubmit={(e) => {
-                    // A signed-out phone shouldn't keep getting this account's notifications.
-                    if (!isPushActive()) return;
-                    e.preventDefault();
-                    const form = e.currentTarget;
-                    Promise.race([disablePush(), new Promise((r) => setTimeout(r, 1500))]).finally(() => form.submit());
-                  }}
-                >
-                  <button role="menuitem" className="block w-full px-3 py-2 text-left text-muted hover:bg-raised hover:text-fg">
-                    Sign out
-                  </button>
-                </form>
-              </>
-            )}
           </div>
         </div>
       )}
