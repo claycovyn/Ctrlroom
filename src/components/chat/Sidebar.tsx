@@ -300,10 +300,16 @@ export function Sidebar() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <CommunityCover url={community.cover_url} className="border-b border-line" />
-          <div className="flex h-14 items-center justify-between border-b border-line px-4">
-            <Link href={`/c/${community.slug}/settings`} className="min-w-0 truncate font-semibold hover:underline" title="Community info and settings">
-              {community.name}
-            </Link>
+          <div className="flex h-14 items-center justify-between gap-2 border-b border-line px-4">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {/* Phones: your account lives here (the bottom bar owns the bottom), not in a footer. */}
+              <div className="md:hidden">
+                <StatusMenu me={me} settingsHref={`/c/${community.slug}/settings#profile`} account placement="down" />
+              </div>
+              <Link href={`/c/${community.slug}/settings`} className="min-w-0 truncate font-semibold hover:underline" title="Community info and settings">
+                {community.name}
+              </Link>
+            </div>
             <div className="flex items-center">
               <Link
                 href={requests > 0 ? `/c/${community.slug}/settings#requests` : `/c/${community.slug}/settings`}
@@ -347,7 +353,7 @@ export function Sidebar() {
             )}
           </div>
 
-          <div className="scroll-thin flex-1 overflow-y-auto px-2 py-3">
+          <div className="scroll-thin flex-1 overflow-y-auto px-2 py-3 cr-has-tabbar">
             {error && (
               <p role="alert" className="mx-2 mb-2 text-xs text-alert">
                 {error}
@@ -410,6 +416,8 @@ export function Sidebar() {
             )}
           </div>
 
+          {/* Desktop keeps the account footer; on phones the account is in the header and the bottom bar owns the bottom. */}
+          <div className="hidden md:contents">
           <NotificationsButton settingsHref={`/c/${community.slug}/settings`} />
 
           <div className="flex items-center gap-2 border-t border-line px-3 py-3">
@@ -446,6 +454,7 @@ export function Sidebar() {
             >
               <button className="rounded px-2 py-1 text-xs text-muted hover:bg-raised hover:text-fg">Sign out</button>
             </form>
+          </div>
           </div>
         </div>
       </aside>
