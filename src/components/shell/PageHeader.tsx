@@ -37,7 +37,10 @@ export function PageHeader({
   const activity = shell?.badges.activity ?? 0;
   return (
     <div className="cr-safe-top sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur-xl">
-      <div className="flex h-[53px] items-center gap-3 px-4">
+      <div className="relative flex h-[53px] items-center gap-3 px-4">
+        {/* On phones the home logo is centred to the screen, not to the space left between the avatar and the icons
+            (which are uneven), so it never drifts off-centre. */}
+        {home && <LogoMark aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 md:hidden" />}
         {shell && !back && (
           <button type="button" className="-ml-1 rounded-full md:hidden" onClick={() => shell.open("account")} aria-label="Your account">
             <Avatar profile={shell.me} size={32} />
@@ -54,7 +57,6 @@ export function PageHeader({
           </button>
         )}
         <div className={`min-w-0 flex-1 ${home ? "max-md:text-center" : ""}`}>
-          {home && <LogoMark className="mx-auto h-8 w-8 md:hidden" />}
           <h1 className={`truncate text-xl font-bold leading-tight tracking-tight ${home ? "max-md:sr-only" : ""}`}>{title}</h1>
           {sub && <p className="truncate text-[13px] leading-tight text-muted">{sub}</p>}
         </div>
