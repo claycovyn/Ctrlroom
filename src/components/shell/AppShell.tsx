@@ -14,6 +14,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Unread } from "@/lib/types";
 import { CommunitiesAside } from "./CommunitiesPanel";
 import { Ctx, type ShellCtx, type ShellSheet } from "./ShellContext";
+import { Spine } from "./Spine";
 import s from "./shell.module.css";
 
 // The sheets open on a tap: not part of the first load.
@@ -172,84 +173,19 @@ export function AppShell({ me, communities, cloud, children }: { me: ShellMe; co
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-panel focus:px-3 focus:py-2 focus:text-sm">
           Skip to content
         </a>
-        <div className="mx-auto flex max-w-[1265px] justify-center">
-          {/* Rail: a floating glass panel. Icons from 768px, labels from 1280px (unless collapsed). */}
-          <header className={`sticky top-2 z-20 mb-2 hidden h-[calc(100dvh-1rem)] w-[76px] shrink-0 flex-col items-center rounded-2xl bg-raised/30 px-2 py-3 shadow-lg ring-1 ring-line/70 backdrop-blur-xl transition-[width] duration-300 ease-out md:flex ${expanded ? "xl:w-[260px] xl:items-stretch xl:px-3" : ""}`}>
-            <div className={`mb-3 flex w-full flex-col items-center gap-1 ${expanded ? "xl:flex-row xl:justify-between" : ""}`}>
-              <Link href="/app" className="flex h-12 w-12 items-center justify-center rounded-xl hover:bg-raised xl:ml-1" aria-label="Ctrl Room home">
-                <LogoMark className="h-9 w-9" />
-              </Link>
-              {/* Collapse or expand the rail (wide screens only; it's already icon-only below 1280px). */}
-              <button
-                type="button"
-                onClick={toggleRail}
-                aria-pressed={collapsed}
-                aria-label={collapsed ? "Expand the sidebar" : "Collapse the sidebar"}
-                title={collapsed ? "Expand" : "Collapse"}
-                className="hidden h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-raised hover:text-fg xl:flex"
-              >
-                {expanded ? <ChevronLeftIcon className="h-5 w-5" /> : <ChevronRightIcon className="h-5 w-5" />}
-              </button>
-            </div>
-            <RailNav items={nav} current={current} count={count} expanded={expanded} />
-            <button type="button" onClick={() => open("post")} className={`btn-primary mt-4 h-12 w-12 rounded-full px-0 text-[15px] font-semibold ${expanded ? "xl:h-[50px] xl:w-full" : ""}`} aria-label="New post">
-              <FeatherIcon className={`h-5 w-5 ${expanded ? "xl:hidden" : ""}`} />
-              {expanded && <span className="hidden xl:inline">Post</span>}
-            </button>
-            <div className="mt-auto w-full">
-              <AccountButton me={me} expanded={expanded} />
-            </div>
-          </header>
-
-          <main id="main" className={`${s.under} min-h-dvh w-full min-w-0 max-w-[600px] md:border-x md:border-line`} tabIndex={-1}>
-            {children}
-          </main>
-
-          {/* Right column from 1024px. */}
-          <aside className="sticky top-0 hidden h-dvh w-[316px] shrink-0 overflow-y-auto py-3 pl-6 scroll-thin lg:block xl:w-[350px]" aria-label="Your communities">
-            <CommunitiesAside />
-          </aside>
+        <div className="flex min-h-dvh">
+          {/* The one spine — the same rail the communities use, so the whole app is one frame. */}
+          <Spine me={me} communities={communities} dms={dms} activity={social} onAccount={() => open("account")} />
+          <div className="mx-auto flex min-w-0 max-w-[1205px] flex-1 justify-center">
+            <main id="main" className="min-h-dvh w-full min-w-0 max-w-[600px] md:border-x md:border-line" tabIndex={-1}>
+              {children}
+            </main>
+            {/* Right column from 1024px. */}
+            <aside className="sticky top-0 hidden h-dvh w-[316px] shrink-0 overflow-y-auto py-3 pl-6 scroll-thin lg:block xl:w-[350px]" aria-label="Your communities">
+              <CommunitiesAside />
+            </aside>
+          </div>
         </div>
-
-        {/* Phones: a tab bar. */}
-        <nav aria-label="Main" className={`${s.tabbar} cr-chrome fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur md:hidden`}>
-          <ul className="mx-auto flex h-16 max-w-md items-stretch justify-around">
-            {(
-              [
-                { key: "home", label: "Home", href: "/app", icon: HomeIcon },
-                { key: "communities", label: "Communities", href: "/app/communities", icon: HexIcon },
-                null,
-                { key: "messages", label: "Messages", href: "/app/dm", icon: ChatsIcon },
-                { key: "profile", label: "Profile", href: `/u/${me.username}`, icon: UserIcon },
-              ] as (NavItem | null)[]
-            ).map((n) =>
-              n ? (
-                <li key={n.key} className="flex flex-1">
-                  <Link
-                    href={n.href}
-                    aria-current={current === n.key ? "page" : undefined}
-                    aria-label={count(n.key) > 0 ? `${n.label}, ${badgeLabel(count(n.key))} new` : n.label}
-                    className={`flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${current === n.key ? "text-fg" : "text-muted"}`}
-                  >
-                    <span className="relative">
-                      <n.icon className="h-6 w-6" />
-                      {count(n.key) > 0 && (
-                        <span aria-hidden="true" data-n={badgeLabel(count(n.key))} className="absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg after:content-[attr(data-n)]" />
-                      )}
-                    </span>
-                    {n.label}
-                  </Link>
-                </li>
-              ) : (
-                <li key="post" className="flex flex-1 items-center justify-center">
-                  <button type="button" onClick={() => open("post")} className="btn-primary h-11 w-14 rounded-full px-0" aria-label="New post">
-                    <PlusIcon className="h-6 w-6" />
-                  </button>
-                </li>
-              ),
-            )}
-          </ul>
-        </nav>
 
         {sheet && <Sheets sheet={sheet} onClose={() => setSheet(null)} />}
       </div>
