@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useId } from "react";
-import { CreateCommunityForm, JoinCommunityForm } from "@/app/app/HomeForms";
+import { CreateCommunityForm, JoinCommunityForm } from "@/app/(spine)/app/HomeForms";
 import { Avatar } from "@/components/chat/Avatar";
 import { CloseIcon } from "@/components/chat/icons";
 import { ModalSheet } from "@/components/Dialogs";

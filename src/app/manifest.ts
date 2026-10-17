@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Ctrl Room",
     short_name: "Ctrl Room",
     description: "Where the collective talks. An OpenCtrl original.",
-    // ?launch=1: a phone reopens the last room (src/app/app/LaunchRedirect.tsx).
+    // ?launch=1: a phone reopens the last room (src/app/(spine)/app/LaunchRedirect.tsx).
     start_url: "/app?launch=1",
     scope: "/",
     display: "standalone",

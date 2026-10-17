@@ -66,7 +66,7 @@ export function rememberRoom(communitySlug: string, roomSlug: string): void {
   } catch {
     // storage blocked
   }
-  // The server reads this on a Home Screen launch (src/app/app/page.tsx) and goes straight to the room.
+  // The server reads this on a Home Screen launch (src/app/(spine)/(shell)/app/page.tsx) and goes straight to the room.
   try {
     const place = validPlace(`/c/${communitySlug}/${roomSlug}`);
     if (place) document.cookie = lastPlaceCookie(place, location.protocol === "https:");

@@ -13,7 +13,7 @@ import { desktopLaunch, LAST_PLACE_COOKIE, launchTarget } from "@/lib/lastPlace"
 import { loadShell } from "@/lib/shellData";
 import { FEED_PAGE, isFeedScope, type PostCard } from "@/lib/social";
 import { currentUser } from "@/lib/supabase/server";
-import { LaunchRedirect } from "@/app/app/LaunchRedirect";
+import { LaunchRedirect } from "@/app/(spine)/app/LaunchRedirect";
 
 export const metadata: Metadata = { title: "Home" };
 

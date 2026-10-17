@@ -6,7 +6,6 @@ import { PresenceProvider } from "@/components/chat/PresenceContext";
 import { ChatStage } from "@/components/chat/ChatStage";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
-import { CommunitySpine } from "@/components/chat/CommunitySpine";
 import { Logo } from "@/components/Logo";
 import { PushPrompt } from "@/components/push/PushPrompt";
 import { loadCommunity } from "@/lib/community";
@@ -70,9 +69,8 @@ export default async function CommunityLayout({ children, params }: { children: 
       <PresenceProvider>
         {/* Direct messages (0011) aren't part of the community; they're mounted here for the rail badge and alerts. */}
         <DmProvider me={me} base={`/c/${community.slug}/dm`}>
+        {/* Beside the Spine (the (spine) layout), which stays put while you move between communities. */}
         <div className="cr-shell cr-safe-top flex overflow-hidden">
-          {/* The same Spine as the rest of the app, so there's no jump tapping in and out of a community. */}
-          <CommunitySpine />
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
             {community.taken_down_at && (
               <p role="alert" className="shrink-0 border-b border-line bg-alert/15 px-4 py-2 text-center text-sm">

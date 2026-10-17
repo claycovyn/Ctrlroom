@@ -4,11 +4,10 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CommunityCover, CommunityIcon } from "@/components/CommunityMedia";
+import { CommunityCover } from "@/components/CommunityMedia";
 import { usePrompt } from "@/components/Dialogs";
-import { LogoMark } from "@/components/Logo";
 import { cloudErrorText } from "@/lib/cloudErrors";
-import { useBroadcast } from "@/lib/realtime";
+import { useBroadcast, useUserBroadcast } from "@/lib/realtime";
 import { applyChange, nextPosition, readCollapsed, renameSectionDialog, sidebarLayout, writeCollapsed } from "@/lib/rooms";
 import { disablePush, isPushActive } from "@/lib/pushClient";
 import { installSoundUnlock, play } from "@/lib/sounds";
@@ -16,12 +15,11 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { atLeast, type Room, type RoomSection, type Unread } from "@/lib/types";
 import type { NewRoom } from "./AddRoomDialog";
 import { NotificationsButton } from "./NotificationsButton";
-import { lastRoom, navigateWithTransition, prefetchRoute } from "./roomNav";
+import { navigateWithTransition, prefetchRoute } from "./roomNav";
 
 import { useOptionalDm } from "@/components/dm/DmContext";
-import { badgeLabel } from "@/lib/dms";
-import { keepNavOpenForNextCommunity, useCommunity } from "./CommunityContext";
-import { BellIcon, ChatsIcon, ChevronDownIcon, FeedIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SearchIcon, SettingsIcon, UserPlusIcon } from "./icons";
+import { useCommunity } from "./CommunityContext";
+import { BellIcon, ChevronDownIcon, FeedIcon, CloseIcon, MoreIcon, PinIcon, PlusIcon, SearchIcon, SettingsIcon, UserPlusIcon } from "./icons";
 import { OPEN_PANEL } from "./roomNav";
 import { HeadsetIcon } from "./icons";
 import { Avatar } from "./Avatar";
@@ -36,7 +34,7 @@ export function Sidebar() {
   const ctx = useCommunity();
   const presence = usePresence();
   const myStatus = presence ? (presence.manual === "invisible" ? "Appear offline" : presence.statusOf(ctx.me.id).label) : null;
-  const { me, role, community, communities, rooms, setRooms, sections, setSections, pins, togglePin, unreads, setUnreads, currentRoomId, setNavOpen } = ctx;
+  const { me, role, community, rooms, setRooms, sections, setSections, pins, togglePin, unreads, setUnreads, currentRoomId, setNavOpen } = ctx;
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = atLeast(role, "admin");
@@ -44,18 +42,9 @@ export function Sidebar() {
   const [error, setError] = useState<string | null>(null);
   const promptDialog = usePrompt();
   const dm = useOptionalDm();
-  const dmHref = `/c/${community.slug}/dm`;
-  const inDm = pathname === dmHref || pathname.startsWith(`${dmHref}/`);
   const [addingIn, setAddingIn] = useState<RoomSection | null>(null);
   // Pending join requests (0008), owners and admins only. Refreshed on the join_request event below.
   const [requests, setRequests] = useState(0);
-  // New follows, likes and replies on the Feed (0021), shown on the rail's Feed icon.
-  const [social, setSocial] = useState(0);
-  useEffect(() => {
-    void supabaseBrowser()
-      .rpc("my_activity_unseen")
-      .then(({ data }) => setSocial(typeof data === "number" ? data : 0));
-  }, []);
   const loadRequests = useCallback(async () => {
     if (!isAdmin) return setRequests(0);
     const { count } = await supabaseBrowser()
@@ -106,19 +95,6 @@ export function Sidebar() {
     setNavOpen(false);
   }, [pathname, setNavOpen]);
 
-  /** Phones: another community from the rail opens its rooms (over its last room, when there is one), like a native app. */
-  const communityHref = (slug: string) => {
-    const last = lastRoom(slug);
-    return last ? `/c/${slug}/${last}` : `/c/${slug}`;
-  };
-  const openCommunity = (e: React.MouseEvent<HTMLAnchorElement>, slug: string) => {
-    if (slug === community.slug || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    if (!window.matchMedia("(max-width: 767px)").matches) return;
-    e.preventDefault();
-    keepNavOpenForNextCommunity();
-    router.push(communityHref(slug));
-  };
-
   const notify = (title: string, body: string, url: string) => {
     // With push on for this device the system notification comes from the service worker instead.
     if (isPushActive() || typeof Notification === "undefined" || Notification.permission !== "granted") return;
@@ -153,8 +129,8 @@ export function Sidebar() {
     sections: (p: { op: string; section: RoomSection }) => setSections((list) => applyChange(list, p.op, p.section)),
   });
 
-  useBroadcast(`user:${me.id}`, {
-    // Direct messages (0011) share this channel (one per topic); DmProvider handles them.
+  useUserBroadcast(me.id, {
+    // Direct messages (0011) come on your topic too; DmProvider handles them.
     dm: (p: unknown) => dm?.handlers.dm(p),
     dm_update: (p: unknown) => dm?.handlers.dm_update(p),
     dm_reaction: (p: unknown) => dm?.handlers.dm_reaction(p),
@@ -165,11 +141,6 @@ export function Sidebar() {
       loadRequests();
       window.dispatchEvent(new CustomEvent("ctrlroom:join-requests"));
     },
-    // Feed activity: counted here, read on /app/feed/activity.
-    follow: () => setSocial((n) => n + 1),
-    follow_approved: () => setSocial((n) => n + 1),
-    post_like: () => setSocial((n) => n + 1),
-    post_reply: () => setSocial((n) => n + 1),
     mention: (p: { kind: string; room_id: string; community_id: string; author: string; preview: string }) => {
       // The user topic carries mentions from every community; the room's mute setting is only known for this one.
       play("mention", { roomNotify: p.community_id === community.id ? (unreads[p.room_id]?.notify ?? "mentions") : undefined });

@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { applyIncoming, badgeCount, dmAlert, markRead, type DmConversation, type DmEvent, type DmMessage, type DmReaction } from "@/lib/dms";
 import { readManual } from "@/lib/presence";
 import { isPushActive } from "@/lib/pushClient";
-import { useBroadcast } from "@/lib/realtime";
+import { useUserBroadcast } from "@/lib/realtime";
 import { installSoundUnlock, play } from "@/lib/sounds";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
@@ -181,7 +181,7 @@ export function DmProvider({ me, base, listen = false, children }: { me: Profile
     [],
   );
 
-  useBroadcast(listen ? `user:${me.id}` : null, stable);
+  useUserBroadcast(listen ? me.id : null, stable);
 
   const subscribe = useCallback((fn: (e: DmLiveEvent) => void) => {
     listeners.current.add(fn);
