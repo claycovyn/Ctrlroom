@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/chat/Avatar";
-import { BellIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon, CompassIcon, FeatherIcon, HexIcon, HomeIcon, MoreIcon, PlusIcon, SettingsIcon, UserIcon } from "@/components/chat/icons";
+import { BellIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon, CompassIcon, FeatherIcon, HexIcon, HomeIcon, MoreIcon, SettingsIcon, UserIcon } from "@/components/chat/icons";
 import { LogoMark } from "@/components/Logo";
 import { badgeCount, badgeLabel, type DmConversation } from "@/lib/dms";
 import { useBroadcast } from "@/lib/realtime";
@@ -14,6 +14,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Unread } from "@/lib/types";
 import { CommunitiesAside } from "./CommunitiesPanel";
 import { Ctx, type ShellCtx, type ShellSheet } from "./ShellContext";
+import { MobileTabBar } from "./MobileTabBar";
 import s from "./shell.module.css";
 
 // The sheets open on a tap: not part of the first load.
@@ -211,45 +212,8 @@ export function AppShell({ me, communities, cloud, children }: { me: ShellMe; co
           </aside>
         </div>
 
-        {/* Phones: a tab bar. */}
-        <nav aria-label="Main" className={`${s.tabbar} cr-chrome fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 backdrop-blur md:hidden`}>
-          <ul className="mx-auto flex h-16 max-w-md items-stretch justify-around">
-            {(
-              [
-                { key: "home", label: "Home", href: "/app", icon: HomeIcon },
-                { key: "communities", label: "Communities", href: "/app/communities", icon: HexIcon },
-                null,
-                { key: "messages", label: "Messages", href: "/app/dm", icon: ChatsIcon },
-                { key: "profile", label: "Profile", href: `/u/${me.username}`, icon: UserIcon },
-              ] as (NavItem | null)[]
-            ).map((n) =>
-              n ? (
-                <li key={n.key} className="flex flex-1">
-                  <Link
-                    href={n.href}
-                    aria-current={current === n.key ? "page" : undefined}
-                    aria-label={count(n.key) > 0 ? `${n.label}, ${badgeLabel(count(n.key))} new` : n.label}
-                    className={`flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium ${current === n.key ? "text-fg" : "text-muted"}`}
-                  >
-                    <span className="relative">
-                      <n.icon className="h-6 w-6" />
-                      {count(n.key) > 0 && (
-                        <span aria-hidden="true" data-n={badgeLabel(count(n.key))} className="absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg after:content-[attr(data-n)]" />
-                      )}
-                    </span>
-                    {n.label}
-                  </Link>
-                </li>
-              ) : (
-                <li key="post" className="flex flex-1 items-center justify-center">
-                  <button type="button" onClick={() => open("post")} className="btn-primary h-11 w-14 rounded-full px-0" aria-label="New post">
-                    <PlusIcon className="h-6 w-6" />
-                  </button>
-                </li>
-              ),
-            )}
-          </ul>
-        </nav>
+        {/* Phones: the one shared tab bar (also in the community and DM shells, so the nav never swaps). */}
+        <MobileTabBar me={{ id: me.id, username: me.username }} dms={dms} activity={social} onCompose={() => open("post")} />
 
         {sheet && <Sheets sheet={sheet} onClose={() => setSheet(null)} />}
       </div>
