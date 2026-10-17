@@ -228,24 +228,6 @@ html:has(.cr-shell) body {
 .cr-safe-bottom {
   padding-bottom: var(--cr-safe-bottom);
 }
-/* The shared phone tab bar (social, communities and DMs): clears the home indicator, hides with the keyboard. */
-.cr-tabbar {
-  padding-bottom: var(--cr-safe-bottom);
-  padding-left: var(--cr-safe-left);
-  padding-right: var(--cr-safe-right);
-}
-html.cr-kb .cr-tabbar {
-  display: none;
-}
-/* Content in the chat shells clears the fixed tab bar when it is shown. */
-.cr-has-tabbar {
-  padding-bottom: calc(4rem + var(--cr-safe-bottom));
-}
-@media (min-width: 768px) {
-  .cr-has-tabbar {
-    padding-bottom: 0;
-  }
-}
 
 /* Buttons, rails and headers aren't text: no selection or callout when you press and hold them. Messages stay
    selectable. */
