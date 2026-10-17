@@ -40,8 +40,16 @@ export function NativeFeel() {
           return;
         }
         const keyboard = window.innerHeight - vv.height > 120 && editable(document.activeElement);
-        root.style.setProperty("--cr-vh", `${Math.round(vv.height)}px`);
-        root.style.setProperty("--cr-kb-h", `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`);
+        // Only shrink the shell to the visible height while the keyboard is up. Otherwise let the CSS fall back to
+        // 100dvh: on iOS standalone (saved to the Home Screen) visualViewport.height can report short, which would
+        // leave the app off the bottom of the screen (a white strip under the home indicator).
+        if (keyboard) {
+          root.style.setProperty("--cr-vh", `${Math.round(vv.height)}px`);
+          root.style.setProperty("--cr-kb-h", `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`);
+        } else {
+          root.style.removeProperty("--cr-vh");
+          root.style.removeProperty("--cr-kb-h");
+        }
         root.classList.toggle("cr-kb", keyboard);
         // The shell already fits above the keyboard; undo Safari's scroll of the whole page.
         if (keyboard && window.scrollY !== 0 && document.querySelector(".cr-shell")) window.scrollTo(0, 0);
