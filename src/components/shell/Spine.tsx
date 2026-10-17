@@ -11,7 +11,9 @@ import { Avatar } from "@/components/chat/Avatar";
 import { BellIcon, ChatsIcon, HomeIcon, PlusIcon } from "@/components/chat/icons";
 import { LogoMark } from "@/components/Logo";
 import { badgeLabel } from "@/lib/dms";
-import type { ShellCommunity, ShellMe } from "@/lib/shell";
+import type { Profile } from "@/lib/types";
+
+type SpineCommunity = { id: string; slug: string; name: string; icon: string; icon_url?: string | null };
 
 /** A rail item (icon or community avatar) with the active pill and an optional unread badge. */
 function Item({ href, label, active, badge, onClick, children }: { href?: string; label: string; active?: boolean; badge?: number; onClick?: () => void; children: React.ReactNode }) {
@@ -34,7 +36,7 @@ function Item({ href, label, active, badge, onClick, children }: { href?: string
   );
 }
 
-export function Spine({ me, communities, dms, activity, activeCommunity, onAccount, className = "sticky top-0 h-dvh" }: { me: ShellMe; communities: ShellCommunity[]; dms: number; activity: number; activeCommunity?: string | null; onAccount?: () => void; className?: string }) {
+export function Spine({ me, communities, dms, activity, activeCommunity, onAccount, className = "sticky top-0 h-dvh" }: { me: Profile; communities: SpineCommunity[]; dms: number; activity: number; activeCommunity?: string | null; onAccount?: () => void; className?: string }) {
   const pathname = usePathname();
   const search = useSearchParams();
   const onFeed = (pathname === "/app" || pathname === "/app/feed" || (pathname.startsWith("/app/feed/") && !pathname.startsWith("/app/feed/activity"))) && !activeCommunity;

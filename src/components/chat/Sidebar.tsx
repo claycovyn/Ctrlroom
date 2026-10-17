@@ -238,65 +238,6 @@ export function Sidebar() {
       <aside
         className="cr-drawer cr-chrome fixed inset-y-0 left-0 z-40 flex w-[min(19rem,88vw)] shrink-0 border-r border-line bg-panel md:static md:w-[19rem]"
       >
-        {/* community rail */}
-        <nav className="scroll-thin flex w-16 shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-line bg-bg py-3" aria-label="Communities">
-          <Link href="/app" title="Home" className="mb-1">
-            <LogoMark className="h-10 w-10" />
-          </Link>
-          {dm && (
-            <Link
-              href={dmHref}
-              title="Direct messages"
-              aria-label={dm.badge > 0 ? `Direct messages, ${badgeLabel(dm.badge)} new` : "Direct messages"}
-              aria-current={inDm ? "page" : undefined}
-              className={`relative mb-1 flex h-10 w-10 items-center justify-center rounded-xl ${inDm ? "bg-signal text-signal-fg" : "bg-raised text-muted hover:bg-line hover:text-fg"}`}
-            >
-              <ChatsIcon className="h-5 w-5" />
-              {dm.badge > 0 && (
-                <span aria-hidden="true" className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg">
-                  {badgeLabel(dm.badge)}
-                </span>
-              )}
-            </Link>
-          )}
-          <Link
-            href={social > 0 ? "/app/feed/activity" : "/app"}
-            title="Feed"
-            aria-label={social > 0 ? `Feed, ${badgeLabel(social)} new` : "Feed"}
-            className="relative mb-1 flex h-10 w-10 items-center justify-center rounded-xl bg-raised text-muted hover:bg-line hover:text-fg"
-          >
-            <FeedIcon className="h-5 w-5" />
-            {social > 0 && (
-              <span aria-hidden="true" className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-signal px-1 text-center text-[10px] font-bold leading-[18px] text-signal-fg ring-2 ring-bg">
-                {badgeLabel(social)}
-              </span>
-            )}
-          </Link>
-          <span aria-hidden="true" className="mb-1 h-px w-8 bg-line" />
-          {communities.map((c) => (
-            <Link
-              key={c.id}
-              href={`/c/${c.slug}`}
-              onClick={(e) => openCommunity(e, c.slug)}
-              onTouchStart={() => c.id !== community.id && prefetchRoute(router, communityHref(c.slug))}
-              title={c.name}
-              aria-current={c.id === community.id && !inDm ? "page" : undefined}
-              className={`rounded-xl transition-colors ${
-                c.id === community.id && !inDm && community.icon_url ? "ring-2 ring-signal ring-offset-2 ring-offset-bg" : ""
-              }`}
-            >
-              <CommunityIcon
-                community={c}
-                className={`h-10 w-10 rounded-xl text-lg ${
-                  c.id === community.id && !inDm ? "bg-signal text-signal-fg" : "bg-raised hover:bg-line"
-                }`}
-              />
-            </Link>
-          ))}
-          <Link href="/app/communities" title="Create or join" className="flex h-10 w-10 items-center justify-center rounded-xl border border-dashed border-line text-muted hover:text-fg">
-            <PlusIcon />
-          </Link>
-        </nav>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <CommunityCover url={community.cover_url} className="border-b border-line" />
