@@ -1,25 +1,20 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { badgeCount, type DmConversation } from "@/lib/dms";
 import { UserTopicProvider, useUserTopicHub } from "@/lib/realtime";
 import { DM_READ_EVENT, SEEN_EVENT, type ShellCommunity, type ShellMe } from "@/lib/shell";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Spine } from "./Spine";
-
-type SpineCtx = { dms: number; activity: number; setAccount: (fn: (() => void) | null) => void };
-const Ctx = createContext<SpineCtx | null>(null);
-
-/** The badges the Spine shows, and a way for the page under it to take over the account button. */
-export const useSpine = () => useContext(Ctx);
+import { SpineContext } from "./SpineContext";
 
 /**
  * The frame around everything signed in: the Feed, profiles, DMs and every community (operator, 2026-10-17: tapping
  * into a community keeps the nav and swaps the content). A layout above both, so the Spine and its live badges stay
  * mounted while you move; it also owns your Realtime topic, which the pages under it share.
  */
-export function SpineFrame({ me, communities, children }: { me: ShellMe; communities: ShellCommunity[]; children: React.ReactNode }) {
+export function SpineShell({ me, communities, children }: { me: ShellMe; communities: ShellCommunity[]; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const activeCommunity = /^\/c\/([^/]+)/.exec(pathname)?.[1] ?? null;
@@ -83,7 +78,7 @@ export function SpineFrame({ me, communities, children }: { me: ShellMe; communi
 
   return (
     <UserTopicProvider value={hub}>
-      <Ctx.Provider value={ctx}>
+      <SpineContext.Provider value={ctx}>
         <div className="flex min-h-dvh bg-bg">
           <Spine
             me={me}
@@ -96,7 +91,7 @@ export function SpineFrame({ me, communities, children }: { me: ShellMe; communi
           />
           <div className="min-w-0 flex-1">{children}</div>
         </div>
-      </Ctx.Provider>
+      </SpineContext.Provider>
     </UserTopicProvider>
   );
 }

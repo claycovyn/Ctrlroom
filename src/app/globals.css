@@ -545,7 +545,7 @@ html.cr-kb .cr-sheet {
   }
 }
 
-/* The Spine (SpineFrame): full height of the visible screen, clear of the status bar and the home indicator. */
+/* The Spine (SpineShell): full height of the visible screen, clear of the status bar and the home indicator. */
 nav.cr-spine {
   height: var(--cr-vh, 100dvh);
   padding-top: calc(0.75rem + var(--cr-safe-top));

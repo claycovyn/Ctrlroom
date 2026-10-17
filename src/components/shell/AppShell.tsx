@@ -8,7 +8,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Unread } from "@/lib/types";
 import { CommunitiesAside } from "./CommunitiesPanel";
 import { Ctx, type ShellCtx, type ShellSheet } from "./ShellContext";
-import { useSpine } from "./SpineFrame";
+import { useSpine } from "./SpineContext";
 import s from "./shell.module.css";
 
 // The sheets open on a tap: not part of the first load.
@@ -30,7 +30,7 @@ function whenIdle(fn: () => void): () => void {
 
 /**
  * The signed-in social shell: the page in the middle and your communities on the right from 1024px, beside the Spine
- * (SpineFrame, which also keeps the DM and Activity badges). Mounted by the (shell) layout, so it stays put while you
+ * (SpineShell, which also keeps the DM and Activity badges). Mounted by the (shell) layout, so it stays put while you
  * move between the Feed, profiles and Settings.
  */
 export function AppShell({ me, communities, cloud, children }: { me: ShellMe; communities: ShellCommunity[]; cloud: boolean; children: React.ReactNode }) {

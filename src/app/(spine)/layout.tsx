@@ -1,4 +1,4 @@
-import { SpineFrame } from "@/components/shell/SpineFrame";
+import { SpineShell } from "@/components/shell/SpineShell";
 import { isConfigured } from "@/lib/env";
 import { loadShell } from "@/lib/shellData";
 
@@ -11,8 +11,8 @@ export default async function SpineLayout({ children }: { children: React.ReactN
   const data = await loadShell();
   if (!data) return children;
   return (
-    <SpineFrame me={data.me} communities={data.communities}>
+    <SpineShell me={data.me} communities={data.communities}>
       {children}
-    </SpineFrame>
+    </SpineShell>
   );
 }
